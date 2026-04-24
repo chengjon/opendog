@@ -21,9 +21,9 @@
 │  ┌───────────┐ ┌─────┴─────┐ ┌────────────┐            │
 │  │  Project   │ │  Monitor   │ │  Snapshot   │            │
 │  │  Manager   │ │  Engine    │ │  Engine     │            │
-│  │  CRUD      │ │  inotify   │ │  walkdir    │            │
-│  └─────┬─────┘ │  PID filter│ │  filtering  │            │
-│        │       └─────┬──────┘ └──────┬─────┘            │
+│  │  CRUD      │ │ /proc+inotify│ │  filtering  │            │
+│  └─────┬─────┘ │ AI scanner │ └──────┬─────┘            │
+│        │       └─────┬──────┘        │                    │
 │        │             │               │                    │
 │        ▼             ▼               ▼                    │
 │  ┌──────────────────────────────────────┐               │
@@ -45,20 +45,65 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
+## ⚠ Derived Design Decision: Process Attribution Strategy
+
+> **This is NOT in the original README. It is a derived design decision required because inotify does not provide process attribution.**
+
+**The problem:** Linux inotify(7) explicitly states: "The inotify API provides no information about the user or process that triggered the inotify event." There is no PID field in inotify events. The original README's "仅捕捉AI工具相关进程访问的文件" cannot be implemented by filtering inotify events by PID — the data simply doesn't exist.
+
+**The solution: Hybrid /proc scanning + inotify change detection**
+
+1. **Primary: Periodic /proc/<pid>/fd scanning** (every 2-5 seconds)
+   - Enumerate all processes via /proc, filter by whitelist (claude, codex, node, python, etc.)
+   - For each matched process, read /proc/<pid>/fd/ directory (symlinks to open files)
+   - Resolve each fd symlink → real file path
+   - Cross-reference with project snapshots → identify which project files are open
+   - Record: file_path, process_name, pid, timestamp, open state
+
+2. **Secondary: inotify via notify crate** for change detection
+   - Watch project directories for file modifications (IN_MODIFY, IN_CREATE, IN_DELETE)
+   - This tells us WHAT changed, but NOT who changed it
+   - Use timestamps to approximately attribute changes to AI processes seen in /proc scans
+
+3. **Approximate attribution logic:**
+   - If file F was modified at time T, AND /proc scan at time T±scan_interval showed an AI process had F open → attribute modification to that AI process
+   - Access count = number of /proc scans where file appeared as open fd
+   - Duration = sum of (close_time - open_time) estimated from consecutive scans
+   - **This is statistical sampling, not precise auditing.** Honest about limitations.
+
+**Tradeoffs:**
+- ✅ Actually works (unlike inotify+PID filtering which is impossible)
+- ✅ Non-intrusive (reads /proc, no ptrace or fanotify)
+- ⚠ Sampling-based (2-5s interval, may miss very brief file accesses)
+- ⚠ Approximate duration (based on scan intervals, not exact open/close)
+- ⚠ /proc access requires same-user or root permissions for other users' processes
+
 ## Data Flow
 
-### Flow 1: File Monitoring (hot path)
+### Flow 1: AI Process File Tracking (primary — /proc scanning)
 ```
-inotify event → EventReader (tokio task)
-  → extract (wd, mask, cookie, name)
-  → resolve watch descriptor → project path + file path
-  → PID lookup: read /proc/<pid>/stat → process name
-  → Process filter: whitelist check (name match?)
-    → No: check parent chain (/proc/<ppid>/stat up to 3 levels)
-    → Still no: discard event
-  → Yes (AI process): push to StatsChannel (tokio mpsc)
-    → StatsWriter (single writer task): batch + write to SQLite
-      → INSERT/UPDATE file_stats SET access_count++, last_access=now
+Timer (every 2-5s) → Scanner (tokio task)
+  → enumerate /proc/ entries
+  → for each pid: read /proc/<pid>/comm → process name
+  → whitelist match? (claude, codex, node, python, etc.)
+    → No: skip this process
+    → Yes: read /proc/<pid>/fd/ directory
+      → for each fd symlink: resolve to real path
+      → cross-reference with project snapshot paths
+      → if path belongs to a monitored project:
+        → record/update: file_path, process_name, pid, timestamp
+        → if newly appeared: mark as "opened" (access_count++)
+        → if disappeared since last scan: mark as "closed", compute duration
+```
+
+### Flow 1b: File Change Detection (secondary — inotify via notify)
+```
+notify event → EventReader (tokio task)
+  → extract (kind, paths)
+  → resolve to project path + file path
+  → record modification event with timestamp
+  → NO process attribution from inotify (impossible)
+  → approximate attribution: match timestamp against /proc scan records
 ```
 
 ### Flow 2: Snapshot
@@ -112,8 +157,8 @@ opendog/
 │   │   ├── mod.rs
 │   │   ├── project.rs       # Project CRUD, namespace management
 │   │   ├── snapshot.rs      # Recursive file scan, ignore patterns
-│   │   ├── monitor.rs       # inotify setup, per-project watch management
-│   │   ├── process.rs       # PID→name lookup, parent chain, whitelist
+│   │   ├── monitor.rs       # /proc scanner + inotify change detection
+│   │   ├── scanner.rs       # /proc/<pid>/fd enumeration, AI process detection
 │   │   └── stats.rs         # Usage stats queries, unused file detection
 │   │
 │   ├── storage/
@@ -154,7 +199,7 @@ Based on dependency analysis:
 |-------|------|-----------|----------|
 | 1 | Storage layer | nothing | SQLite schema, connection mgmt, all queries |
 | 2 | Core: project + snapshot | storage | Project CRUD, recursive file scanning |
-| 3 | Core: monitor + process | storage | inotify watching, PID filtering, event recording |
+| 3 | Core: monitor + /proc scanner | storage | /proc fd scanning, inotify change detection, approximate attribution |
 | 4 | Core: stats | storage | Usage queries, unused detection |
 | 5 | Service: MCP server | core (all) | 8 MCP tools over stdio JSON-RPC |
 | 6 | Service: CLI | core (all) | 8 CLI commands with terminal output |

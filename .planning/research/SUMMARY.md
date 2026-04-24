@@ -28,7 +28,7 @@
 
 ## Differentiators (competitive advantage)
 
-1. **AI process identification** — PID whitelist + parent chain (no other tool does this)
+1. **AI process file tracking** — /proc/<pid>/fd scanning + inotify change detection (no other tool does this). **⚠ Derived design**: inotify cannot provide PID attribution; /proc scanning is the viable alternative.
 2. **MCP server integration** — AI tools call OPENDOG directly
 3. **Access duration tracking** — open→close timing, not just access count
 4. **Unused file detection** — zero-access files since snapshot
@@ -44,9 +44,10 @@
 
 ## Critical Pitfalls to Address
 
-1. **inotify watch limit** — must check/increase `max_user_watches`, fall back for overflow
-2. **Event overflow** — tight read loop + async channel decoupling + snapshot diff on overflow
-3. **PID recycling** — snapshot process name alongside PID, accept statistical nature
+1. **⛔ FUNDAMENTAL: inotify provides NO PID info** — must use /proc/<pid>/fd scanning instead. See PIT-00.
+2. **inotify watch limit** — must check/increase `max_user_watches`, fall back for overflow
+3. **Event overflow** — tight read loop + async channel decoupling + snapshot diff on overflow
+4. **/proc scan limitations** — sampling-based (2-5s gaps), PID recycling, racy fd enumeration
 4. **SQLite write contention** — WAL mode + single writer + batch flushes + busy_timeout
 5. **MCP stdio corruption** — never print to stdout, flush after each message
 6. **WSL inotify on /mnt/** — only monitor Linux-native paths, detect and warn

@@ -69,12 +69,12 @@ These are features users expect from any file monitoring tool. Without them, use
 
 These features set OPENDOG apart from existing file monitoring tools. No current tool combines all of these.
 
-### DIFF-01: AI Process Identification (PID Whitelist + Parent Chain)
+### DIFF-01: AI Process File Tracking via /proc Scanning
 
-**What**: Filter file events to only those caused by AI tools (Claude Code, Codex, GPT, GLM), using process name whitelist and parent process chain matching.
-**Why differentiating**: No existing file monitor filters by process identity. inotify reports events with a `cookie` and `name` but the `wd` (watch descriptor) does not carry PID information directly. OPENDOG must use `/proc` filesystem to map inotify events to processes. The parent-chain strategy (check if any ancestor process matches known AI tool names) is novel.
-**Evidence**: inotify-tools has no process filtering. entr runs a specific command and only monitors files it lists. Watchman is process-agnostic.
-**OPENDOG implication**: Core differentiator. Requires reading `/proc/<pid>/comm` or `/proc/<pid>/cmdline` for each event's associated PID. Must handle PID recycling, zombie processes, and /proc race conditions. Configurable whitelist: ["claude", "codex", "python", "node", "gpt", "glm"].
+**What**: Identify which files AI tools (Claude Code, Codex, GPT, GLM) have open by periodically scanning /proc/<pid>/fd for whitelisted processes. Cross-reference with inotify change detection for approximate modification attribution.
+**Why differentiating**: No existing file monitor tracks per-process file usage. The approach is honest about being statistical sampling (not precise auditing) — 2-5s scan intervals capture sustained file usage but may miss very brief accesses.
+**Evidence**: inotify(7) explicitly states it provides NO process attribution data. Tools like `lsof` and `fuser` use /proc scanning for exactly this purpose — finding which processes have which files open. OPENDOG automates this at scale for AI development workflows.
+**OPENDOG implication**: Primary tracking via periodic /proc scanning (what files AI processes have open). Secondary change detection via inotify/notify (what files changed). Timestamp-based approximate attribution. Configurable whitelist: ["claude", "codex", "python", "node"]. This is a **derived design decision** — the original README assumed inotify could provide PID info, but it cannot.
 
 ### DIFF-02: MCP Server Integration
 
@@ -124,9 +124,9 @@ These features set OPENDOG apart from existing file monitoring tools. No current
 
 ---
 
-## Anti-Features
+## Anti-Features (Not in v1, per README scope)
 
-Things OPENDOG should deliberately NOT build, with reasons.
+Features excluded from v1 scope. README lists some of these as future expansion directions.
 
 ### ANTI-01: Auto-Cleanup / File Deletion
 

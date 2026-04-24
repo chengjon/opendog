@@ -2,6 +2,12 @@
 
 ## Critical Pitfalls (must address)
 
+### PIT-00: inotify Does NOT Provide Process Attribution ⛔ FUNDAMENTAL
+**Description:** Linux inotify(7) explicitly states: *"The inotify API provides no information about the user or process that triggered the inotify event."* There is no PID field in inotify events. **You cannot filter inotify events by process.** The original README's goal of "仅捕捉AI工具相关进程访问的文件" cannot be achieved by reading PID from inotify events — the data does not exist.
+**Warning signs:** Any design that says "from inotify event, get PID, check /proc" — this is impossible.
+**Prevention:** Use a completely different approach: **periodic /proc/<pid>/fd scanning** as the primary method. See ARCHITECTURE.md "Derived Design Decision: Process Attribution Strategy" for the full solution. inotify is used only for change detection (what changed), not for process attribution (who changed it).
+**Phase:** Phase 2 — this determines the entire monitoring architecture.
+
 ### PIT-01: inotify Watch Limit Exhaustion
 **Description:** Linux caps inotify watches per user (default: 8192 on WSL, 524288 on some distros). Large projects with many directories will silently fail to create watches.
 **Warning signs:** Files in deeply nested directories not appearing in monitoring data; `ENOENT` or "no space left on device" errors from inotify.
@@ -14,11 +20,11 @@
 **Prevention:** Read events in a tight loop with minimal processing. Decouple event reading from database writes via an async channel (tokio mpsc). Log overflow events. On overflow, trigger a snapshot diff to catch missed changes.
 **Phase:** Phase 2 (monitoring engine) — core event loop design.
 
-### PIT-03: PID Recycling and Race Conditions
-**Description:** PIDs are recycled on Linux. A PID that was an AI tool may later belong to an unrelated process. Reading `/proc/<pid>` is inherently racy — the process may exit between checking and reading.
-**Warning signs:** Impossible file access patterns (e.g., system tools showing up as AI access).
-**Prevention:** Snapshot the process name alongside the PID when recording events. Accept that some events may be attributed incorrectly — this is statistical sampling, not auditing. Use `/proc/<pid>/cmdline` atomically. Set a short time window for process lookups (don't cache PID→name mappings).
-**Phase:** Phase 2 (process filtering).
+### PIT-03: /proc Scan Limitations (sampling gaps, not event-level attribution)
+**Description:** The /proc scanning approach is inherently sampling-based. A process may open and close a file between scan intervals (2-5s). PID recycling means a PID that was claude may become an unrelated process by the next scan. Reading /proc/<pid>/fd is racy — fd symlinks may vanish mid-enumeration.
+**Warning signs:** Brief file accesses (< scan interval) not recorded; impossible file access patterns.
+**Prevention:** Accept this as statistical sampling, not precise auditing. Use procfs crate for robust /proc parsing. Snapshot process name alongside PID on each scan. Keep scan interval configurable. Document that this is approximate attribution.
+**Phase:** Phase 2 (monitoring engine).
 
 ### PIT-04: SQLite Write Contention
 **Description:** SQLite uses file-level locking. Multiple monitoring threads writing to the same database will contend, causing `SQLITE_BUSY` errors and potential data loss.
