@@ -11,10 +11,16 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "process"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "registry"] }
+tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "process", "signal", "rt"] }
 notify = "8.2"
 procfs = "0.18"
+rmcp = { version = "1.5", features = ["server", "transport-io"] }
+clap = { version = "4", features = ["derive"] }
+schemars = "0.8"
+ctrlc = "3"
+sd-notify = "0.5"
+tracing-journald = "0.3"
 
 [profile.release]
 opt-level = "z"

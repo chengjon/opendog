@@ -1,0 +1,31 @@
+[Unit]
+Description=OPENDOG — Multi-project file monitor for AI workflows
+Documentation=https://github.com/user/opendog
+After=local-fs.target
+Wants=network.target
+
+[Service]
+Type=notify
+NotifyAccess=all
+ExecStart=/usr/local/bin/opendog daemon
+Restart=on-failure
+RestartSec=5
+
+# Resource limits (DAEM-01)
+MemoryMax=10M
+CPUQuota=1%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=opendog
+
+# Security hardening
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.opendog
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

@@ -17,6 +17,7 @@ const INOTIFY_MAX_WATCHES_PATH: &str = "/proc/sys/fs/inotify/max_user_watches";
 
 pub struct MonitorHandle {
     running: Arc<AtomicBool>,
+    #[allow(dead_code)]
     root_path: PathBuf,
 }
 
