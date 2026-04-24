@@ -32,6 +32,8 @@ enum Cli {
         #[arg(short, long)]
         id: String,
     },
+    /// Run as stdio MCP server (for AI clients)
+    Mcp,
     /// Show usage statistics for a project
     Stats {
         /// Project identifier
@@ -67,6 +69,10 @@ pub fn run() {
         Cli::Create { id, path } => cmd_create(&pm, &id, &path),
         Cli::Snapshot { id } => cmd_snapshot(&pm, &id),
         Cli::Start { id } => cmd_start(&pm, &id),
+        Cli::Mcp => {
+            crate::mcp::run_stdio();
+            return;
+        }
         Cli::Stats { id } => cmd_stats(&pm, &id),
         Cli::Unused { id } => cmd_unused(&pm, &id),
         Cli::List => cmd_list(&pm),
@@ -104,16 +110,18 @@ fn cmd_start(pm: &ProjectManager, id: &str) -> Result<(), OpenDogError> {
 
     println!("Starting monitor for project '{}'...", id);
     let handle = monitor::start_monitor(&info.db_path, info.root_path.clone(), info.config.clone())?;
+    let stop_requested = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let stop_requested_handler = stop_requested.clone();
+    ctrlc::set_handler(move || {
+        stop_requested_handler.store(true, std::sync::atomic::Ordering::Relaxed);
+    })
+    .map_err(|e| OpenDogError::Io(std::io::Error::other(e.to_string())))?;
 
     println!("Monitor running. Press Ctrl+C to stop.");
-    // Block until Ctrl+C
-    let _ = ctrlc::set_handler(|| {
-        // Handled by main thread below
-    });
-    // Simple spin-wait — the MonitorHandle::is_running check
-    while handle.is_running() {
+    while handle.is_running() && !stop_requested.load(std::sync::atomic::Ordering::Relaxed) {
         std::thread::sleep(std::time::Duration::from_secs(1));
     }
+    handle.stop();
     println!("Monitor stopped.");
     Ok(())
 }

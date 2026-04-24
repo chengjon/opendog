@@ -63,8 +63,7 @@ pub struct ProjectInfo {
 }
 
 pub fn data_dir() -> PathBuf {
-    let base = dirs().join("data");
-    base
+    dirs().join("data")
 }
 
 pub fn registry_path() -> PathBuf {

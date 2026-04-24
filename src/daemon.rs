@@ -2,7 +2,8 @@ use tracing::{error, info, warn};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-use crate::mcp::OpenDogServer;
+use crate::core::monitor::{self, MonitorHandle};
+use crate::core::project::ProjectManager;
 
 const PID_FILE: &str = "daemon.pid";
 
@@ -24,12 +25,21 @@ pub fn run() {
 }
 
 async fn run_daemon() -> crate::error::Result<()> {
-    use rmcp::ServiceExt;
-
     write_pid_file();
+    let pm = ProjectManager::new()?;
+    let mut handles: Vec<(String, MonitorHandle)> = Vec::new();
 
-    let server = OpenDogServer::new()?;
-    let transport = (tokio::io::stdin(), tokio::io::stdout());
+    for project in pm.list()? {
+        match monitor::start_monitor(&project.db_path, project.root_path.clone(), project.config.clone()) {
+            Ok(handle) => {
+                info!(project_id = %project.id, "Started background monitor");
+                handles.push((project.id, handle));
+            }
+            Err(e) => {
+                warn!(project_id = %project.id, error = %e, "Failed to start background monitor");
+            }
+        }
+    }
 
     info!("OPENDOG daemon starting");
 
@@ -40,15 +50,16 @@ async fn run_daemon() -> crate::error::Result<()> {
 
     // DAEM-03: graceful shutdown on SIGTERM
     tokio::select! {
-        result = server.serve(transport) => {
-            if let Err(e) = result {
-                error!("Server error: {}", e);
-            }
-        }
         _ = tokio::signal::ctrl_c() => {
-            info!("Received Ctrl+C, shutting down");
+            info!("Received shutdown signal");
         }
     }
+
+    for (project_id, handle) in &handles {
+        info!(project_id = %project_id, "Stopping background monitor");
+        handle.stop();
+    }
+    std::thread::sleep(std::time::Duration::from_millis(250));
 
     // Notify systemd we're stopping
     let _ = sd_notify::notify(&[sd_notify::NotifyState::Stopping]);

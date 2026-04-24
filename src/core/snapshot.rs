@@ -102,9 +102,8 @@ fn should_ignore(rel_path: &str, config: &ProjectConfig) -> bool {
     for pattern in &config.ignore_patterns {
         // Check if pattern matches any path component (directory-level filter)
         for component in &components {
-            if pattern.starts_with('*') {
+            if let Some(suffix) = pattern.strip_prefix('*') {
                 // Glob suffix pattern like "*.pyc"
-                let suffix = &pattern[1..];
                 if component.ends_with(suffix) {
                     return true;
                 }

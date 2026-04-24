@@ -28,8 +28,8 @@ pub fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEntry]) {
     }
 
     println!(
-        "  {:40} {:>8} {:>12} {:>8} {}",
-        "PATH", "ACCESSES", "DURATION(ms)", "MODS", "LAST ACCESS"
+        "  {:40} {:>8} {:>12} {:>8} LAST ACCESS",
+        "PATH", "ACCESSES", "DURATION(ms)", "MODS"
     );
     println!("{}", "─".repeat(90));
     for e in entries.iter().take(50) {
@@ -65,8 +65,8 @@ pub fn print_project_list(projects: &[ProjectInfo]) {
     }
 
     println!(
-        "  {:20} {:40} {:10} {}",
-        "ID", "ROOT PATH", "STATUS", "CREATED"
+        "  {:20} {:40} {:10} CREATED",
+        "ID", "ROOT PATH", "STATUS"
     );
     println!("{}", "─".repeat(100));
     for p in projects {

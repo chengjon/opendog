@@ -125,7 +125,7 @@ pub fn get_snapshot_paths(db: &Database) -> Result<Vec<String>> {
 }
 
 pub fn clear_snapshot(db: &Database) -> Result<usize> {
-    Ok(db.execute("DELETE FROM snapshot", params![])?)
+    db.execute("DELETE FROM snapshot", params![])
 }
 
 // --- File stats queries (defined for Phase 3, written now for schema completeness) ---

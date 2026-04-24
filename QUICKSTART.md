@@ -63,10 +63,28 @@ OPENDOG exposes an MCP server over stdio transport. Configure it in your AI tool
   "mcpServers": {
     "opendog": {
       "command": "opendog",
-      "args": ["daemon"]
+      "args": ["mcp"]
     }
   }
 }
+```
+
+**OpenAI Codex CLI** (`~/.codex/config.json`):
+```json
+{
+  "mcpServers": {
+    "opendog": {
+      "command": "opendog",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Or use the `opendog mcp` subcommand directly as an MCP stdio server:
+```bash
+opendog mcp    # Starts MCP server on stdio (for any MCP client)
+opendog daemon  # Same as mcp, plus sd_notify + journald (for systemd)
 ```
 
 **8 MCP Tools Available:**
