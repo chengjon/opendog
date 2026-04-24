@@ -2,7 +2,7 @@
 
 **Created:** 2026-04-24
 **Phases:** 5
-**Requirements:** 42 (all mapped)
+**Requirements:** 43 (all mapped)
 **Mode:** YOLO | Standard granularity | Parallel execution
 
 ---
@@ -64,7 +64,7 @@
 **Requirements:** STAT-01, STAT-02, STAT-03, STAT-04, STAT-05, STAT-06, STAT-07, STAT-08
 
 **Success Criteria:**
-1. Access count, duration, modification count, and last access are correctly recorded per file
+1. Access count, estimated duration, modification count, and last access are correctly recorded per file
 2. Unused file query returns only files in snapshot with zero AI access records
 3. Core file query returns files ranked by access frequency/duration
 4. Statistics survive daemon restart (persistent in SQLite)
@@ -95,8 +95,8 @@
 5. Both interfaces produce identical results for the same operations
 
 **Plans:**
-1. MCP protocol layer (JSON-RPC 2.0 types, stdin/stdout framing, message parsing)
-2. MCP tool definitions and handlers (8 tools, parameter validation, response formatting)
+1. MCP integration layer (rmcp stdio transport, server setup, capability registration)
+2. MCP tool definitions and handlers (8 tools, parameter validation, response formatting via rmcp)
 3. CLI framework (clap derive, 8 subcommands, shared handler functions)
 4. CLI output formatting (tables, colors, summary views)
 5. MCP server lifecycle (initialize, tool listing, request dispatch)

@@ -21,11 +21,11 @@ These are features users expect from any file monitoring tool. Without them, use
 **Evidence**: Watchman uses `.watchmanconfig` with ignore patterns. entr takes an explicit file list via stdin (opt-in model). inotify-tools has `--exclude` patterns. Every production watcher must filter or it drowns in noise from dependency directories.
 **OPENDOG implication**: Configurable ignore patterns per project. Sensible defaults covering common dependency/cache/build directories across JavaScript, Python, Rust, and Go projects.
 
-### TS-03: File Event Types (Create, Modify, Delete, Move, Access)
+### TS-03: Observation Types (Create, Modify, Delete, Move, Open-File Sighting)
 
-**What**: Detect and distinguish between file creation, modification, deletion, rename/move, and read access.
-**Evidence**: inotify provides IN_ACCESS, IN_MODIFY, IN_CREATE, IN_DELETE, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_CLOSE (Write/NoWrite). Watchman tracks name, exists, new, size, mode, mtime_ns, ctime_ns. All tools report at minimum create/modify/delete.
-**OPENDOG implication**: Must capture IN_OPEN/IN_CLOSE for duration tracking, IN_ACCESS for read tracking, IN_MODIFY for change tracking, IN_CREATE/IN_DELETE for file lifecycle. Move events need paired handling (IN_MOVED_FROM + IN_MOVED_TO).
+**What**: Detect and distinguish between file creation, modification, deletion, rename/move, and whether an AI process currently has a file open.
+**Evidence**: inotify provides create/modify/delete/move signals but no process identity. `/proc/<pid>/fd` enumeration provides open-file visibility for specific processes. Together they cover the required observation space.
+**OPENDOG implication**: Use inotify/notify for create/modify/delete/move. Use periodic `/proc/<pid>/fd` scanning for open-file sightings. Treat access/duration as approximate metrics derived from repeated sightings, not exact event pairs.
 
 ### TS-04: Resource Budget Compliance
 
@@ -55,7 +55,7 @@ These are features users expect from any file monitoring tool. Without them, use
 
 **What**: Show what files were accessed, how often, and when.
 **Evidence**: inotifywatch generates aggregate filesystem statistics. Watchman supports since/clock queries for change sets. entr reports exit status of the child command.
-**OPENDOG implication**: get_stats MCP tool returning per-file access counts, duration, modification counts, last access time. get_unused_files returning zero-access files. CLI stats command with formatted output.
+**OPENDOG implication**: get_stats MCP tool returning per-file access counts, estimated duration, modification counts, last access time. get_unused_files returning zero-access files. CLI stats command with formatted output.
 
 ### TS-09: Non-Intrusive Operation
 
@@ -83,12 +83,12 @@ These features set OPENDOG apart from existing file monitoring tools. No current
 **Evidence**: MCP reference servers (filesystem, git, memory) demonstrate the pattern. MCP SDKs exist for Rust. stdio transport is the standard for CLI-integrated servers.
 **OPENDOG implication**: 8 MCP tools with JSON Schema input validation. Proper MCP error handling (isError field, not protocol errors). Tool annotations (readOnlyHint for get_stats/get_unused_files/list_projects, destructiveHint for delete_project). Capability advertisement on initialize.
 
-### DIFF-03: Access Duration Tracking
+### DIFF-03: Approximate Usage Duration Tracking
 
-**What**: Track how long files are held open, not just whether they were accessed.
-**Why differentiating**: No standard file monitor tracks duration. inotify reports IN_OPEN and IN_CLOSE events separately. By pairing them with timestamps, OPENDOG can calculate per-file "attention time" -- a unique metric showing which files AI tools spend the most time on.
-**Evidence**: inotify provides IN_OPEN and IN_CLOSE_WRITE/IN_CLOSE_NOWRITE. This pairing is used by no major monitoring tool for duration calculation.
-**OPENDOG implication**: Must track open file handles in memory (hashmap from inode+pid to open timestamp). On IN_CLOSE, calculate duration and accumulate. Handle missing close events (orphaned opens) with a timeout cleanup sweep.
+**What**: Estimate how long files remain open in AI processes, not just whether they were observed.
+**Why differentiating**: Most file monitors report changes, not sustained attention. OPENDOG derives a useful "attention time" metric from consecutive `/proc` scan sightings, which is enough to rank core files even though it is approximate.
+**Evidence**: Tools like `lsof`/`fuser` show point-in-time open files, but do not accumulate historical duration metrics for AI workflows. Repeated sampling makes that possible.
+**OPENDOG implication**: Maintain per-file/per-process open-state across scans. When a file first appears, mark it opened; while it continues appearing, accumulate elapsed scan intervals; when it disappears, close the interval. Document that brief accesses may be missed.
 
 ### DIFF-04: Unused File Detection
 
@@ -228,7 +228,7 @@ TS-07 (CLI) ---------> DIFF-07 (Dual Interface) <-- DIFF-02 (MCP Server)
 | TS-05 Persistent Storage | DIFF-06 | Per-project SQLite databases |
 | DIFF-01 AI Process ID | DIFF-06 | Process filtering is per-project (each project may watch different process sets) |
 | TS-03 File Events | TS-05 | Events need to be persisted to database |
-| DIFF-03 Duration Tracking | TS-03, TS-05 | Requires IN_OPEN/IN_CLOSE event pairing + persistence |
+| DIFF-03 Duration Tracking | TS-03, TS-05 | Requires repeated `/proc` open-file sightings + persistence |
 | DIFF-04 Unused Detection | TS-03, TS-05, DIFF-06 | Snapshot minus access stats comparison, stored per project |
 | DIFF-05 Core File ID | DIFF-04 | Builds on the same stats data as unused detection |
 | TS-04 Resource Budget | DIFF-06 | Resource limits must be enforced across all projects |
@@ -248,9 +248,9 @@ The longest dependency chain determines the minimum build sequence:
 3. **TS-02** Smart Filtering (ignore patterns applied during watch setup)
 4. **DIFF-06** Multi-Project Isolation (project manager with per-project watch sets)
 5. **TS-05** Persistent Storage (SQLite schema, per-project database files)
-6. **DIFF-01** AI Process Identification (PID whitelist + parent chain)
-7. **TS-03** File Event Handling (full event capture pipeline with process filtering)
-8. **DIFF-03** Duration Tracking (open/close pairing)
+6. **DIFF-01** AI Process Identification (`/proc` scanning + whitelist)
+7. **TS-03** Observation Pipeline (inotify change events + `/proc` file sightings)
+8. **DIFF-03** Duration Tracking (consecutive scan sightings)
 9. **DIFF-04** Unused File Detection (snapshot vs stats comparison)
 10. **TS-08** Basic Reporting (query and format stats)
 11. **DIFF-05** Core File Identification (scoring from stats)

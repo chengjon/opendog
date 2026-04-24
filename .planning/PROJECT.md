@@ -58,7 +58,7 @@ Accurately identify which project files AI tools actually use and which are dead
 |----------|-----------|---------|
 | Rust as implementation language | Memory safety + low overhead for long-running daemon | — Pending |
 | Per-project SQLite isolation | Zero cross-project data leakage, simple backup/deletion | — Pending |
-| PID whitelist + parent chain for process filtering | Accurate AI process identification without kernel modules | — Pending |
+| /proc/<pid>/fd scanning + process whitelist for approximate attribution | inotify cannot provide PID; /proc scanning is the viable non-intrusive alternative | — Pending |
 | MCP stdio transport | Standard for CLI-integrated MCP servers, matches Claude Code integration | — Pending |
 | inotify for file watching | Kernel-level, non-intrusive, no filesystem modifications needed | — Pending |
 

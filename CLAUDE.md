@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OPENDOG** — A multi-project file monitoring system for AI development workflows on WSL. Tracks which files AI tools (Claude Code, Codex, GPT, GLM) access, identifying unused/stale files vs actively-used core files. Dual interface: MCP server (stdio) for AI tool integration + CLI for manual management.
 
-**Current state**: Planning complete. 42 requirements across 5 phases defined in `.planning/`. No source code yet — ready for Phase 1 implementation.
+**Current state**: Planning complete. 43 requirements across 5 phases defined in `.planning/`. No source code yet — ready for Phase 1 implementation.
 
 **Authors**: JohnC (ninjas@sina.com) + Claude (GLM-5.1) + CodeX (GPT-5.4)
 
@@ -106,7 +106,7 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 All in `.planning/`:
 - `PROJECT.md` — project context, requirements, constraints, key decisions
-- `REQUIREMENTS.md` — 42 requirements with REQ-IDs and traceability
+- `REQUIREMENTS.md` — 43 requirements with REQ-IDs and traceability
 - `ROADMAP.md` — 5 phases with success criteria and plan breakdown
 - `STATE.md` — current phase status
 - `config.json` — GSD workflow settings (YOLO mode, standard granularity, parallel)
