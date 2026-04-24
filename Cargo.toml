@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["JohnC <ninjas@sina.com>", "Claude (GLM-5.1)", "CodeX (GPT-5.4)"]
 
 [dependencies]
-# Phase 1
 rusqlite = { version = "0.39", features = ["bundled"] }
 walkdir = "2"
 serde = { version = "1.0", features = ["derive"] }
@@ -13,9 +12,9 @@ serde_json = "1.0"
 thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Phase 2+ (added early for type integration)
-tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "process"] }
+notify = "8.2"
+procfs = "0.18"
 
 [profile.release]
 opt-level = "z"

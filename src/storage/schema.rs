@@ -24,12 +24,31 @@ CREATE TABLE IF NOT EXISTS file_stats (
     estimated_duration_ms INTEGER NOT NULL DEFAULT 0,
     modification_count  INTEGER NOT NULL DEFAULT 0,
     last_access_time    TEXT,
-    first_seen_time     TEXT NOT NULL,
+    first_seen_time     TEXT,
     last_updated        TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS file_sightings (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_path     TEXT NOT NULL,
+    process_name  TEXT NOT NULL,
+    pid           INTEGER NOT NULL,
+    seen_at       TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS file_events (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_path     TEXT NOT NULL,
+    event_type    TEXT NOT NULL,
+    event_time    TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_snapshot_file_type ON snapshot(file_type);
 CREATE INDEX IF NOT EXISTS idx_file_stats_access_count ON file_stats(access_count);
+CREATE INDEX IF NOT EXISTS idx_file_sightings_file ON file_sightings(file_path);
+CREATE INDEX IF NOT EXISTS idx_file_sightings_time ON file_sightings(seen_at);
+CREATE INDEX IF NOT EXISTS idx_file_events_file ON file_events(file_path);
+CREATE INDEX IF NOT EXISTS idx_file_events_time ON file_events(event_time);
 "#;
 
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;

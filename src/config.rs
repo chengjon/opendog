@@ -27,12 +27,27 @@ const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectConfig {
     pub ignore_patterns: Vec<String>,
+    #[serde(default = "default_process_whitelist")]
+    pub process_whitelist: Vec<String>,
+}
+
+fn default_process_whitelist() -> Vec<String> {
+    vec![
+        "claude".to_string(),
+        "codex".to_string(),
+        "node".to_string(),
+        "python".to_string(),
+        "python3".to_string(),
+        "gpt".to_string(),
+        "glm".to_string(),
+    ]
 }
 
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             ignore_patterns: DEFAULT_IGNORE_PATTERNS.iter().map(|s| s.to_string()).collect(),
+            process_whitelist: default_process_whitelist(),
         }
     }
 }
