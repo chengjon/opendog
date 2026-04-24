@@ -83,8 +83,8 @@ OPENDOG exposes an MCP server over stdio transport. Configure it in your AI tool
 
 Or use the `opendog mcp` subcommand directly as an MCP stdio server:
 ```bash
-opendog mcp    # Starts MCP server on stdio (for any MCP client)
-opendog daemon  # Same as mcp, plus sd_notify + journald (for systemd)
+opendog mcp      # Starts MCP server on stdio (for any MCP client)
+opendog daemon   # Starts background monitors for all active projects (for systemd)
 ```
 
 **8 MCP Tools Available:**
@@ -94,7 +94,7 @@ opendog daemon  # Same as mcp, plus sd_notify + journald (for systemd)
 | `create_project` | Register project with ID and root path |
 | `take_snapshot` | Trigger recursive file scan |
 | `start_monitor` | Begin /proc scanning + inotify monitoring |
-| `stop_monitor` | Stop monitoring |
+| `stop_monitor` | Stop monitoring within the MCP server process |
 | `get_stats` | Per-file access count, duration, modifications |
 | `get_unused_files` | Never-accessed files (cleanup candidates) |
 | `list_projects` | All registered projects and status |
@@ -120,7 +120,8 @@ Resource limits: <1% CPU idle, <10MB RAM.
 ```
 ┌─────────────────────────────────────────────────┐
 │  AI Tool (Claude/Codex/GPT)                     │
-│    └── MCP stdio ←→ opendog daemon              │
+│    ├── MCP stdio ←→ opendog mcp                 │
+│    └── systemd/background → opendog daemon      │
 └─────────────────────────────────────────────────┘
                     │
     ┌───────────────┼───────────────┐

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**OPENDOG** — A multi-project file monitoring system for AI development workflows on WSL. Tracks which files AI tools (Claude Code, Codex, GPT, GLM) access, identifying unused/stale files vs actively-used core files. Dual interface: MCP server (stdio) for AI tool integration + CLI for manual management.
+**OPENDOG** — A multi-project file monitoring system for AI development workflows on WSL. Tracks which files AI tools (Claude Code, Codex, GPT, GLM) access, identifying unused/stale files vs actively-used core files. It exposes an MCP stdio server for AI tool integration and separate CLI/daemon modes for manual and background operation.
 
 **Current state**: Planning complete. 43 requirements across 5 phases defined in `.planning/`. No source code yet — ready for Phase 1 implementation.
 
@@ -57,7 +57,7 @@ Full dependency list in `.planning/research/STACK.md`.
 ### Layered Architecture
 
 ```
-Service:  MCP server (rmcp/stdio) + CLI (clap) → shared handlers → core
+Service:  MCP stdio server (rmcp) + CLI (clap) + daemon supervisor → core
 Core:     Project Manager + Monitor (/proc scanner + inotify) + Snapshot + Stats
 Storage:  Per-project SQLite (.db files, WAL mode, single-writer pattern)
 Base:     WSL (Linux kernel) + systemd
@@ -100,7 +100,7 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 ## CLI Commands (8)
 
-`opendog create --id <ID> --path <DIR>`, `opendog snapshot --id <ID>`, `opendog start --id <ID>`, `opendog stop --id <ID>`, `opendog stats --id <ID>`, `opendog unused --id <ID>`, `opendog list`, `opendog delete --id <ID>`
+`opendog create --id <ID> --path <DIR>`, `opendog snapshot --id <ID>`, `opendog start --id <ID>`, `opendog mcp`, `opendog stats --id <ID>`, `opendog unused --id <ID>`, `opendog list`, `opendog delete --id <ID>`, `opendog daemon`
 
 ## Planning Artifacts
 

@@ -4,14 +4,14 @@
 
 ## What This Project Does
 
-OPENDOG is a Rust-based multi-project file monitoring system for AI development workflows on WSL2/Linux. It tracks which project files AI tools (Claude Code, Codex, GPT, GLM) actually access, and identifies unused/stale files vs. actively-used core files. It provides dual interfaces: an MCP server (stdio) for AI tool integration and a CLI for manual management.
+OPENDOG is a Rust-based multi-project file monitoring system for AI development workflows on WSL2/Linux. It tracks which project files AI tools (Claude Code, Codex, GPT, GLM) actually access, and identifies unused/stale files vs. actively-used core files. It provides an MCP stdio server for AI tool integration plus separate CLI and daemon modes for manual/background management.
 
 ## Architecture Overview
 
 ```
-Layer:  CLI (clap) ─┐
-       MCP (rmcp) ──┼─► shared handlers ─► core ─► storage (SQLite)
-       Daemon ──────┘
+Layer:  CLI (clap) ─────┐
+       MCP stdio (rmcp) ┼─► shared handlers / core ─► storage (SQLite)
+       Daemon supervisor┘
 ```
 
 ### Key Design Decisions
@@ -32,7 +32,7 @@ src/
   lib.rs               # Module declarations
   config.rs            # ProjectConfig (ignore patterns, process whitelist), ProjectInfo
   error.rs             # OpenDogError (thiserror), Result type alias
-  daemon.rs            # Daemon mode: sd_notify, SIGTERM handler, WSL detection, journald
+  daemon.rs            # Daemon mode: sd_notify, SIGTERM handler, WSL detection, starts background monitors
   core/
     project.rs         # ProjectManager — CRUD, registry DB, per-project DB access
     snapshot.rs        # take_snapshot() — walkdir scan, ignore filtering, incremental update
@@ -125,8 +125,8 @@ src/
 2. **Approximate attribution only** — 2-5s sampling interval may miss brief file accesses
 3. **No cross-process state** — CLI commands are one-shot; monitor handles are per-process (MCP server tracks them in-memory)
 4. **No config persistence** — ProjectConfig is stored as JSON in registry but never modified after creation (v2: CONF-01..03)
-5. **CLI `start` blocks** — The `start` command runs until Ctrl+C; no background daemon support from CLI (use `opendog daemon` for systemd)
-6. **Single-threaded MCP** — One tool call at a time (Mutex-locked). Sufficient for stdio transport.
+5. **CLI `start` blocks** — The `start` command runs until Ctrl+C by design; background supervision lives in `opendog daemon`
+6. **Single-process MCP monitor state** — `start_monitor` / `stop_monitor` only manage monitors created inside the current `opendog mcp` process
 
 ## Requirements Traceability
 
