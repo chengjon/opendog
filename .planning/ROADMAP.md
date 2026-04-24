@@ -31,26 +31,27 @@
 
 ---
 
-## Phase 2: Monitoring Engine — inotify + Process Filtering
+## Phase 2: Monitoring Engine — /proc Scanner + inotify Change Detection
 
-**Goal:** Build the real-time file monitoring engine with AI process identification. By end of this phase, the system can watch project files and record AI-related file access events.
+**Goal:** Build the file monitoring engine with approximate AI process attribution. By end of this phase, the system can identify which files AI processes have open and detect file changes in project directories.
 
-**Requirements:** MON-01, MON-02, MON-03, MON-04, MON-05, MON-06, PROC-01, PROC-02, PROC-03, PROC-04, PROC-05
+**Requirements:** MON-01, MON-02, MON-03, MON-04, MON-05, MON-06, PROC-01, PROC-02, PROC-03, PROC-04, PROC-05, PROC-06
 
 **Success Criteria:**
 1. Monitor starts/stops per project independently without affecting others
-2. AI tool file access is correctly identified via process whitelist + parent chain
-3. Non-AI file access is filtered out (not recorded in stats)
-4. Monitor handles inotify watch limit gracefully (warn + fallback)
-5. Monitor continues operating during high event volume (no drops under 1000 events/sec)
+2. /proc scanner correctly identifies files open by whitelisted AI processes (≥90% recall for files open >5s)
+3. Non-AI process file access is excluded from stats (whitelist filtering verified)
+4. inotify change detection captures file modifications in watched directories
+5. Approximate attribution: files modified while an AI process had them open are attributed correctly (within scan interval tolerance)
+6. Monitor handles inotify watch limit gracefully (warn + fallback)
 
 **Plans:**
-1. inotify wrapper (notify crate integration, recursive watches, auto-add for new dirs)
-2. Event processing pipeline (tokio channel, event normalization, batching)
-3. Process inspection module (/proc parsing, PID→name, parent chain traversal)
-4. AI process filter (whitelist matching, parent chain fallback, configurable per project)
-5. Event-to-storage pipeline (single writer pattern, batched SQLite writes)
-6. Integration tests with synthetic file events
+1. /proc scanner (periodic /proc/<pid> enumeration, process name whitelist, /proc/<pid>/fd/ symlink resolution via procfs crate)
+2. inotify change detection (notify crate, recursive watches, file modification/create/delete events)
+3. Approximate attribution engine (timestamp cross-reference between /proc sightings and inotify events)
+4. Event-to-storage pipeline (tokio channels, single writer, batched SQLite writes)
+5. Scan interval configuration and tuning
+6. Integration tests with synthetic process/file scenarios
 
 **Dependencies:** Phase 1 (storage layer for recording events)
 

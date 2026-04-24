@@ -25,33 +25,34 @@
 
 - [ ] **MON-01**: User can start monitoring for a specific project independently of other projects
 - [ ] **MON-02**: User can stop monitoring for a specific project without affecting others
-- [ ] **MON-03**: Monitor uses Linux inotify for kernel-level, non-intrusive file event detection
-- [ ] **MON-04**: Monitor recursively watches all subdirectories within the project root
-- [ ] **MON-05**: Monitor automatically adds watches for newly created subdirectories
-- [ ] **MON-06**: Monitor detects file events: open, close, read, modify, create, delete, move
+- [ ] **MON-03**: Monitor uses /proc/<pid>/fd scanning (primary) to detect which files AI processes have open, with configurable scan interval (default 2-5s)
+- [ ] **MON-04**: Monitor uses inotify via notify crate (secondary) for file change detection — modifications, creates, deletes in project directories
+- [ ] **MON-05**: Monitor cross-references /proc scan data with inotify change events by timestamp for approximate attribution
+- [ ] **MON-06**: Monitor handles inotify watch limit gracefully (check max_user_watches, warn if insufficient)
 
-### Process Filtering (PROC)
+### AI Process Detection (PROC)
 
-- [ ] **PROC-01**: Monitor filters file events by AI tool process names using a configurable whitelist
-- [ ] **PROC-02**: Primary filter: check if process name matches known AI tools (claude, codex, python, node, etc.)
-- [ ] **PROC-03**: Supplementary filter: check parent process chain up to 3 levels for AI-related parent processes
+- [ ] **PROC-01**: System periodically enumerates /proc entries and filters by configurable process name whitelist (claude, codex, node, python, etc.)
+- [ ] **PROC-02**: For each whitelisted process, system reads /proc/<pid>/fd/ directory and resolves fd symlinks to real file paths
+- [ ] **PROC-03**: System matches resolved file paths against project snapshot to identify which project files AI processes have open
 - [ ] **PROC-04**: Process whitelist is configurable per project
-- [ ] **PROC-05**: Monitor records the process name alongside each file event for auditability
+- [ ] **PROC-05**: System records process name alongside each file sighting for auditability
+- [ ] **PROC-06**: Attribution is explicitly approximate — sampling-based, may miss brief accesses (< scan interval), duration is estimated from consecutive scan sightings
 
 ### Usage Statistics (STAT)
 
-- [ ] **STAT-01**: System records per-file access count (each open/read event increments)
-- [ ] **STAT-02**: System records per-file usage duration (time from open to close, cumulative)
-- [ ] **STAT-03**: System records per-file modification count
-- [ ] **STAT-04**: System records per-file last access timestamp
+- [ ] **STAT-01**: System records per-file access count (number of /proc scans where file appeared as open fd — approximate)
+- [ ] **STAT-02**: System records per-file estimated usage duration (sum of consecutive scan intervals where file was seen as open — approximate)
+- [ ] **STAT-03**: System records per-file modification count (from inotify change events, not process-attributed)
+- [ ] **STAT-04**: System records per-file last access timestamp (from most recent /proc scan sighting)
 - [ ] **STAT-05**: System marks files as "accessed" or "never accessed" relative to snapshot baseline
-- [ ] **STAT-06**: User can query statistics for a project — per-file access count, duration, modifications, last access
+- [ ] **STAT-06**: User can query statistics for a project — per-file access count, estimated duration, modifications, last access
 - [ ] **STAT-07**: User can query list of never-accessed files (unused file candidates)
 - [ ] **STAT-08**: User can query list of high-frequency files (core file candidates)
 
 ### MCP Server (MCP)
 
-- [ ] **MCP-01**: System exposes MCP server over stdio transport (JSON-RPC 2.0)
+- [ ] **MCP-01**: System exposes MCP server via rmcp crate over stdio transport
 - [ ] **MCP-02**: MCP tool `create_project` — register project with ID and root path
 - [ ] **MCP-03**: MCP tool `take_snapshot` — trigger file scan for a project
 - [ ] **MCP-04**: MCP tool `start_monitor` — begin file monitoring for a project
@@ -121,15 +122,15 @@
 | PROJ-01 through PROJ-05 | Phase 1 | Pending |
 | SNAP-01 through SNAP-05 | Phase 1 | Pending |
 | MON-01 through MON-06 | Phase 2 | Pending |
-| PROC-01 through PROC-05 | Phase 2 | Pending |
+| PROC-01 through PROC-06 | Phase 2 | Pending |
 | STAT-01 through STAT-08 | Phase 3 | Pending |
 | MCP-01 through MCP-09 | Phase 4 | Pending |
 | CLI-01 through CLI-09 | Phase 4 | Pending |
 | DAEM-01 through DAEM-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 42 total
-- Mapped to phases: 42
+- v1 requirements: 43 total
+- Mapped to phases: 43
 - Unmapped: 0 ✓
 
 ---

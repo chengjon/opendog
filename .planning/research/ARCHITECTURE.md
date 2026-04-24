@@ -6,8 +6,8 @@
 ┌─────────────────────────────────────────────────────────┐
 │                    SERVICE LAYER                         │
 │  ┌──────────────┐          ┌──────────────────────────┐ │
-│  │   CLI (clap)  │          │  MCP Server (stdio)      │ │
-│  │  8 commands   │          │  JSON-RPC 2.0            │ │
+│  │   CLI (clap)  │          │  MCP Server (rmcp/stdio)  │ │
+│  │  8 commands   │          │  8 tools                  │ │
 │  └──────┬───────┘          └──────────┬───────────────┘ │
 │         │                              │                 │
 │         └──────────┬───────────────────┘                 │
@@ -116,22 +116,19 @@ take_snapshot(project_id)
   → RETURN total file count
 ```
 
-### Flow 3: MCP Request
+### Flow 3: MCP Request (via rmcp)
 ```
-stdin → read line → parse JSON-RPC request
-  → match method:
-    "tools/call" → extract tool name + params
-    → dispatch to handler:
-      create_project  → ProjectManager::create()
-      take_snapshot   → SnapshotEngine::run()
-      start_monitor   → MonitorEngine::start()
-      stop_monitor    → MonitorEngine::stop()
-      get_stats       → StatsEngine::query()
-      get_unused      → StatsEngine::unused()
-      list_projects   → ProjectManager::list()
-      delete_project  → ProjectManager::delete()
-    → serialize response as JSON-RPC
-  → write to stdout + flush
+rmcp receives JSON-RPC request over stdin
+  → match tool name:
+    create_project  → ProjectManager::create()
+    take_snapshot   → SnapshotEngine::run()
+    start_monitor   → MonitorEngine::start()
+    stop_monitor    → MonitorEngine::stop()
+    get_stats       → StatsEngine::query()
+    get_unused      → StatsEngine::unused()
+    list_projects   → ProjectManager::list()
+    delete_project  → ProjectManager::delete()
+  → rmcp serializes response → stdout
 ```
 
 ### Flow 4: CLI Command
@@ -168,10 +165,9 @@ opendog/
 │   │   └── queries.rs       # All read/write operations
 │   │
 │   ├── mcp/
-│   │   ├── mod.rs           # MCP server entry point (stdin/stdout loop)
-│   │   ├── protocol.rs      # JSON-RPC types (Request, Response, Error)
+│   │   ├── mod.rs           # MCP server entry point (rmcp stdio transport)
 │   │   ├── handlers.rs      # 8 tool handlers, delegate to core::
-│   │   └── tools.rs         # Tool definitions (name, description, schema)
+│   │   └── tools.rs         # Tool definitions (name, description, schema via rmcp)
 │   │
 │   ├── cli/
 │   │   ├── mod.rs           # clap app definition, subcommands

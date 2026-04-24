@@ -18,8 +18,8 @@ Accurately identify which project files AI tools actually use and which are dead
 
 - [ ] Multi-project isolation — each project gets independent database, config, monitoring thread, and namespace
 - [ ] File snapshot engine — recursive scan with smart filtering (node_modules, .git, dist, etc.), recording path/size/mtime/type
-- [ ] Real-time file monitoring via inotify — PID-based process whitelist (claude, codex, python, node) with parent process chain fallback
-- [ ] Usage statistics — access count, open-to-close duration, modification count, last access time per file
+- [ ] AI process file tracking via /proc scanning — periodic /proc/<pid>/fd enumeration of whitelisted AI processes, cross-referenced with inotify change detection for approximate attribution (sampling-based, not precise auditing)
+- [ ] Usage statistics — approximate access count (/proc scan sightings), estimated duration (consecutive scan intervals), modification count (inotify), last access timestamp per file
 - [ ] Unused file detection — files in snapshot with zero AI accesses marked as cleanup candidates
 - [ ] Core file identification — high-frequency, long-duration files flagged as important
 - [ ] MCP server (stdio transport) — 8 tools: create_project, take_snapshot, start_monitor, stop_monitor, get_stats, get_unused_files, list_projects, delete_project
@@ -36,11 +36,11 @@ Accurately identify which project files AI tools actually use and which are dead
 
 ## Context
 
-- Built for WSL environment leveraging Linux inotify for kernel-level file event monitoring
+- Built for WSL2 environment — requires real Linux kernel for inotify and /proc filesystem
 - Target users are developers running multiple AI-assisted projects concurrently (Codex + GPT-5.4, Claude Code + GLM-5.1)
-- Process filtering strategy: whitelist AI process names (primary) + parent process chain matching (supplementary). For each inotify event: get PID → check process name whitelist → check parent chain → record if matched
+- ⚠ **Derived design decision**: inotify does NOT provide process attribution (per inotify(7)). Actual approach: periodic /proc/<pid>/fd scanning (primary — what files AI processes have open) + inotify change detection via notify crate (secondary — what files changed). Cross-referenced by timestamp for approximate attribution. This is statistical sampling (2-5s intervals), not precise per-event auditing.
 - Each project maps to one SQLite .db file with two tables: snapshot (file baseline) and stats (usage data)
-- MCP stdio transport is the primary integration surface — AI tools call OPENDOG directly
+- MCP stdio transport via rmcp crate — AI tools call OPENDOG directly
 - Rust chosen for memory safety, low resource overhead, and 7x24 daemon stability
 
 ## Constraints

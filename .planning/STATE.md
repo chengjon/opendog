@@ -1,3 +1,12 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: None
+status: unknown
+last_updated: "2026-04-24T05:12:44.298Z"
+---
+
 # State: OPENDOG
 
 **Updated:** 2026-04-24
