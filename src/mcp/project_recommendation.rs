@@ -10,6 +10,7 @@ use crate::storage::database::Database;
 use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
+use self::reasoning::{build_reason, derive_confidence};
 use self::scoring::score_review_actions;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
@@ -186,7 +187,14 @@ pub(crate) fn recommend_project_action(
         .first()
         .map(|score| score.action)
         .unwrap_or("inspect_hot_files");
-    let low_repo_risk = repo_risk["risk_level"].as_str().unwrap_or("low") == "low";
+    let selected_review_score = scores.first();
+    let runner_up_review_score = scores.get(1);
+    let shared_review_reason = selected_review_score
+        .map(|score| build_reason(score, runner_up_review_score, &signals, repo_risk))
+        .unwrap_or_else(|| "Current evidence does not yet support a stronger review recommendation.".to_string());
+    let shared_review_confidence = selected_review_score
+        .map(|score| derive_confidence(score, &signals, repo_risk))
+        .unwrap_or("medium");
     let primary_verification_command = project_commands
         .first()
         .cloned()
@@ -366,29 +374,8 @@ pub(crate) fn recommend_project_action(
                 "Validate each candidate with shell search, imports, and tests.",
                 "Only delete or refactor after cleanup blockers are cleared."
             ],
-            "reason": if cleanup_gate_level == "allow" {
-                format!(
-                    "This project has {} files that currently appear unused in the snapshot, and the current evidence does not block cleanup review.",
-                    project.unused_files
-                )
-            } else if safe_for_cleanup {
-                format!(
-                    "This project has {} files that currently appear unused in the snapshot, and cleanup review should stay cautious because {}",
-                    project.unused_files,
-                    cleanup_reason
-                )
-            } else {
-                format!(
-                    "This project has {} files that currently appear unused in the snapshot, but cleanup is not ready yet because {}",
-                    project.unused_files,
-                    cleanup_reason
-                )
-            },
-            "confidence": if cleanup_gate_level == "allow" && low_repo_risk {
-                "high"
-            } else {
-                "medium"
-            },
+            "reason": shared_review_reason.clone(),
+            "confidence": shared_review_confidence,
             "strategy_mode": if safe_for_cleanup {
                 "review_then_modify"
             } else {
@@ -422,24 +409,8 @@ pub(crate) fn recommend_project_action(
                 "Use shell diff and symbol search after OPENDOG narrows the review target.",
                 "Treat hotspot review as a precursor to targeted refactor, not broad cleanup."
             ],
-            "reason": if refactor_gate_level == "allow" {
-                "This project already has activity data and no unused files currently stand out; current evidence supports hotspot-driven refactor review.".to_string()
-            } else if safe_for_refactor {
-                format!(
-                    "This project already has activity data and no unused files currently stand out, but refactor review should stay cautious because {}",
-                    refactor_reason
-                )
-            } else {
-                format!(
-                    "This project already has activity data and no unused files currently stand out, but broader refactor work is not ready yet because {}",
-                    refactor_reason
-                )
-            },
-            "confidence": if refactor_gate_level == "allow" && low_repo_risk {
-                "high"
-            } else {
-                "medium"
-            },
+            "reason": shared_review_reason,
+            "confidence": shared_review_confidence,
             "strategy_mode": if safe_for_refactor {
                 "inspect_then_modify"
             } else {

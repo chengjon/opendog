@@ -85,6 +85,10 @@ fn agent_guidance_includes_shell_and_tool_advice() {
             ["recommended_next_action"],
         json!("review_failing_verification")
     );
+    assert_eq!(
+        value["guidance"]["project_recommendations"][0]["reason"],
+        value["guidance"]["layers"]["execution_strategy"]["project_recommendations"][0]["reason"]
+    );
     assert!(
         value["guidance"]["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
