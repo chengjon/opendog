@@ -163,12 +163,36 @@ pub(crate) fn recommend_project_action(
         "cleanup": cleanup_gate_level,
         "refactor": refactor_gate_level,
     });
+    let signals = RecommendationSignals {
+        cleanup_gate_level: GateLevel::from_str(cleanup_gate_level),
+        refactor_gate_level: GateLevel::from_str(refactor_gate_level),
+        safe_for_cleanup,
+        safe_for_refactor,
+        cleanup_reason: cleanup_reason.clone(),
+        refactor_reason: refactor_reason.clone(),
+        monitoring_active: project.status == "monitoring",
+        snapshot_available: project.total_files > 0,
+        activity_available: project.accessed_files > 0,
+        snapshot_stale,
+        activity_stale,
+        verification_missing: verification_is_missing(verification_runs),
+        verification_stale,
+        verification_failing: verification_has_failures(verification_runs),
+        unused_files: project.unused_files,
+    };
+    let eligibility = determine_action_eligibility(&signals, repo_risk);
+    let scores = score_review_actions(&signals, repo_risk, &eligibility);
+    let best_review_action = scores
+        .first()
+        .map(|score| score.action)
+        .unwrap_or("inspect_hot_files");
+    let low_repo_risk = repo_risk["risk_level"].as_str().unwrap_or("low") == "low";
     let primary_verification_command = project_commands
         .first()
         .cloned()
         .unwrap_or_else(|| "git status".to_string());
 
-    if verification_has_failures(verification_runs) {
+    if eligibility.forced_action == Some("review_failing_verification") {
         json!({
             "project_id": project.id,
             "recommended_next_action": "review_failing_verification",
@@ -195,11 +219,7 @@ pub(crate) fn recommend_project_action(
                 "git diff".to_string()
             ]
         })
-    } else if repo_risk["operation_states"]
-        .as_array()
-        .map(|states| !states.is_empty())
-        .unwrap_or(false)
-    {
+    } else if eligibility.forced_action == Some("stabilize_repository_state") {
         json!({
             "project_id": project.id,
             "recommended_next_action": "stabilize_repository_state",
@@ -306,7 +326,7 @@ pub(crate) fn recommend_project_action(
                 format!("opendog stats --id {}", project.id)
             ]
         })
-    } else if verification_is_missing(verification_runs) || verification_stale {
+    } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
         json!({
             "project_id": project.id,
             "recommended_next_action": "run_verification_before_high_risk_changes",
@@ -337,7 +357,7 @@ pub(crate) fn recommend_project_action(
                 format!("opendog stats --id {}", project.id)
             ]
         })
-    } else if project.unused_files > 0 {
+    } else if best_review_action == "review_unused_files" {
         json!({
             "project_id": project.id,
             "recommended_next_action": "review_unused_files",
@@ -364,7 +384,11 @@ pub(crate) fn recommend_project_action(
                     cleanup_reason
                 )
             },
-            "confidence": if cleanup_gate_level == "allow" { "high" } else { "medium" },
+            "confidence": if cleanup_gate_level == "allow" && low_repo_risk {
+                "high"
+            } else {
+                "medium"
+            },
             "strategy_mode": if safe_for_cleanup {
                 "review_then_modify"
             } else {
@@ -411,7 +435,11 @@ pub(crate) fn recommend_project_action(
                     refactor_reason
                 )
             },
-            "confidence": if refactor_gate_level == "allow" { "high" } else { "medium" },
+            "confidence": if refactor_gate_level == "allow" && low_repo_risk {
+                "high"
+            } else {
+                "medium"
+            },
             "strategy_mode": if safe_for_refactor {
                 "inspect_then_modify"
             } else {

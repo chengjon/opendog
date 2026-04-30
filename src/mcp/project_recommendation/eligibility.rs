@@ -78,11 +78,12 @@ pub(crate) fn determine_action_eligibility(
         cleanup_review_allowed: signals.monitoring_active
             && signals.snapshot_available
             && !signals.snapshot_stale
-            && signals.safe_for_cleanup,
+            && signals.unused_files > 0
+            && signals.cleanup_gate_level != GateLevel::Blocked,
         hotspot_review_allowed: signals.monitoring_active
             && signals.snapshot_available
             && signals.activity_available
             && !signals.activity_stale
-            && signals.safe_for_refactor,
+            && signals.refactor_gate_level != GateLevel::Blocked,
     }
 }
