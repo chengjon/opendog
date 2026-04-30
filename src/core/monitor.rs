@@ -1,15 +1,21 @@
 use crate::config::ProjectConfig;
 use crate::core::scanner::{ProcScanner, ScanResult};
-use crate::error::Result;
+use crate::error::{OpenDogError, Result};
 use crate::storage::database::Database;
 use crate::storage::queries;
 use rusqlite::params;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 use tracing::{debug, error, info, warn};
+
+mod watcher;
+
+#[cfg(test)]
+use self::watcher::record_file_event;
+use self::watcher::start_file_watcher;
 
 const DEFAULT_SCAN_INTERVAL_SECS: u64 = 3;
 const INOTIFY_MAX_WATCHES_PATH: &str = "/proc/sys/fs/inotify/max_user_watches";
@@ -19,19 +25,38 @@ struct OpenObservation {
     last_seen_at: u64,
 }
 
+struct MonitorState {
+    running: AtomicBool,
+    active_threads: AtomicUsize,
+    lock_path: PathBuf,
+    config: std::sync::RwLock<ProjectConfig>,
+    snapshot_paths: std::sync::RwLock<HashSet<String>>,
+}
+
 pub struct MonitorHandle {
-    running: Arc<AtomicBool>,
+    state: Arc<MonitorState>,
     #[allow(dead_code)]
     root_path: PathBuf,
 }
 
 impl MonitorHandle {
     pub fn is_running(&self) -> bool {
-        self.running.load(Ordering::Relaxed)
+        self.state.running.load(Ordering::Relaxed)
     }
 
     pub fn stop(&self) {
-        self.running.store(false, Ordering::Relaxed);
+        self.state.running.store(false, Ordering::Relaxed);
+    }
+
+    pub fn current_config(&self) -> ProjectConfig {
+        self.state.config.read().unwrap().clone()
+    }
+
+    pub fn reload_config(&self, config: ProjectConfig, snapshot_paths: Option<HashSet<String>>) {
+        *self.state.config.write().unwrap() = config;
+        if let Some(snapshot_paths) = snapshot_paths {
+            *self.state.snapshot_paths.write().unwrap() = snapshot_paths;
+        }
     }
 }
 
@@ -42,34 +67,49 @@ pub fn start_monitor(
 ) -> Result<MonitorHandle> {
     check_inotify_limits()?;
 
-    let running = Arc::new(AtomicBool::new(true));
-    let handle = MonitorHandle {
-        running: running.clone(),
-        root_path: root_path.clone(),
-    };
+    let lock_path = monitor_lock_path(db_path);
+    acquire_monitor_lock(&lock_path)?;
 
     let db = Database::open_project(db_path)?;
     let snapshot_paths: HashSet<String> = queries::get_snapshot_paths(&db)?.into_iter().collect();
-    let process_whitelist = config.process_whitelist.clone();
     drop(db);
 
+    let state = Arc::new(MonitorState {
+        running: AtomicBool::new(true),
+        active_threads: AtomicUsize::new(2),
+        lock_path: lock_path.clone(),
+        config: std::sync::RwLock::new(config),
+        snapshot_paths: std::sync::RwLock::new(snapshot_paths),
+    });
+    let handle = MonitorHandle {
+        state: state.clone(),
+        root_path: root_path.clone(),
+    };
+
     let scanner_db_path = db_path.to_path_buf();
-    let scanner_running = running.clone();
+    let scanner_state = state.clone();
     let scanner_root = root_path.clone();
     std::thread::spawn(move || {
         let db = match Database::open_project(&scanner_db_path) {
             Ok(d) => d,
             Err(e) => {
                 error!(error = %e, "Scanner thread failed to open DB");
+                thread_finished(&scanner_state);
                 return;
             }
         };
-        let scanner = ProcScanner::new(&scanner_root, &process_whitelist, snapshot_paths);
         let mut open_state: HashMap<(String, i32), OpenObservation> = HashMap::new();
 
         info!("Monitor scanner started for {:?}", scanner_root);
 
-        while scanner_running.load(Ordering::Relaxed) {
+        while scanner_state.running.load(Ordering::Relaxed) {
+            let live_config = scanner_state.config.read().unwrap().clone();
+            let snapshot_paths = scanner_state.snapshot_paths.read().unwrap().clone();
+            let scanner = ProcScanner::new(
+                &scanner_root,
+                &live_config.process_whitelist,
+                snapshot_paths,
+            );
             let scan_result = scanner.scan();
             let current_time = now_secs();
 
@@ -88,20 +128,22 @@ pub fn start_monitor(
 
         flush_open_durations(&db, &mut open_state, now_secs());
         info!("Monitor scanner stopped for {:?}", scanner_root);
+        thread_finished(&scanner_state);
     });
 
     let watcher_db_path = db_path.to_path_buf();
-    let watcher_running = running.clone();
+    let watcher_state = state.clone();
     let watcher_root = root_path.clone();
     std::thread::spawn(move || {
         let db = match Database::open_project(&watcher_db_path) {
             Ok(d) => d,
             Err(e) => {
                 error!(error = %e, "Watcher thread failed to open DB");
+                thread_finished(&watcher_state);
                 return;
             }
         };
-        start_file_watcher(&db, &watcher_root, &watcher_running);
+        start_file_watcher(&db, &watcher_root, &watcher_state);
     });
 
     Ok(handle)
@@ -191,98 +233,49 @@ fn upsert_file_stats(db: &Database, file_path: &str, current_time: u64) -> Resul
     Ok(())
 }
 
-fn start_file_watcher(db: &Database, root: &Path, running: &AtomicBool) {
-    use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-    use std::sync::mpsc;
-
-    let (tx, rx) = mpsc::channel::<Event>();
-
-    let mut watcher = match RecommendedWatcher::new(
-        move |res: std::result::Result<Event, notify::Error>| {
-            if let Ok(event) = res {
-                let _ = tx.send(event);
-            }
-        },
-        Config::default(),
-    ) {
-        Ok(w) => w,
-        Err(e) => {
-            error!(error = %e, "Failed to create file watcher");
-            return;
-        }
-    };
-
-    if let Err(e) = watcher.watch(root, RecursiveMode::Recursive) {
-        error!(error = %e, root = %root.display(), "Failed to start watching directory");
-        return;
-    }
-
-    info!(root = %root.display(), "File watcher started");
-
-    while running.load(Ordering::Relaxed) {
-        match rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(event) => {
-                let skip = event.paths.iter().any(|p| {
-                    let name = p.file_name().unwrap_or_default().to_string_lossy();
-                    name.ends_with(".db") || name.ends_with(".db-wal") || name.ends_with(".db-shm")
-                });
-                if skip {
-                    continue;
-                }
-                if let Err(e) = record_file_event(db, root, &event) {
-                    warn!(error = %e, "Failed to record file event");
-                }
-            }
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
-        }
-    }
-
-    let _ = watcher.unwatch(root);
-    info!(root = %root.display(), "File watcher stopped");
+fn monitor_lock_path(db_path: &Path) -> PathBuf {
+    db_path.with_extension("monitor.lock")
 }
 
-fn record_file_event(db: &Database, root: &Path, event: &notify::Event) -> Result<()> {
-    use notify::EventKind;
+fn acquire_monitor_lock(lock_path: &Path) -> Result<()> {
+    if let Some(parent) = lock_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
 
-    let event_type = match event.kind {
-        EventKind::Create(_) => "create",
-        EventKind::Modify(_) => "modify",
-        EventKind::Remove(_) => "remove",
-        EventKind::Any => "any",
-        _ => return Ok(()),
-    };
-
-    let timestamp = now_secs().to_string();
-
-    for path in &event.paths {
-        let Some(rel_path) = normalize_event_path(root, path) else {
-            continue;
-        };
-
-        db.execute(
-            "INSERT INTO file_events (file_path, event_type, event_time) VALUES (?1, ?2, ?3)",
-            params![rel_path, event_type, timestamp],
-        )?;
-
-        if event_type == "modify" {
-            db.execute(
-                "INSERT INTO file_stats (file_path, modification_count, first_seen_time, last_updated) VALUES (?1, 1, ?2, ?2)
-                 ON CONFLICT(file_path) DO UPDATE SET modification_count = modification_count + 1, last_updated = ?2",
-                params![rel_path, timestamp],
-            )?;
+    if lock_path.exists() {
+        if let Ok(existing) = std::fs::read_to_string(lock_path) {
+            let pid = existing.trim();
+            if !pid.is_empty() && process_exists(pid) {
+                return Err(OpenDogError::MonitorAlreadyRunning(pid.to_string()));
+            }
         }
     }
 
+    std::fs::write(lock_path, std::process::id().to_string())?;
     Ok(())
 }
 
-fn normalize_event_path(root: &Path, path: &Path) -> Option<String> {
-    path.strip_prefix(root)
-        .ok()
-        .and_then(|p| p.to_str())
-        .filter(|p| !p.is_empty())
-        .map(|p| p.to_string())
+fn release_monitor_lock(lock_path: &Path) {
+    let _ = std::fs::remove_file(lock_path);
+}
+
+fn thread_finished(state: &Arc<MonitorState>) {
+    if state.active_threads.fetch_sub(1, Ordering::AcqRel) == 1 {
+        release_monitor_lock(&state.lock_path);
+    }
+}
+
+fn process_exists(pid: &str) -> bool {
+    #[cfg(unix)]
+    {
+        Path::new("/proc").join(pid).exists()
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        false
+    }
 }
 
 fn check_inotify_limits() -> Result<()> {
@@ -342,10 +335,20 @@ mod tests {
         let (_dir, db) = test_db();
         let mut open_state = HashMap::new();
 
-        process_scan_results(&db, &single_sighting("src/main.rs", 42), &mut open_state, 100)
-            .unwrap();
-        process_scan_results(&db, &single_sighting("src/main.rs", 42), &mut open_state, 103)
-            .unwrap();
+        process_scan_results(
+            &db,
+            &single_sighting("src/main.rs", 42),
+            &mut open_state,
+            100,
+        )
+        .unwrap();
+        process_scan_results(
+            &db,
+            &single_sighting("src/main.rs", 42),
+            &mut open_state,
+            103,
+        )
+        .unwrap();
 
         let stats: (i64, i64, Option<String>) = db
             .query_row(
@@ -386,9 +389,17 @@ mod tests {
         let root = dir.path().join("project");
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(root.join("src/main.rs"), "fn main() {}").unwrap();
+        let state = Arc::new(MonitorState {
+            running: AtomicBool::new(true),
+            active_threads: AtomicUsize::new(0),
+            lock_path: dir.path().join("monitor.lock"),
+            config: std::sync::RwLock::new(ProjectConfig::default()),
+            snapshot_paths: std::sync::RwLock::new(HashSet::new()),
+        });
 
-        let event = Event::new(EventKind::Modify(ModifyKind::Any)).add_path(root.join("src/main.rs"));
-        record_file_event(&db, &root, &event).unwrap();
+        let event =
+            Event::new(EventKind::Modify(ModifyKind::Any)).add_path(root.join("src/main.rs"));
+        record_file_event(&db, &root, &state, &event).unwrap();
 
         let stored_path: String = db
             .query_row(

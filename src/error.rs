@@ -14,6 +14,27 @@ pub enum OpenDogError {
     #[error("Invalid path: {0}")]
     InvalidPath(String),
 
+    #[error("Invalid verification input: {0}")]
+    InvalidVerification(String),
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
+    #[error("Daemon already running: {0}")]
+    DaemonAlreadyRunning(String),
+
+    #[error("Monitor already running: {0}")]
+    MonitorAlreadyRunning(String),
+
+    #[error("Daemon control socket unavailable")]
+    DaemonUnavailable,
+
+    #[error("Daemon appears to be running but the control socket is unavailable")]
+    DaemonControlUnavailable,
+
+    #[error("Remote control error: {0}")]
+    RemoteControl(String),
+
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
 

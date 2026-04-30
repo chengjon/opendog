@@ -1,11 +1,13 @@
-use crate::config::ProjectConfig;
+use crate::config::{should_ignore_path, ProjectConfig};
 use crate::error::Result;
 use crate::storage::database::Database;
 use crate::storage::queries::{self, SnapshotEntry};
 use rusqlite::params;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use walkdir::WalkDir;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SnapshotResult {
     pub total_files: usize,
     pub new_files: usize,
@@ -16,6 +18,7 @@ pub fn take_snapshot(db: &Database, root: &Path, config: &ProjectConfig) -> Resu
     let scan_timestamp = now_iso();
 
     let entries = scan_directory(root, config, &scan_timestamp)?;
+    queries::insert_snapshot_history(db, &scan_timestamp, &entries)?;
 
     let previous_count = queries::count_snapshot(db)? as usize;
 
@@ -41,7 +44,11 @@ pub fn get_snapshot_paths(db: &Database) -> Result<Vec<String>> {
     queries::get_snapshot_paths(db)
 }
 
-fn scan_directory(root: &Path, config: &ProjectConfig, scan_timestamp: &str) -> Result<Vec<SnapshotEntry>> {
+fn scan_directory(
+    root: &Path,
+    config: &ProjectConfig,
+    scan_timestamp: &str,
+) -> Result<Vec<SnapshotEntry>> {
     let mut entries = Vec::new();
 
     for entry in WalkDir::new(root).follow_links(false) {
@@ -94,25 +101,7 @@ fn scan_directory(root: &Path, config: &ProjectConfig, scan_timestamp: &str) -> 
 }
 
 fn should_ignore(rel_path: &str, config: &ProjectConfig) -> bool {
-    let components: Vec<&str> = std::path::Path::new(rel_path)
-        .iter()
-        .filter_map(|c| c.to_str())
-        .collect();
-
-    for pattern in &config.ignore_patterns {
-        // Check if pattern matches any path component (directory-level filter)
-        for component in &components {
-            if let Some(suffix) = pattern.strip_prefix('*') {
-                // Glob suffix pattern like "*.pyc"
-                if component.ends_with(suffix) {
-                    return true;
-                }
-            } else if *component == *pattern {
-                return true;
-            }
-        }
-    }
-    false
+    should_ignore_path(rel_path, config)
 }
 
 fn remove_missing_entries(db: &Database, root: &Path, _scan_timestamp: &str) -> Result<usize> {

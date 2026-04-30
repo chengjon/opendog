@@ -1,5 +1,27 @@
+mod ignore;
+mod io;
+mod patching;
+mod paths;
+mod validation;
+
+pub use self::ignore::{matches_ignore_pattern, should_ignore_path};
+pub use self::io::{
+    load_global_config, load_global_config_from_path, save_global_config,
+    save_global_config_to_path,
+};
+pub use self::patching::{
+    apply_global_config_patch, apply_project_config_patch, changed_config_fields,
+    normalize_project_config, normalize_project_overrides, normalize_string_list,
+    resolve_project_config,
+};
+pub use self::paths::{
+    daemon_pid_is_live, daemon_pid_path, daemon_socket_path, data_dir, global_config_path,
+    project_db_path, registry_path,
+};
+pub use self::validation::{is_windows_mount_path, validate_project_id, validate_root_path};
+
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
     "node_modules",
@@ -24,11 +46,95 @@ const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
     ".DS_Store",
 ];
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectConfig {
     pub ignore_patterns: Vec<String>,
     #[serde(default = "default_process_whitelist")]
     pub process_whitelist: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ProjectConfigOverrides {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ignore_patterns: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_whitelist: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ConfigPatch {
+    #[serde(default)]
+    pub ignore_patterns: Option<Vec<String>>,
+    #[serde(default)]
+    pub process_whitelist: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ProjectConfigPatch {
+    #[serde(default)]
+    pub ignore_patterns: Option<Vec<String>>,
+    #[serde(default)]
+    pub process_whitelist: Option<Vec<String>>,
+    #[serde(default)]
+    pub inherit_ignore_patterns: bool,
+    #[serde(default)]
+    pub inherit_process_whitelist: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectConfigView {
+    pub project_id: String,
+    pub global_defaults: ProjectConfig,
+    pub project_overrides: ProjectConfigOverrides,
+    pub effective: ProjectConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ProjectConfigReload {
+    pub monitor_running: bool,
+    pub runtime_reloaded: bool,
+    pub snapshot_refreshed: bool,
+    #[serde(default)]
+    pub changed_fields: Vec<String>,
+    #[serde(default)]
+    pub skipped_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectConfigUpdateResult {
+    pub project_id: String,
+    pub global_defaults: ProjectConfig,
+    pub project_overrides: ProjectConfigOverrides,
+    pub effective: ProjectConfig,
+    pub reload: ProjectConfigReload,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectReloadStatus {
+    pub project_id: String,
+    pub monitor_running: bool,
+    pub runtime_reloaded: bool,
+    pub snapshot_refreshed: bool,
+    #[serde(default)]
+    pub changed_fields: Vec<String>,
+    #[serde(default)]
+    pub skipped_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GlobalConfigUpdateResult {
+    pub global_defaults: ProjectConfig,
+    pub reloaded_projects: Vec<ProjectReloadStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectInfo {
+    pub id: String,
+    pub root_path: PathBuf,
+    pub db_path: PathBuf,
+    pub config: ProjectConfigOverrides,
+    pub created_at: String,
+    pub status: String,
 }
 
 fn default_process_whitelist() -> Vec<String> {
@@ -43,48 +149,72 @@ fn default_process_whitelist() -> Vec<String> {
     ]
 }
 
-impl Default for ProjectConfig {
-    fn default() -> Self {
-        Self {
-            ignore_patterns: DEFAULT_IGNORE_PATTERNS.iter().map(|s| s.to_string()).collect(),
-            process_whitelist: default_process_whitelist(),
-        }
+#[cfg(test)]
+mod tests {
+    use super::{
+        apply_project_config_patch, changed_config_fields, matches_ignore_pattern,
+        resolve_project_config, ConfigPatch, ProjectConfig, ProjectConfigOverrides,
+        ProjectConfigPatch,
+    };
+
+    #[test]
+    fn project_config_patch_can_restore_global_inheritance() {
+        let current = ProjectConfigOverrides {
+            ignore_patterns: Some(vec!["logs".to_string()]),
+            process_whitelist: Some(vec!["codex".to_string()]),
+        };
+
+        let updated = apply_project_config_patch(
+            &current,
+            ProjectConfigPatch {
+                ignore_patterns: None,
+                process_whitelist: None,
+                inherit_ignore_patterns: true,
+                inherit_process_whitelist: false,
+            },
+        );
+
+        assert_eq!(updated.ignore_patterns, None);
+        assert_eq!(updated.process_whitelist, Some(vec!["codex".to_string()]));
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProjectInfo {
-    pub id: String,
-    pub root_path: PathBuf,
-    pub db_path: PathBuf,
-    pub config: ProjectConfig,
-    pub created_at: String,
-    pub status: String,
-}
+    #[test]
+    fn resolve_project_config_prefers_project_overrides() {
+        let global = ProjectConfig::default();
+        let resolved = resolve_project_config(
+            &global,
+            &ProjectConfigOverrides {
+                ignore_patterns: Some(vec!["logs".to_string()]),
+                process_whitelist: None,
+            },
+        );
+        assert_eq!(resolved.ignore_patterns, vec!["logs".to_string()]);
+        assert_eq!(resolved.process_whitelist, global.process_whitelist);
+    }
 
-pub fn data_dir() -> PathBuf {
-    dirs().join("data")
-}
+    #[test]
+    fn changed_config_fields_reports_only_real_differences() {
+        let before = ProjectConfig::default();
+        let after = ProjectConfig {
+            ignore_patterns: vec!["logs".to_string()],
+            process_whitelist: before.process_whitelist.clone(),
+        };
+        assert_eq!(
+            changed_config_fields(&before, &after),
+            vec!["ignore_patterns".to_string()]
+        );
+    }
 
-pub fn registry_path() -> PathBuf {
-    dirs().join("registry.db")
-}
+    #[test]
+    fn config_patch_empty_detection_is_precise() {
+        assert!(ConfigPatch::default().is_empty());
+        assert!(ProjectConfigPatch::default().is_empty());
+    }
 
-pub fn project_db_path(project_id: &str) -> PathBuf {
-    dirs().join("projects").join(format!("{}.db", project_id))
-}
-
-fn dirs() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".opendog")
-}
-
-pub fn validate_project_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 64
-        && id.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
-}
-
-pub fn validate_root_path(path: &Path) -> bool {
-    path.is_absolute() && path.is_dir()
+    #[test]
+    fn ignore_pattern_matching_supports_segments_and_wildcards() {
+        assert!(matches_ignore_pattern("src/cache/app.rs", "cache"));
+        assert!(matches_ignore_pattern("build/main.pyc", "*.pyc"));
+        assert!(!matches_ignore_pattern("src/main.rs", "*.pyc"));
+    }
 }

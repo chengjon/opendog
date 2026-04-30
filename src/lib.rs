@@ -1,7 +1,10 @@
 pub mod cli;
 pub mod config;
+pub mod contracts;
+pub mod control;
 pub mod core;
 pub mod daemon;
 pub mod error;
+pub mod guidance;
 pub mod mcp;
 pub mod storage;

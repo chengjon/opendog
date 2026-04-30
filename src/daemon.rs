@@ -2,8 +2,8 @@ use tracing::{error, info, warn};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-use crate::core::monitor::{self, MonitorHandle};
-use crate::core::project::ProjectManager;
+use crate::config;
+use crate::control::{spawn_control_server, MonitorController};
 
 const PID_FILE: &str = "daemon.pid";
 
@@ -25,21 +25,46 @@ pub fn run() {
 }
 
 async fn run_daemon() -> crate::error::Result<()> {
-    write_pid_file();
-    let pm = ProjectManager::new()?;
-    let mut handles: Vec<(String, MonitorHandle)> = Vec::new();
+    write_pid_file()?;
+    let controller = std::sync::Arc::new(std::sync::Mutex::new(MonitorController::new()?));
+    let projects = {
+        let controller = controller.lock().unwrap();
+        controller.list_projects()?
+    };
 
-    for project in pm.list()? {
-        match monitor::start_monitor(&project.db_path, project.root_path.clone(), project.config.clone()) {
-            Ok(handle) => {
-                info!(project_id = %project.id, "Started background monitor");
-                handles.push((project.id, handle));
+    for project in projects {
+        if config::is_windows_mount_path(&project.root_path) {
+            warn!(
+                project_id = %project.id,
+                root_path = %project.root_path.display(),
+                "Project root is under /mnt; inotify support on Windows-mounted filesystems is unreliable"
+            );
+        }
+
+        let mut controller_guard = controller.lock().unwrap();
+        match controller_guard.start_monitor(&project.id) {
+            Ok(outcome) => {
+                info!(
+                    project_id = %project.id,
+                    snapshot_taken = outcome.snapshot_taken,
+                    already_running = outcome.already_running,
+                    "Started background monitor"
+                );
             }
             Err(e) => {
                 warn!(project_id = %project.id, error = %e, "Failed to start background monitor");
             }
         }
     }
+
+    let server_running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    #[cfg(unix)]
+    let control_thread = Some(spawn_control_server(
+        controller.clone(),
+        server_running.clone(),
+    )?);
+    #[cfg(not(unix))]
+    let control_thread: Option<std::thread::JoinHandle<()>> = None;
 
     info!("OPENDOG daemon starting");
 
@@ -48,16 +73,28 @@ async fn run_daemon() -> crate::error::Result<()> {
         warn!("sd_notify failed (not running under systemd?): {}", e);
     }
 
-    // DAEM-03: graceful shutdown on SIGTERM
+    // DAEM-03: graceful shutdown on SIGTERM / SIGINT
     tokio::select! {
-        _ = tokio::signal::ctrl_c() => {
-            info!("Received shutdown signal");
+        signal = wait_for_shutdown_signal() => {
+            info!(signal = %signal, "Received shutdown signal");
         }
     }
 
-    for (project_id, handle) in &handles {
-        info!(project_id = %project_id, "Stopping background monitor");
-        handle.stop();
+    server_running.store(false, std::sync::atomic::Ordering::Relaxed);
+    if let Some(thread) = control_thread {
+        let _ = thread.join();
+    }
+
+    let monitor_ids = {
+        let controller = controller.lock().unwrap();
+        controller.monitor_ids()
+    };
+    {
+        let mut controller = controller.lock().unwrap();
+        for project_id in &monitor_ids {
+            info!(project_id = %project_id, "Stopping background monitor");
+        }
+        controller.stop_all();
     }
     std::thread::sleep(std::time::Duration::from_millis(250));
 
@@ -70,8 +107,8 @@ async fn run_daemon() -> crate::error::Result<()> {
 
 /// DAEM-04: Initialize structured logging — journald if available, stderr otherwise.
 fn init_logging() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("opendog=info"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("opendog=info"));
 
     // Try journald first (works under systemd)
     if std::env::var("JOURNAL_STREAM").is_ok() {
@@ -116,15 +153,61 @@ fn pid_file_path() -> std::path::PathBuf {
     crate::config::data_dir().join(PID_FILE)
 }
 
-fn write_pid_file() {
+fn write_pid_file() -> crate::error::Result<()> {
     let path = pid_file_path();
     if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+        std::fs::create_dir_all(parent)?;
     }
+
+    if path.exists() {
+        if let Ok(existing) = std::fs::read_to_string(&path) {
+            let existing = existing.trim();
+            if !existing.is_empty() && process_exists(existing) {
+                return Err(crate::error::OpenDogError::DaemonAlreadyRunning(
+                    existing.to_string(),
+                ));
+            }
+        }
+    }
+
     let pid = std::process::id();
-    let _ = std::fs::write(&path, pid.to_string());
+    std::fs::write(&path, pid.to_string())?;
+    Ok(())
 }
 
 fn remove_pid_file() {
     let _ = std::fs::remove_file(pid_file_path());
+}
+
+fn process_exists(pid: &str) -> bool {
+    #[cfg(unix)]
+    {
+        std::path::Path::new("/proc").join(pid).exists()
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        false
+    }
+}
+
+async fn wait_for_shutdown_signal() -> &'static str {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut sigterm =
+            signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => "SIGINT",
+            _ = sigterm.recv() => "SIGTERM",
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+        "SIGINT"
+    }
 }

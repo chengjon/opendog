@@ -1,0 +1,185 @@
+{
+  "rules": [
+    {
+      "name": "rust-general",
+      "include": [
+        "src/**/*.rs"
+      ],
+      "exclude": [
+        "src/cli/mod.rs",
+        "src/cli/output.rs",
+        "src/cli/output/**/*.rs",
+        "src/core/monitor.rs",
+        "src/core/monitor/**/*.rs",
+        "src/core/report.rs",
+        "src/core/report/**/*.rs",
+        "src/core/retention.rs",
+        "src/core/retention/**/*.rs",
+        "src/control.rs",
+        "src/mcp/mod.rs",
+        "src/**/tests.rs"
+      ],
+      "max_lines": 1500,
+      "max_bytes": 70000
+    },
+    {
+      "name": "rust-cli-mod",
+      "include": [
+        "src/cli/mod.rs"
+      ],
+      "max_lines": 500,
+      "max_bytes": 20000
+    },
+    {
+      "name": "rust-cli-output-root",
+      "include": [
+        "src/cli/output.rs"
+      ],
+      "max_lines": 200,
+      "max_bytes": 9000
+    },
+    {
+      "name": "rust-cli-output-modules",
+      "include": [
+        "src/cli/output/**/*.rs"
+      ],
+      "max_lines": 500,
+      "max_bytes": 22000
+    },
+    {
+      "name": "rust-core-report-root",
+      "include": [
+        "src/core/report.rs"
+      ],
+      "max_lines": 400,
+      "max_bytes": 18000
+    },
+    {
+      "name": "rust-core-report-modules",
+      "include": [
+        "src/core/report/**/*.rs"
+      ],
+      "max_lines": 450,
+      "max_bytes": 18000
+    },
+    {
+      "name": "rust-core-monitor-root",
+      "include": [
+        "src/core/monitor.rs"
+      ],
+      "max_lines": 500,
+      "max_bytes": 22000
+    },
+    {
+      "name": "rust-core-monitor-modules",
+      "include": [
+        "src/core/monitor/**/*.rs"
+      ],
+      "max_lines": 300,
+      "max_bytes": 14000
+    },
+    {
+      "name": "rust-core-retention-root",
+      "include": [
+        "src/core/retention.rs"
+      ],
+      "max_lines": 400,
+      "max_bytes": 18000
+    },
+    {
+      "name": "rust-core-retention-modules",
+      "include": [
+        "src/core/retention/**/*.rs"
+      ],
+      "max_lines": 250,
+      "max_bytes": 12000
+    },
+    {
+      "name": "rust-control-root",
+      "include": [
+        "src/control.rs"
+      ],
+      "max_lines": 400,
+      "max_bytes": 18000
+    },
+    {
+      "name": "rust-mcp-mod",
+      "include": [
+        "src/mcp/mod.rs"
+      ],
+      "max_lines": 500,
+      "max_bytes": 20000
+    },
+    {
+      "name": "rust-internal-tests",
+      "include": [
+        "src/**/tests.rs"
+      ],
+      "max_lines": 3200,
+      "max_bytes": 100000
+    },
+    {
+      "name": "rust-tests",
+      "include": [
+        "tests/**/*.rs"
+      ],
+      "exclude": [
+        "tests/integration_test.rs",
+        "tests/integration_test/**/*.rs"
+      ],
+      "max_lines": 1700,
+      "max_bytes": 60000
+    },
+    {
+      "name": "rust-integration-test-root",
+      "include": [
+        "tests/integration_test.rs"
+      ],
+      "max_lines": 80,
+      "max_bytes": 4000
+    },
+    {
+      "name": "rust-integration-test-modules",
+      "include": [
+        "tests/integration_test/**/*.rs"
+      ],
+      "max_lines": 500,
+      "max_bytes": 22000
+    },
+    {
+      "name": "python-scripts",
+      "include": [
+        "scripts/*.py"
+      ],
+      "max_lines": 260,
+      "max_bytes": 10000
+    },
+    {
+      "name": "docs-reference",
+      "include": [
+        "docs/**/*.md"
+      ],
+      "max_lines": 950,
+      "max_bytes": 26000
+    },
+    {
+      "name": "planning-docs",
+      "include": [
+        ".planning/**/*.md"
+      ],
+      "max_lines": 650,
+      "max_bytes": 26000
+    },
+    {
+      "name": "root-docs",
+      "include": [
+        "README.md",
+        "CLAUDE.md",
+        "QUICKSTART.md",
+        "REVIEW.md"
+      ],
+      "max_lines": 350,
+      "max_bytes": 18000
+    }
+  ]
+}

@@ -1,87 +1,130 @@
-use crate::config::ProjectInfo;
+mod config_output;
+mod guidance_output;
+mod project_output;
+mod report_output;
+mod verification_output;
+
+use crate::config::{
+    GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
+    ProjectConfigView, ProjectInfo,
+};
+use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
+use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
-use crate::storage::queries::StatsEntry;
+use crate::core::verification::ExecutedVerificationResult;
+use crate::storage::queries::{StatsEntry, VerificationRun};
+use serde_json::Value;
 
 pub fn print_created(info: &ProjectInfo) {
-    println!("Project '{}' created.", info.id);
-    println!("  Root: {}", info.root_path.display());
-    println!("  DB:   {}", info.db_path.display());
+    project_output::print_created(info);
 }
 
 pub fn print_snapshot_result(id: &str, result: &SnapshotResult) {
-    println!("Snapshot for project '{}':", id);
-    println!("  Total files:  {}", result.total_files);
-    println!("  New files:    {}", result.new_files);
-    println!("  Removed:      {}", result.removed_files);
+    project_output::print_snapshot_result(id, result);
 }
 
 pub fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEntry]) {
-    println!(
-        "Project '{}' — {} files | {} accessed | {} unused",
-        id, summary.total_files, summary.accessed_files, summary.unused_files
-    );
-    println!();
-    if entries.is_empty() {
-        println!("  No files in snapshot. Run 'opendog snapshot --id {}' first.", id);
-        return;
-    }
-
-    println!(
-        "  {:40} {:>8} {:>12} {:>8} LAST ACCESS",
-        "PATH", "ACCESSES", "DURATION(ms)", "MODS"
-    );
-    println!("{}", "─".repeat(90));
-    for e in entries.iter().take(50) {
-        println!(
-            "  {:40} {:>8} {:>12} {:>8} {}",
-            truncate(&e.file_path, 40),
-            e.access_count,
-            e.estimated_duration_ms,
-            e.modification_count,
-            e.last_access_time.as_deref().unwrap_or("-"),
-        );
-    }
-    if entries.len() > 50 {
-        println!("  ... and {} more files", entries.len() - 50);
-    }
+    project_output::print_stats(id, summary, entries);
 }
 
 pub fn print_unused(id: &str, unused: &[StatsEntry]) {
-    println!("Unused files for project '{}' ({} files):", id, unused.len());
-    println!();
-    for e in unused.iter().take(100) {
-        println!("  {} ({}, {} bytes)", e.file_path, e.file_type, e.size);
-    }
-    if unused.len() > 100 {
-        println!("  ... and {} more files", unused.len() - 100);
-    }
+    project_output::print_unused(id, unused);
+}
+
+pub fn print_time_window_report(id: &str, report: &TimeWindowReport) {
+    report_output::print_time_window_report(id, report);
+}
+
+pub fn print_snapshot_comparison(id: &str, comparison: &SnapshotComparison) {
+    report_output::print_snapshot_comparison(id, comparison);
+}
+
+pub fn print_usage_trends(id: &str, report: &UsageTrendReport) {
+    report_output::print_usage_trends(id, report);
+}
+
+pub fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupResult) {
+    project_output::print_cleanup_data_result(id, result);
 }
 
 pub fn print_project_list(projects: &[ProjectInfo]) {
-    if projects.is_empty() {
-        println!("No projects registered.");
-        return;
-    }
-
-    println!(
-        "  {:20} {:40} {:10} CREATED",
-        "ID", "ROOT PATH", "STATUS"
-    );
-    println!("{}", "─".repeat(100));
-    for p in projects {
-        println!(
-            "  {:20} {:40} {:10} {}",
-            truncate(&p.id, 20),
-            truncate(&p.root_path.display().to_string(), 40),
-            p.status,
-            p.created_at,
-        );
-    }
-    println!("\n  {} project(s)", projects.len());
+    project_output::print_project_list(projects);
 }
 
-fn truncate(s: &str, max: usize) -> String {
+pub fn print_agent_guidance(guidance: &Value) {
+    guidance_output::print_agent_guidance(guidance);
+}
+
+pub fn print_decision_brief(payload: &Value) {
+    guidance_output::print_decision_brief(payload);
+}
+
+pub fn print_verification_recorded(id: &str, run: &VerificationRun) {
+    verification_output::print_verification_recorded(id, run);
+}
+
+pub fn print_verification_status(id: &str, runs: &[VerificationRun]) {
+    verification_output::print_verification_status(id, runs);
+}
+
+pub fn print_verification_executed(id: &str, result: &ExecutedVerificationResult) {
+    verification_output::print_verification_executed(id, result);
+}
+
+pub fn print_data_risk(
+    id: &str,
+    candidate_type: &str,
+    min_review_priority: &str,
+    rendered: &Value,
+    guidance: &Value,
+) {
+    guidance_output::print_data_risk(id, candidate_type, min_review_priority, rendered, guidance);
+}
+
+pub fn print_workspace_data_risk(
+    candidate_type: &str,
+    min_review_priority: &str,
+    project_limit: usize,
+    total_registered_projects: usize,
+    matched_projects: usize,
+    guidance: &Value,
+) {
+    guidance_output::print_workspace_data_risk(
+        candidate_type,
+        min_review_priority,
+        project_limit,
+        total_registered_projects,
+        matched_projects,
+        guidance,
+    );
+}
+
+pub fn print_global_config(config: &ProjectConfig) {
+    config_output::print_global_config(config);
+}
+
+pub fn print_project_config(view: &ProjectConfigView) {
+    config_output::print_project_config(view);
+}
+
+pub fn print_project_config_update(result: &ProjectConfigUpdateResult) {
+    config_output::print_project_config_update(result);
+}
+
+pub fn print_global_config_update(result: &GlobalConfigUpdateResult) {
+    config_output::print_global_config_update(result);
+}
+
+pub fn print_project_config_reload(
+    id: &str,
+    reload: &ProjectConfigReload,
+    effective: &ProjectConfig,
+) {
+    config_output::print_project_config_reload(id, reload, effective);
+}
+
+pub(super) fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
         s.to_string()
     } else {

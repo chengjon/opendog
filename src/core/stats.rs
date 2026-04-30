@@ -1,9 +1,10 @@
 use crate::error::Result;
 use crate::storage::database::Database;
 use crate::storage::queries::{self, StatsEntry};
+use serde::{Deserialize, Serialize};
 
 /// Aggregate project statistics summary (STAT-05).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectSummary {
     pub total_files: i64,
     pub accessed_files: i64,
