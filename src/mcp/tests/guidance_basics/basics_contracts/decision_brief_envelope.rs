@@ -33,6 +33,7 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         brief["decision"]["recommended_next_action"],
         "review_failing_verification"
     );
+    assert_eq!(brief["decision"]["reason"], json!("Test evidence is failing."));
     assert_eq!(
         brief["decision"]["action_profile"]["action_class"],
         "verification_recovery"
