@@ -146,14 +146,6 @@ pub(crate) fn recommend_project_action(
         .unwrap_or_default();
     let safe_for_cleanup = readiness["safe_for_cleanup"].as_bool().unwrap_or(false);
     let safe_for_refactor = readiness["safe_for_refactor"].as_bool().unwrap_or(false);
-    let cleanup_reason = readiness["safe_for_cleanup_reason"]
-        .as_str()
-        .unwrap_or("Cleanup readiness is blocked.")
-        .to_string();
-    let refactor_reason = readiness["safe_for_refactor_reason"]
-        .as_str()
-        .unwrap_or("Refactor readiness is blocked.")
-        .to_string();
     let cleanup_gate_level = readiness["cleanup_gate_level"]
         .as_str()
         .unwrap_or("blocked");
@@ -167,10 +159,6 @@ pub(crate) fn recommend_project_action(
     let signals = RecommendationSignals {
         cleanup_gate_level: GateLevel::from_str(cleanup_gate_level),
         refactor_gate_level: GateLevel::from_str(refactor_gate_level),
-        safe_for_cleanup,
-        safe_for_refactor,
-        cleanup_reason: cleanup_reason.clone(),
-        refactor_reason: refactor_reason.clone(),
         monitoring_active: project.status == "monitoring",
         snapshot_available: project.total_files > 0,
         activity_available: project.accessed_files > 0,
@@ -191,7 +179,9 @@ pub(crate) fn recommend_project_action(
     let runner_up_review_score = scores.get(1);
     let shared_review_reason = selected_review_score
         .map(|score| build_reason(score, runner_up_review_score, &signals, repo_risk))
-        .unwrap_or_else(|| "Current evidence does not yet support a stronger review recommendation.".to_string());
+        .unwrap_or_else(|| {
+            "Current evidence does not yet support a stronger review recommendation.".to_string()
+        });
     let shared_review_confidence = selected_review_score
         .map(|score| derive_confidence(score, &signals, repo_risk))
         .unwrap_or("medium");
