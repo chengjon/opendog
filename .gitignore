@@ -4,3 +4,5 @@
 *.db-shm
 .omc/
 .codex
+__pycache__/
+*.pyc
