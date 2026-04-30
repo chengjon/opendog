@@ -8,10 +8,6 @@ fn base_signals() -> RecommendationSignals {
     RecommendationSignals {
         cleanup_gate_level: GateLevel::Allow,
         refactor_gate_level: GateLevel::Allow,
-        safe_for_cleanup: true,
-        safe_for_refactor: true,
-        cleanup_reason: "cleanup-ready".to_string(),
-        refactor_reason: "refactor-ready".to_string(),
         monitoring_active: true,
         snapshot_available: true,
         activity_available: true,
@@ -29,8 +25,6 @@ fn determine_action_eligibility_blocks_hotspot_review_when_refactor_gate_is_bloc
     let mut signals = base_signals();
     signals.cleanup_gate_level = GateLevel::Caution;
     signals.refactor_gate_level = GateLevel::Blocked;
-    signals.safe_for_refactor = false;
-    signals.refactor_reason = "build evidence is missing".to_string();
 
     let eligibility = determine_action_eligibility(
         &signals,

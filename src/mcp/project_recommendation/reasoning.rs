@@ -33,18 +33,28 @@ pub(crate) fn build_reason(
     let losing_label = if losing_action == "inspect_hot_files" {
         "hotspot review"
     } else {
-        "cleanup review"
+        "unused-file review"
     };
     let winning_label = if selected.action == "inspect_hot_files" {
         "hotspot review"
     } else {
-        "cleanup review"
+        "unused-file review"
     };
 
-    format!(
-        "Current {} makes {} the safer next step, and {} stays behind it for now.",
-        dominant_constraint, winning_label, losing_label
-    )
+    if dominant_constraint == "verification evidence"
+        && (signals.cleanup_gate_level == GateLevel::Caution
+            || signals.refactor_gate_level == GateLevel::Caution)
+    {
+        format!(
+            "Current verification evidence is cautious, so {} is the safer next step, and {} stays behind it for now.",
+            winning_label, losing_label
+        )
+    } else {
+        format!(
+            "Current {} makes {} the safer next step, and {} stays behind it for now.",
+            dominant_constraint, winning_label, losing_label
+        )
+    }
 }
 
 pub(crate) fn derive_confidence(

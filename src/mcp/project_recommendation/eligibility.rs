@@ -21,10 +21,6 @@ impl GateLevel {
 pub(crate) struct RecommendationSignals {
     pub(crate) cleanup_gate_level: GateLevel,
     pub(crate) refactor_gate_level: GateLevel,
-    pub(crate) safe_for_cleanup: bool,
-    pub(crate) safe_for_refactor: bool,
-    pub(crate) cleanup_reason: String,
-    pub(crate) refactor_reason: String,
     pub(crate) monitoring_active: bool,
     pub(crate) snapshot_available: bool,
     pub(crate) activity_available: bool,
