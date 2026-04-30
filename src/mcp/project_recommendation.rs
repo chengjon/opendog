@@ -1,10 +1,16 @@
 use serde_json::{json, Value};
 
+pub(crate) mod eligibility;
+pub(crate) mod reasoning;
+pub(crate) mod scoring;
+
 use crate::config::ProjectInfo;
 use crate::core::retention;
 use crate::storage::database::Database;
 use crate::storage::queries::VerificationRun;
 
+use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
+use self::scoring::score_review_actions;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
