@@ -31,6 +31,8 @@ Primary requirement families:
 - `STRAT-01..04`
 - `RISK-01..04`
 
+`RISK-01..04` is a consumed dependency from `FT-03.02.01`, not a directly expanded ownership target in this batch. This design reuses existing repository-risk output rather than broadening risk collection scope.
+
 ## Current Problem
 
 OPENDOG already tells users and AI consumers to use `git status`, `git diff`, and project-native verification when needed, but that guidance is still too text-heavy.
@@ -77,7 +79,24 @@ Their roles are:
 
 These fields should also flow into `decision_brief` through the existing recommendation path so the decision envelope exposes the same boundary facts without re-deriving them.
 
-### 3. Restrict Gap Generation To Existing Repo-Risk Facts
+### 3. Use A Standalone Gap Projection Helper
+
+The normalized boundary projection should not be embedded directly inside `recommend_project_action(...)`.
+
+Instead, add a focused helper that can be reused by recommendation and later consumers:
+
+- `repo_truth_gap_projection(repo_risk: &Value) -> (Vec<String>, Vec<String>)`
+
+Responsibilities:
+
+- derive normalized `repo_truth_gaps`
+- derive normalized `mandatory_shell_checks`
+- preserve stable ordering and de-duplication
+- stay independent from action scoring, eligibility, and reason wording
+
+`recommend_project_action(...)` becomes the first consumer of this helper, not the owner of the boundary derivation rules.
+
+### 4. Restrict Gap Generation To Existing Repo-Risk Facts
 
 The new fields must be derived from existing repository-risk and boundary facts, not from a second parallel rule engine.
 
@@ -91,7 +110,9 @@ Allowed source facts:
 
 This keeps the boundary model aligned with `FT-03.07.01` and avoids duplicating git-state interpretation in multiple layers.
 
-### 4. Stable Gap Key Set
+This also keeps the projection consistent with the already modular recommendation stack in `src/mcp/project_recommendation/`, where eligibility, scoring, and reasoning are separated responsibilities. Repo-truth gap projection should stay parallel to those helpers rather than getting folded back into one large recommendation function.
+
+### 5. Stable Gap Key Set
 
 Start with a small key set that is broad enough to be useful and narrow enough to stay stable:
 
@@ -116,7 +137,9 @@ Meaning:
 
 These keys are intentionally normalized. The goal is not to mirror every raw repo-risk finding but to expose the minimum reusable boundary contract.
 
-### 5. Mandatory Shell Check Rules
+`large_diff` is intentionally excluded from this key set. It already behaves as a repository risk severity signal and influences readiness and recommendation logic, but it does not mean OPENDOG lost access to repository truth. It should remain a risk or caution signal, not become a repo-truth boundary key in this first pass.
+
+### 6. Mandatory Shell Check Rules
 
 `mandatory_shell_checks` is not a general suggestion list. It is a bounded list of checks that should happen before treating OPENDOG guidance as sufficient for risky repo decisions.
 
@@ -144,7 +167,7 @@ Rules:
 - do not inflate this field into a full suggested-command catalog
 - do not insert project-native test commands unless the gap itself is specifically about repository truth
 
-### 6. Output Surfaces
+### 7. Output Surfaces
 
 This batch should update three surfaces.
 
@@ -178,7 +201,7 @@ Do not duplicate the same fields again under `risk_profile`. One copy is enough 
 
 This workspace layer is summary-only. It should not expand every project's full gap array again.
 
-### 7. Compatibility With Existing Boundary Fields
+### 8. Compatibility With Existing Boundary Fields
 
 Existing fields remain valid and required:
 
@@ -195,7 +218,9 @@ Compatibility rule:
 
 This means consumers can continue reading legacy fields unchanged, while newer AI logic can switch to `repo_truth_gaps` and `mandatory_shell_checks` for deterministic boundary handling.
 
-### 8. Non-Goals
+Boundary projection can influence recommendation explanation and decision payload shape, but it does not replace existing eligibility logic. For example, `operation_states` can still force `stabilize_repository_state` through the recommendation eligibility helper, while the new gap projection simply makes the authority boundary explicit and reusable.
+
+### 9. Non-Goals
 
 This batch does not:
 
