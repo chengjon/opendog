@@ -2,78 +2,26 @@
 
 ## Purpose
 
-This document defines the recommended machine-consumption contract for OPENDOG's JSON-oriented CLI outputs.
+This document defines the recommended machine-consumption contract for OPENDOG JSON outputs.
 
-It is not a formal schema registry, but it tells downstream AI agents and scripts which fields should drive decisions first, which fields are mainly explanatory, and which structures are best treated as advisory context.
+It is not a formal schema registry. It tells downstream agents and scripts which fields should drive decisions first, which are explanatory, and which remain advisory.
 
-Treat these JSON contracts as machine-readable entry surfaces over shared OPENDOG capabilities:
-
-- observation core: snapshots, monitoring evidence, reports, usage analytics
-- service delivery and runtime coordination: CLI JSON operator outputs plus daemon-coordinated MCP AI responses
-- AI decision-support: guidance, decision brief, verification evidence, boundaries, prioritization
-- retained-evidence lifecycle: cleanup and storage-maintenance signals that operate on OPENDOG history, not source files
-
-Authority rule:
-
-- `git`, tests, lint, and build are external truth sources; treat OPENDOG output as decision-support evidence and switch to shell or project-native validation when confirmation is required.
+Authority rule: `git`, tests, lint, and build remain external truth sources. Treat OPENDOG output as decision-support evidence and switch to shell or project-native validation when confirmation is required.
 
 ## Quick Navigation
 
-- Need current product framing first: [Positioning](./positioning.md)
-- Need the fastest capability-to-command map: [Capability Index](./capability-index.md)
-- Need AI workflow order and shell handoff rules: [AI Playbook](./ai-playbook.md)
-- Need MCP request/response usage: [MCP Tool Reference](./mcp-tool-reference.md)
-- You are here: `JSON Contracts` — machine-readable output priorities and field-shape guidance
+- Product framing: [Positioning](./positioning.md)
+- Capability-to-command map: [Capability Index](./capability-index.md)
+- AI workflow and shell handoff: [AI Playbook](./ai-playbook.md)
+- MCP request/response usage: [MCP Tool Reference](./mcp-tool-reference.md)
 
 ## Scope
 
-Current CLI JSON entry points:
+Current CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
 
-- `opendog decision-brief --json`
-- `opendog agent-guidance --json`
-- `opendog config show --json`
-- `opendog config set-project --id <ID> ... --json`
-- `opendog config set-global ... --json`
-- `opendog config reload --id <ID> --json`
-- `opendog report window --id <ID> --json`
-- `opendog report compare --id <ID> --json`
-- `opendog report trend --id <ID> --json`
-- `opendog cleanup-data --id <ID> --json`
-- `opendog workspace-data-risk --json`
-- `opendog data-risk --id <ID> --json`
-- `opendog verification --id <ID> --json`
-- `opendog record-verification --id <ID> ... --json`
-- `opendog run-verification --id <ID> ... --json`
+Related MCP entry points follow the same versioned-contract pattern: `get_decision_brief`, `get_agent_guidance`, `create_project`, config get/update/reload, evidence export, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, cleanup, verification status/record/run, and data-risk overview tools.
 
-Related MCP JSON entry points follow the same versioned-contract pattern:
-
-- `get_decision_brief`
-- `get_agent_guidance`
-- `create_project`
-- `get_global_config`
-- `get_project_config`
-- `update_global_config`
-- `update_project_config`
-- `reload_project_config`
-- `export_project_evidence`
-- `start_monitor`
-- `stop_monitor`
-- `list_projects`
-- `delete_project`
-- `take_snapshot`
-- `get_stats`
-- `get_unused_files`
-- `get_time_window_report`
-- `compare_snapshots`
-- `get_usage_trends`
-- `cleanup_project_data`
-- `get_verification_status`
-- `record_verification_result`
-- `run_verification_command`
-- `get_data_risk_candidates`
-- `get_workspace_data_risk_overview`
-
-When the OPENDOG daemon is live, CLI and MCP should be understood as entry surfaces that may reuse daemon-owned project state through the local control plane rather than standing up parallel monitor ownership.
+When the daemon is live, treat CLI and MCP as entry surfaces that may reuse daemon-owned project state through the local control plane rather than standing up parallel monitor ownership.
 
 Current MCP-only versioned utility outputs:
 
@@ -102,34 +50,24 @@ Current MCP-only versioned utility outputs:
 
 Always check `schema_version` first.
 
-If the version is unknown, treat the payload as unsupported rather than guessing from field names.
+If the version is unknown, treat the payload as unsupported rather than guessing from field names. For MCP tools, this applies to both success and error responses. If `status = error`, branch on `error_code` first and only use freeform `error` text for display or debugging.
 
-For MCP tools, this applies to both success and error responses.
-
-If `status = error`, branch on `error_code` first and only use freeform `error` text for display or debugging.
-
-For scoped AI guidance tools, prefer passing explicit scope controls instead of post-filtering client-side:
+For scoped AI guidance tools, prefer explicit scope controls instead of post-filtering client-side:
 
 - `get_agent_guidance({ "project_id": "<ID>", "top": N })`
 - `get_decision_brief({ "project_id": "<ID>", "top": N })`
 
 ### Primary decision fields
 
-Use these as the main machine-input signals.
-
-They are the best candidates for ranking, branching, and deciding what command to run next.
+Use these as the main machine-input signals for ranking, branching, and choosing the next command.
 
 ### Explanatory fields
 
 Use these to justify or refine a decision after the primary fields narrow the path.
 
-They are useful for prompting, review notes, or human-facing traceability.
-
 ### Advisory context
 
-Use these as supporting metadata only.
-
-Do not make high-risk decisions from them alone.
+Use these as supporting metadata only. Do not make high-risk decisions from them alone.
 
 ## `opendog agent-guidance --json`
 
@@ -162,6 +100,11 @@ Version marker:
 - `guidance.project_recommendations[*].recommended_next_action`
 - `guidance.project_recommendations[*].recommended_flow`
 - `guidance.project_recommendations[*].verification_gate_levels.*`
+- `guidance.project_recommendations[*].repo_truth_gaps`
+- `guidance.project_recommendations[*].mandatory_shell_checks`
+- `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
+- `guidance.layers.execution_strategy.repo_truth_gap_distribution`
+- `guidance.layers.execution_strategy.mandatory_shell_check_examples`
 - `guidance.layers.workspace_observation.projects_with_storage_maintenance_candidates`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.coverage_state`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.freshness`
@@ -230,6 +173,8 @@ Version marker:
 - `decision.summary`
 - `decision.reason`
 - `decision.recommended_flow`
+- `decision.repo_truth_gaps`
+- `decision.mandatory_shell_checks`
 - `decision.safe_for_cleanup`
 - `decision.safe_for_refactor`
 - `decision.verification_status`
@@ -262,8 +207,11 @@ Key layer fields worth checking first:
 6. Use `entrypoints.execution_templates` for argument skeletons, parameter constraints, defaults, placeholders, priorities, run conditions, preconditions, blocking conditions, expected output fields, and follow-up routing.
 7. Read `layers.workspace_observation` first so stale or missing evidence can change the execution order.
 8. Read `decision.risk_profile.cleanup_gate_level` and `decision.risk_profile.refactor_gate_level` before broad edits; `caution` is advisory-only, while `blocked` means verification evidence is not ready.
-9. Read the relevant layer in `layers` before making broad edits.
-10. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+9. Read `decision.repo_truth_gaps` before broad edits when repository truth is uncertain; use `decision.mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
+10. Read the relevant layer in `layers` before making broad edits.
+11. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+
+Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and human-readable `reason` fields remain available and unchanged.
 
 ## `opendog report window --json`
 

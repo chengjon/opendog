@@ -20,7 +20,10 @@ fn repo_truth_gap_projection_maps_repo_truth_blind_spots() {
             "dependency_state_requires_repo_review".to_string(),
         ]
     );
-    assert_eq!(checks, vec!["git status".to_string(), "git diff".to_string()]);
+    assert_eq!(
+        checks,
+        vec!["git status".to_string(), "git diff".to_string()]
+    );
 }
 
 #[test]
