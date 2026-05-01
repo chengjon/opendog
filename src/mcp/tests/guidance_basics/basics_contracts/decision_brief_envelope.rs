@@ -38,6 +38,14 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         json!("Test evidence is failing.")
     );
     assert_eq!(
+        brief["decision"]["repo_truth_gaps"],
+        json!(["working_tree_conflicted"])
+    );
+    assert_eq!(
+        brief["decision"]["mandatory_shell_checks"],
+        json!(["git status", "git diff"])
+    );
+    assert_eq!(
         brief["decision"]["action_profile"]["action_class"],
         "verification_recovery"
     );

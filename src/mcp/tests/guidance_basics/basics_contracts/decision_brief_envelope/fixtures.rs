@@ -72,7 +72,9 @@ pub(super) fn demo_recommendation() -> serde_json::Value {
         "project_id": "demo",
         "recommended_next_action": "review_failing_verification",
         "reason": "Test evidence is failing.",
-        "confidence": "high"
+        "confidence": "high",
+        "repo_truth_gaps": ["working_tree_conflicted"],
+        "mandatory_shell_checks": ["git status", "git diff"]
     })
 }
 

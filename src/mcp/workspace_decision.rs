@@ -217,6 +217,8 @@ pub(crate) fn decision_brief_payload(
                         .unwrap_or("No recommendation available."),
                     "recommended_next_action": recommended_next_action,
                     "reason": top_candidate["reason"].clone(),
+                    "repo_truth_gaps": top_candidate["repo_truth_gaps"].clone(),
+                    "mandatory_shell_checks": top_candidate["mandatory_shell_checks"].clone(),
                     "target_project_id": target_project_id,
                     "strategy_mode": strategy["global_strategy_mode"].clone(),
                     "preferred_primary_tool": strategy["preferred_primary_tool"].clone(),

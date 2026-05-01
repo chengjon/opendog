@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 use crate::contracts::MCP_GUIDANCE_V1;
 use crate::core::verification;
@@ -44,6 +44,50 @@ pub(crate) fn now_unix_secs() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> Value {
+    let mut projects_with_repo_truth_gaps = 0_u64;
+    let mut repo_truth_gap_distribution = Map::new();
+    let mut mandatory_shell_check_examples = Vec::new();
+
+    for recommendation in project_recommendations {
+        let gaps = recommendation["repo_truth_gaps"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        if !gaps.is_empty() {
+            projects_with_repo_truth_gaps += 1;
+        }
+        for gap in gaps {
+            if let Some(key) = gap.as_str() {
+                let next = repo_truth_gap_distribution
+                    .get(key)
+                    .and_then(|value| value.as_u64())
+                    .unwrap_or(0)
+                    + 1;
+                repo_truth_gap_distribution.insert(key.to_string(), json!(next));
+            }
+        }
+        if let Some(checks) = recommendation["mandatory_shell_checks"].as_array() {
+            for check in checks {
+                if let Some(cmd) = check.as_str() {
+                    if !mandatory_shell_check_examples
+                        .iter()
+                        .any(|item: &String| item == cmd)
+                    {
+                        mandatory_shell_check_examples.push(cmd.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    json!({
+        "projects_with_repo_truth_gaps": projects_with_repo_truth_gaps,
+        "repo_truth_gap_distribution": repo_truth_gap_distribution,
+        "mandatory_shell_check_examples": mandatory_shell_check_examples,
+    })
 }
 
 pub(crate) fn agent_guidance_payload(
@@ -149,6 +193,7 @@ pub(crate) fn agent_guidance_payload(
     );
     let sorted_project_recommendations =
         sort_project_recommendations(project_recommendations, project_overviews);
+    let repo_truth_summary = execution_strategy_repo_truth_summary(&sorted_project_recommendations);
     let recommended_flow = agent_guidance_recommended_flow(
         project_count,
         monitoring_count,
@@ -244,6 +289,9 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
         "review_opendog_retention_before_large_cleanup": projects_with_storage_maintenance_candidates > 0,
         "recommend_manual_review_for_hardcoded_data": projects_with_hardcoded_data > 0,
+        "projects_with_repo_truth_gaps": repo_truth_summary["projects_with_repo_truth_gaps"].clone(),
+        "repo_truth_gap_distribution": repo_truth_summary["repo_truth_gap_distribution"].clone(),
+        "mandatory_shell_check_examples": repo_truth_summary["mandatory_shell_check_examples"].clone(),
     });
     value["guidance"]["layers"]["multi_project_portfolio"] = json!({
         "status": "available",
