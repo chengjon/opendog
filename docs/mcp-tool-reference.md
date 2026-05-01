@@ -500,9 +500,14 @@ Useful response fields:
 - `guidance.recommended_flow`
 - `guidance.project_recommendations`
 - `guidance.project_recommendations[*].verification_gate_levels`
+- `guidance.project_recommendations[*].repo_truth_gaps`
+- `guidance.project_recommendations[*].mandatory_shell_checks`
 - `guidance.layers.execution_strategy`
 - `guidance.layers.execution_strategy.cleanup_gate_level`
 - `guidance.layers.execution_strategy.refactor_gate_level`
+- `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
+- `guidance.layers.execution_strategy.repo_truth_gap_distribution`
+- `guidance.layers.execution_strategy.mandatory_shell_check_examples`
 - `guidance.layers.multi_project_portfolio`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
@@ -553,6 +558,8 @@ Useful response fields:
 - `decision.recommended_next_action`
 - `decision.target_project_id`
 - `decision.action_profile`
+- `decision.repo_truth_gaps`
+- `decision.mandatory_shell_checks`
 - `decision.risk_profile`
 - `decision.risk_profile.cleanup_gate_level`
 - `decision.risk_profile.refactor_gate_level`
@@ -566,6 +573,8 @@ Useful response fields:
 - `entrypoints.next_mcp_tools`
 - `entrypoints.execution_templates`
 - `layers`
+
+Read `repo_truth_gaps` before broad edits when repository truth is uncertain. Use `mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
 
 ## `get_time_window_report`
 
