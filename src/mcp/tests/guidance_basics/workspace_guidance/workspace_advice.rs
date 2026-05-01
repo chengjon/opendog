@@ -12,7 +12,9 @@ fn agent_guidance_includes_shell_and_tool_advice() {
             "recommended_next_action": "review_failing_verification",
             "reason": "Test evidence is failing.",
             "confidence": "high",
-            "recommended_flow": ["Inspect verification state before broader edits."]
+            "recommended_flow": ["Inspect verification state before broader edits."],
+            "repo_truth_gaps": ["working_tree_conflicted"],
+            "mandatory_shell_checks": ["git status", "git diff"]
         })],
         &[json!({
             "project_id": "demo",
@@ -95,6 +97,19 @@ fn agent_guidance_includes_shell_and_tool_advice() {
             .unwrap()
             .iter()
             .any(|item| item.as_str().unwrap().contains("verification"))
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["projects_with_repo_truth_gaps"],
+        json!(1)
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["repo_truth_gap_distribution"]
+            ["working_tree_conflicted"],
+        json!(1)
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["mandatory_shell_check_examples"],
+        json!(["git status", "git diff"])
     );
     assert_eq!(
         value["guidance"]["layers"]["constraints_boundaries"]["status"],
