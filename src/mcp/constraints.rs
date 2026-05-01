@@ -1,6 +1,10 @@
 use serde_json::{json, Value};
 use std::path::Path;
 
+mod repo_truth;
+
+pub(crate) use self::repo_truth::repo_truth_gap_projection;
+
 fn string_array_field(value: &Value, key: &str) -> Vec<String> {
     value[key]
         .as_array()
