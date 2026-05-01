@@ -90,6 +90,25 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> V
     })
 }
 
+fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -> Value {
+    let mut project_ids = Vec::new();
+
+    for recommendation in project_recommendations {
+        if recommendation["recommended_next_action"] == "stabilize_repository_state"
+            && !recommendation["execution_sequence"].is_null()
+        {
+            if let Some(project_id) = recommendation["project_id"].as_str() {
+                project_ids.push(project_id.to_string());
+            }
+        }
+    }
+
+    json!({
+        "projects_requiring_repo_stabilization": project_ids.len() as u64,
+        "repo_stabilization_priority_projects": project_ids,
+    })
+}
+
 pub(crate) fn agent_guidance_payload(
     project_count: usize,
     monitoring_count: usize,
@@ -194,6 +213,8 @@ pub(crate) fn agent_guidance_payload(
     let sorted_project_recommendations =
         sort_project_recommendations(project_recommendations, project_overviews);
     let repo_truth_summary = execution_strategy_repo_truth_summary(&sorted_project_recommendations);
+    let stabilization_summary =
+        execution_strategy_stabilization_summary(&sorted_project_recommendations);
     let recommended_flow = agent_guidance_recommended_flow(
         project_count,
         monitoring_count,
@@ -292,6 +313,8 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_repo_truth_gaps": repo_truth_summary["projects_with_repo_truth_gaps"].clone(),
         "repo_truth_gap_distribution": repo_truth_summary["repo_truth_gap_distribution"].clone(),
         "mandatory_shell_check_examples": repo_truth_summary["mandatory_shell_check_examples"].clone(),
+        "projects_requiring_repo_stabilization": stabilization_summary["projects_requiring_repo_stabilization"].clone(),
+        "repo_stabilization_priority_projects": stabilization_summary["repo_stabilization_priority_projects"].clone(),
     });
     value["guidance"]["layers"]["multi_project_portfolio"] = json!({
         "status": "available",

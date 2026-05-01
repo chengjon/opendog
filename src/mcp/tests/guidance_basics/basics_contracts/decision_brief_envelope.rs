@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::Value;
 
 #[path = "decision_brief_envelope/fixtures.rs"]
 mod fixtures;
@@ -45,6 +46,7 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         brief["decision"]["mandatory_shell_checks"],
         json!(["git status", "git diff"])
     );
+    assert_eq!(brief["decision"]["execution_sequence"], Value::Null);
     assert_eq!(
         brief["decision"]["action_profile"]["action_class"],
         "verification_recovery"
@@ -103,4 +105,53 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         .unwrap()
         .iter()
         .any(|item| item.as_str().unwrap().contains("verification")));
+}
+
+#[test]
+fn decision_brief_payload_projects_selected_execution_sequence() {
+    let project_overview = fixtures::demo_project_overview();
+    let recommendation = json!({
+        "project_id": "demo",
+        "recommended_next_action": "stabilize_repository_state",
+        "reason": "Repository is mid-operation.",
+        "confidence": "high",
+        "recommended_flow": ["Stabilize the repository before broader code changes."],
+        "execution_sequence": {
+            "mode": "shell_stabilize_then_resume",
+            "current_phase": "stabilize",
+            "resume_with": "refresh_guidance_after_repo_stable",
+            "stability_checks": ["git status", "git diff"],
+            "resume_conditions": ["operation_states_cleared", "conflicted_count_zero"]
+        },
+        "repo_truth_gaps": ["repository_mid_operation"],
+        "mandatory_shell_checks": ["git status", "git diff"]
+    });
+    let agent_guidance = agent_guidance_payload(
+        1,
+        1,
+        &["demo".to_string()],
+        &["demo".to_string()],
+        std::slice::from_ref(&recommendation),
+        std::slice::from_ref(&project_overview),
+    );
+
+    let brief = decision_brief_payload(
+        MCP_DECISION_BRIEF_V1,
+        "project",
+        Some("demo"),
+        1,
+        &agent_guidance,
+        None,
+    );
+
+    assert_eq!(
+        brief["decision"]["execution_sequence"],
+        json!({
+            "mode": "shell_stabilize_then_resume",
+            "current_phase": "stabilize",
+            "resume_with": "refresh_guidance_after_repo_stable",
+            "stability_checks": ["git status", "git diff"],
+            "resume_conditions": ["operation_states_cleared", "conflicted_count_zero"]
+        })
+    );
 }

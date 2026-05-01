@@ -219,6 +219,7 @@ pub(crate) fn decision_brief_payload(
                     "reason": top_candidate["reason"].clone(),
                     "repo_truth_gaps": top_candidate["repo_truth_gaps"].clone(),
                     "mandatory_shell_checks": top_candidate["mandatory_shell_checks"].clone(),
+                    "execution_sequence": top_candidate["execution_sequence"].clone(),
                     "target_project_id": target_project_id,
                     "strategy_mode": strategy["global_strategy_mode"].clone(),
                     "preferred_primary_tool": strategy["preferred_primary_tool"].clone(),
