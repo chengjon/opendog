@@ -34,7 +34,7 @@ fn agent_guidance_summarizes_repo_stabilization_sequences() {
                 "execution_sequence": Value::Null,
                 "repo_truth_gaps": [],
                 "mandatory_shell_checks": []
-            })
+            }),
         ],
         &[
             json!({
@@ -72,7 +72,7 @@ fn agent_guidance_summarizes_repo_stabilization_sequences() {
                         "verification": { "status": "fresh" }
                     }
                 }
-            })
+            }),
         ],
     );
 

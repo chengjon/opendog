@@ -102,9 +102,12 @@ Version marker:
 - `guidance.project_recommendations[*].verification_gate_levels.*`
 - `guidance.project_recommendations[*].repo_truth_gaps`
 - `guidance.project_recommendations[*].mandatory_shell_checks`
+- `guidance.project_recommendations[*].execution_sequence`
 - `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
 - `guidance.layers.execution_strategy.repo_truth_gap_distribution`
 - `guidance.layers.execution_strategy.mandatory_shell_check_examples`
+- `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
+- `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
 - `guidance.layers.workspace_observation.projects_with_storage_maintenance_candidates`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.coverage_state`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.freshness`
@@ -175,6 +178,7 @@ Version marker:
 - `decision.recommended_flow`
 - `decision.repo_truth_gaps`
 - `decision.mandatory_shell_checks`
+- `decision.execution_sequence`
 - `decision.safe_for_cleanup`
 - `decision.safe_for_refactor`
 - `decision.verification_status`
@@ -208,8 +212,9 @@ Key layer fields worth checking first:
 7. Read `layers.workspace_observation` first so stale or missing evidence can change the execution order.
 8. Read `decision.risk_profile.cleanup_gate_level` and `decision.risk_profile.refactor_gate_level` before broad edits; `caution` is advisory-only, while `blocked` means verification evidence is not ready.
 9. Read `decision.repo_truth_gaps` before broad edits when repository truth is uncertain; use `decision.mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
-10. Read the relevant layer in `layers` before making broad edits.
-11. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+10. When `decision.recommended_next_action = stabilize_repository_state`, read `decision.execution_sequence` to keep shell stabilization first and refresh OPENDOG guidance only after repo state is stable again.
+11. Read the relevant layer in `layers` before making broad edits.
+12. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
 
 Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and human-readable `reason` fields remain available and unchanged.
 

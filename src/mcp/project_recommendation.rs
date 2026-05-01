@@ -2,8 +2,8 @@ use serde_json::{json, Value};
 
 pub(crate) mod eligibility;
 pub(crate) mod reasoning;
-pub(crate) mod sequencing;
 pub(crate) mod scoring;
+pub(crate) mod sequencing;
 
 use crate::config::ProjectInfo;
 use crate::core::retention;
@@ -12,8 +12,8 @@ use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
 use self::reasoning::{build_reason, derive_confidence};
-use self::sequencing::execution_sequence_for_recommendation;
 use self::scoring::score_review_actions;
+use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,

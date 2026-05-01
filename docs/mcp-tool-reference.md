@@ -502,12 +502,15 @@ Useful response fields:
 - `guidance.project_recommendations[*].verification_gate_levels`
 - `guidance.project_recommendations[*].repo_truth_gaps`
 - `guidance.project_recommendations[*].mandatory_shell_checks`
+- `guidance.project_recommendations[*].execution_sequence`
 - `guidance.layers.execution_strategy`
 - `guidance.layers.execution_strategy.cleanup_gate_level`
 - `guidance.layers.execution_strategy.refactor_gate_level`
 - `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
 - `guidance.layers.execution_strategy.repo_truth_gap_distribution`
 - `guidance.layers.execution_strategy.mandatory_shell_check_examples`
+- `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
+- `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
 - `guidance.layers.multi_project_portfolio`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
@@ -560,6 +563,7 @@ Useful response fields:
 - `decision.action_profile`
 - `decision.repo_truth_gaps`
 - `decision.mandatory_shell_checks`
+- `decision.execution_sequence`
 - `decision.risk_profile`
 - `decision.risk_profile.cleanup_gate_level`
 - `decision.risk_profile.refactor_gate_level`
@@ -575,6 +579,8 @@ Useful response fields:
 - `layers`
 
 Read `repo_truth_gaps` before broad edits when repository truth is uncertain. Use `mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
+
+When `decision.recommended_next_action = stabilize_repository_state`, treat `execution_sequence` as machine-readable ordering metadata: `strategy_mode` still names the high-level strategy, while `execution_sequence` tells the consumer to stabilize in shell first and refresh OPENDOG guidance after repository state is stable again.
 
 ## `get_time_window_report`
 
