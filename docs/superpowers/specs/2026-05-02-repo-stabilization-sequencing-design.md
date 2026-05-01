@@ -44,7 +44,7 @@ Current weaknesses:
 - `reason` explains the current blocker, but does not cleanly encode when to resume OPENDOG guidance
 - workspace guidance can summarize unstable repositories, but cannot yet summarize the specific "stabilize first, then resume" pattern
 
-This is most visible when `operation_states` or `conflicted_count` force `stabilize_repository_state`. The action choice is correct, but the execution order after that choice is still too prose-heavy.
+This is most visible when `operation_states` force `stabilize_repository_state` and conflicted paths coexist inside the same unstable repository state. The action choice is correct, but the execution order after that choice is still too prose-heavy.
 
 ## Design
 
@@ -143,8 +143,8 @@ Generate `execution_sequence.mode = shell_stabilize_then_resume` only when repos
 In practice, this means cases such as:
 
 - `operation_states` is non-empty
-- `conflicted_count > 0`
-- equivalent existing repository-risk states that already force `stabilize_repository_state`
+
+Current code already forces `stabilize_repository_state` through recommendation eligibility when `operation_states` is non-empty. This batch should preserve that trigger shape rather than widening the forced-action criteria.
 
 Do not create sequence objects for ordinary caution-level repository risk.
 
@@ -164,6 +164,8 @@ Rationale:
 - `operation_states` and conflicts directly represent repository instability
 - `large_diff` is a risk-severity signal, not proof that stabilization is incomplete
 
+`conflicted_count_zero` is a resume condition, not a standalone trigger in this batch. A project can enter the sequence because `operation_states` forced stabilization, while conflicts still remain part of the minimum "safe to resume OPENDOG" check.
+
 This keeps "repository is stable enough to resume guidance" separate from "repository is low risk."
 
 ### 7. Stability Checks
@@ -180,6 +182,8 @@ Rules:
 - do not add project-native test commands in this field
 
 Project-native verification remains important, but it belongs to the next recommendation pass after repository stabilization, not to the minimum shell truth needed to confirm repository state.
+
+These are consumer-facing advisory commands, not a promise that OPENDOG uses the exact same internal probe arguments. Internal git collection can continue using more specific commands such as porcelain or git-path inspection while this field stays concise and operator-readable.
 
 ### 8. Output Surfaces
 
@@ -204,16 +208,16 @@ Using `null` keeps the machine contract stable and avoids forcing consumers to b
 
 - `decision.execution_sequence`
 
-This lets downstream consumers read the final decision envelope without reopening recommendation internals.
+This field should read from the selected highest-priority recommendation and remain `null` when that selected project does not currently require repository stabilization. This lets downstream consumers read the final decision envelope without reopening recommendation internals.
 
 #### Workspace execution strategy
 
 `agent_guidance.layers.execution_strategy` should expose compact sequencing summaries:
 
-- `projects_requiring_repo_stabilization`
-- `repo_stabilization_priority_projects`
+- `projects_requiring_repo_stabilization: u64`
+- `repo_stabilization_priority_projects: string[]`
 
-This layer is summary-only. It should not replicate every per-project sequence object in full.
+`projects_requiring_repo_stabilization` is a count that matches the existing execution-strategy summary style. `repo_stabilization_priority_projects` is an ordered list of project IDs aligned with existing portfolio priority order so AI consumers know which repositories need shell-first stabilization next. This layer is summary-only. It should not replicate every per-project sequence object in full.
 
 ### 9. Compatibility With Existing Fields
 
@@ -229,6 +233,7 @@ Compatibility rule:
 
 - `reason` explains why repository stabilization is currently mandatory
 - `execution_sequence` explains how to execute and how to resume OPENDOG afterward
+- `strategy_mode` explains the high-level strategy choice, while `execution_sequence` adds ordered phase and resume semantics for machine consumers
 
 These roles are complementary and must not drift apart.
 
