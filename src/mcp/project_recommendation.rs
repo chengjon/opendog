@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 
 pub(crate) mod eligibility;
 pub(crate) mod reasoning;
+pub(crate) mod sequencing;
 pub(crate) mod scoring;
 
 use crate::config::ProjectInfo;
@@ -11,6 +12,7 @@ use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
 use self::reasoning::{build_reason, derive_confidence};
+use self::sequencing::execution_sequence_for_recommendation;
 use self::scoring::score_review_actions;
 use super::constraints::repo_truth_gap_projection;
 use super::{
@@ -174,6 +176,8 @@ pub(crate) fn recommend_project_action(
         unused_files: project.unused_files,
     };
     let eligibility = determine_action_eligibility(&signals, repo_risk);
+    let execution_sequence =
+        execution_sequence_for_recommendation(eligibility.forced_action, repo_risk);
     let scores = score_review_actions(&signals, repo_risk, &eligibility);
     let best_review_action = scores
         .first()
@@ -217,6 +221,7 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 "opendog verification --id <project>".to_string(),
                 primary_verification_command,
@@ -246,6 +251,7 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 "git status".to_string(),
                 "git diff".to_string(),
@@ -273,6 +279,7 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog start --id {}", project.id),
                 format!("opendog stats --id {}", project.id)
@@ -303,6 +310,7 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog snapshot --id {}", project.id),
                 format!("opendog stats --id {}", project.id)
@@ -333,6 +341,7 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 project_commands[0].clone(),
                 format!("opendog stats --id {}", project.id)
@@ -365,6 +374,7 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 primary_verification_command,
                 "opendog run-verification --id <project> --kind test --command '<cmd>'".to_string(),
@@ -402,6 +412,7 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
+            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog unused --id {}", project.id),
                 "rg \"<pattern>\" .".to_string(),
@@ -439,6 +450,7 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json,
             "mandatory_shell_checks": mandatory_shell_checks_json,
+            "execution_sequence": execution_sequence,
             "suggested_commands": [
                 format!("opendog stats --id {}", project.id),
                 "git diff".to_string(),
