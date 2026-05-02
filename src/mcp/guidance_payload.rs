@@ -109,6 +109,32 @@ fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -
     })
 }
 
+fn execution_strategy_verification_summary(project_recommendations: &[Value]) -> Value {
+    let projects_requiring_verification_run = project_recommendations
+        .iter()
+        .filter(|recommendation| {
+            recommendation["recommended_next_action"] == "run_verification_before_high_risk_changes"
+                && recommendation["execution_sequence"]["mode"]
+                    == "run_project_verification_then_resume"
+        })
+        .count() as u64;
+
+    let projects_requiring_failing_verification_repair = project_recommendations
+        .iter()
+        .filter(|recommendation| {
+            recommendation["recommended_next_action"] == "review_failing_verification"
+                && recommendation["execution_sequence"]["mode"]
+                    == "resolve_failing_verification_then_resume"
+        })
+        .count() as u64;
+
+    json!({
+        "projects_requiring_verification_run": projects_requiring_verification_run,
+        "projects_requiring_failing_verification_repair":
+            projects_requiring_failing_verification_repair,
+    })
+}
+
 pub(crate) fn agent_guidance_payload(
     project_count: usize,
     monitoring_count: usize,
@@ -212,6 +238,8 @@ pub(crate) fn agent_guidance_payload(
     );
     let sorted_project_recommendations =
         sort_project_recommendations(project_recommendations, project_overviews);
+    let verification_summary =
+        execution_strategy_verification_summary(&sorted_project_recommendations);
     let repo_truth_summary = execution_strategy_repo_truth_summary(&sorted_project_recommendations);
     let stabilization_summary =
         execution_strategy_stabilization_summary(&sorted_project_recommendations);
@@ -313,6 +341,10 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_repo_truth_gaps": repo_truth_summary["projects_with_repo_truth_gaps"].clone(),
         "repo_truth_gap_distribution": repo_truth_summary["repo_truth_gap_distribution"].clone(),
         "mandatory_shell_check_examples": repo_truth_summary["mandatory_shell_check_examples"].clone(),
+        "projects_requiring_verification_run":
+            verification_summary["projects_requiring_verification_run"].clone(),
+        "projects_requiring_failing_verification_repair":
+            verification_summary["projects_requiring_failing_verification_repair"].clone(),
         "projects_requiring_repo_stabilization": stabilization_summary["projects_requiring_repo_stabilization"].clone(),
         "repo_stabilization_priority_projects": stabilization_summary["repo_stabilization_priority_projects"].clone(),
     });

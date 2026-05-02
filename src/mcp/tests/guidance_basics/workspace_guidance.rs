@@ -6,5 +6,7 @@ mod execution_sequences;
 mod lifecycle_edges;
 #[path = "workspace_guidance/storage_maintenance.rs"]
 mod storage_maintenance;
+#[path = "workspace_guidance/verification_sequences.rs"]
+mod verification_sequences;
 #[path = "workspace_guidance/workspace_advice.rs"]
 mod workspace_advice;
