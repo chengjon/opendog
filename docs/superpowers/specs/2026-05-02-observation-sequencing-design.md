@@ -196,7 +196,15 @@ Observation sequence generation should only appear when existing recommendation 
 
 Do not create new sequence-only action paths based on raw observation state. Recommendation eligibility and reasoning continue to own action selection.
 
-Implementation-wise, this batch should keep sequencing ownership in the recommendation layer. Extending `execution_sequence_for_recommendation(...)` is the most direct fit because sequencing is already centralized there.
+Implementation-wise, this batch should keep sequencing ownership in the recommendation layer. `execution_sequence_for_recommendation(...)` is still the natural extension point, but its current discriminator is too narrow: today it mainly receives `forced_action`, while observation actions are selected later by direct state checks in `recommend_project_action(...)`.
+
+To support observation sequencing cleanly, the sequencing helper should accept the selected `recommended_next_action` string, or an equivalent post-selection discriminator, rather than inspecting only `forced_action`. The helper match arms should then cover:
+
+- existing verification sequencing modes
+- existing repository-stabilization sequencing mode
+- the three new observation sequencing modes
+
+This keeps sequencing centralized without duplicating sequencing logic inside individual recommendation branches.
 
 ### 5. Sequence Priority Must Match The Existing Recommendation Cascade
 
@@ -257,6 +265,8 @@ Preferred behavior:
 - existing repository-stabilization and verification sequences remain unchanged
 - explicit `null` for all other actions
 
+Because observation sequence generation depends on the already-selected action, the sequencing call site should move from "compute once before branch selection" to "compute after the selected action is known" inside `recommend_project_action(...)` or through an equivalent post-selection assembly step.
+
 #### Decision brief
 
 `decision_brief` should consume and expose:
@@ -264,6 +274,8 @@ Preferred behavior:
 - `decision.execution_sequence`
 
 This field should read from the selected highest-priority recommendation and remain `null` when that selected project does not currently require sequencing.
+
+`decision_brief` should not add sequencing logic of its own in this batch. It should continue to project the already-selected recommendation payload, including `execution_sequence`, into the decision envelope.
 
 #### Workspace execution strategy
 
