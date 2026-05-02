@@ -208,22 +208,22 @@ This keeps sequencing centralized without duplicating sequencing logic inside in
 
 ### 5. Sequence Priority Must Match The Existing Recommendation Cascade
 
-Sequence priority must remain explicit and must match the current recommendation ordering:
+Sequence priority must remain explicit and must match the current selected-action ordering in `recommend_project_action(...)`:
 
 1. failing verification
-2. missing or stale verification
-3. repository stabilization
-4. observation sequencing actions
+2. repository stabilization
+3. observation sequencing actions
+4. missing or stale verification
 5. non-sequenced review actions in this batch
 
 That means:
 
 - if recommendation selection yields `review_failing_verification`, emit failing-verification sequencing even when observation gaps also exist
-- if recommendation selection yields `run_verification_before_high_risk_changes`, emit verification sequencing
 - if recommendation selection yields `stabilize_repository_state`, emit repository-stabilization sequencing
-- emit observation sequencing only when none of the higher-priority sequencing actions has already won
+- if recommendation selection yields `start_monitor`, `take_snapshot`, or `generate_activity_then_stats`, emit the matching observation sequence even when verification evidence is still missing or stale
+- emit verification sequencing for `run_verification_before_high_risk_changes` only when higher-priority failing, repository-stabilization, and observation bootstrap actions have not already won
 
-This batch preserves the current recommendation ordering. Reordering verification or repository stabilization relative to observation actions would be a separate design change, not an implicit side effect of adding sequence payloads.
+This batch preserves the current recommendation ordering. Reordering repository stabilization, observation bootstrap, or verification refresh relative to each other would be a separate design change, not an implicit side effect of adding sequence payloads.
 
 This batch also does not introduce stacked sequences. Each recommendation emits at most one `execution_sequence` object.
 
@@ -325,7 +325,8 @@ Add or extend recommendation tests that prove:
 - `start_monitor` emits `mode = "start_monitor_then_resume"`
 - `take_snapshot` emits `mode = "refresh_snapshot_then_resume"`
 - `generate_activity_then_stats` emits `mode = "generate_activity_then_resume"`
-- higher-priority verification or repository-stabilization actions still suppress observation sequencing
+- higher-priority failing-verification or repository-stabilization actions still suppress observation sequencing
+- missing or stale verification does not suppress observation sequencing when an observation bootstrap action is the selected recommendation
 - non-sequenced review actions still emit `execution_sequence = null`
 
 ### Decision coverage
