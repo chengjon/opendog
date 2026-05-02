@@ -80,7 +80,7 @@ Preferred shape:
   "review_focus": {
     "candidate_family": "hot_file",
     "candidate_basis": ["highest_access_activity", "activity_present"],
-    "candidate_risk_hints": ["refactor_gate_caution", "repo_risk_elevated"]
+    "candidate_risk_hints": ["repo_risk_elevated", "activity_evidence_stale"]
   }
 }
 ```
@@ -120,7 +120,6 @@ Preferred `candidate_priority` values:
 
 - `primary`
 - `secondary`
-- `advisory`
 
 Preferred `candidate_basis` vocabulary:
 
@@ -133,10 +132,6 @@ Preferred `candidate_basis` vocabulary:
 
 Preferred `candidate_risk_hints` vocabulary:
 
-- `cleanup_gate_caution`
-- `cleanup_gate_blocked`
-- `refactor_gate_caution`
-- `refactor_gate_blocked`
 - `repo_risk_elevated`
 - `activity_evidence_stale`
 - `snapshot_evidence_stale`
@@ -144,8 +139,9 @@ Preferred `candidate_risk_hints` vocabulary:
 Rules:
 
 - `candidate_basis` contains positive "why inspect this first" signals only
-- `candidate_risk_hints` contains "why this is still bounded review" signals only
+- `candidate_risk_hints` contains advisory environment caveats only
 - `candidate_priority` reflects queue position, not safety level
+- exact cleanup/refactor gate state remains on the parent recommendation or guidance layer through existing gate-level fields rather than being re-encoded inside each candidate
 
 A `primary` candidate may still carry multiple risk hints.
 
@@ -160,7 +156,7 @@ Recommended helper split:
   - output: recommendation-level `review_focus`
 
 - `build_review_candidate(...)`
-  - input: candidate kind, file path, priority, local evidence hints, readiness/freshness signals, repo risk, suggested commands
+  - input: candidate kind, file path, priority, readiness snapshot, mock-data report, freshness flags, repo risk, suggested commands
   - output: normalized candidate object with the new machine-readable fields
 
 Suggested module location:
@@ -173,6 +169,13 @@ This keeps shared candidate vocabulary out of:
 - `src/mcp/project_guidance/stats_unused/unused.rs`
 
 and avoids leaking full recommendation scoring into file-level payloads.
+
+For clarity:
+
+- `review_focus_for_action(...)` may continue to consume recommendation-layer signals such as `RecommendationSignals`
+- `build_review_candidate(...)` should consume the already-available `&Value` returned by `project_readiness_snapshot(...)` plus simple freshness/repository-risk inputs
+
+That keeps guidance code paths from depending on raw recommendation-only structs.
 
 ### 5. Recommendation-Level Review Focus Must Follow The Existing Action Choice
 
@@ -197,12 +200,10 @@ Preferred basis rules:
 Preferred risk-hint rules:
 
 - hotspot review
-  - include `refactor_gate_caution` or `refactor_gate_blocked` when present
   - include `repo_risk_elevated` when repo risk is not low or `large_diff = true`
   - include `activity_evidence_stale` when activity freshness is stale
 
 - unused review
-  - include `cleanup_gate_caution` or `cleanup_gate_blocked` when present
   - include `snapshot_evidence_stale` when snapshot freshness is stale
 
 This preserves the existing action cascade while making the selected review family easier to consume.
@@ -227,6 +228,8 @@ Reasoning rules:
 - unused candidates should say they lack recorded access in the current snapshot/activity window, not that they are proven safe to delete
 
 If mock or hardcoded-data overlap already exists for a candidate file, that overlap may appear in `candidate_basis`, but this batch does not redesign mock-data ranking itself.
+
+Overlap detection should reuse the existing `detect_mock_data_report(...)` output that `stats_guidance(...)` and `unused_guidance(...)` already compute. `build_review_candidate(...)` should receive that report and match candidate `file_path` values against `mock_data_candidates` and `hardcoded_data_candidates` rather than re-scanning file content.
 
 ### 7. Output Surfaces
 
@@ -268,7 +271,7 @@ Add or extend focused tests proving:
 - `inspect_hot_files` emits `review_focus.candidate_family = "hot_file"`
 - hotspot review carries `activity_evidence_stale` and `repo_risk_elevated` when those facts are present
 - `review_unused_files` emits `review_focus.candidate_family = "unused_candidate"`
-- unused review carries `cleanup_gate_caution` or `snapshot_evidence_stale` when those facts are present
+- unused review carries `snapshot_evidence_stale` when that fact is present
 - non-review actions keep `review_focus = null`
 
 #### Stats guidance tests
