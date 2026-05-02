@@ -135,6 +135,38 @@ fn execution_strategy_verification_summary(project_recommendations: &[Value]) ->
     })
 }
 
+fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> Value {
+    let projects_requiring_monitor_start = project_recommendations
+        .iter()
+        .filter(|recommendation| {
+            recommendation["recommended_next_action"] == "start_monitor"
+                && recommendation["execution_sequence"]["mode"] == "start_monitor_then_resume"
+        })
+        .count() as u64;
+
+    let projects_requiring_snapshot_refresh = project_recommendations
+        .iter()
+        .filter(|recommendation| {
+            recommendation["recommended_next_action"] == "take_snapshot"
+                && recommendation["execution_sequence"]["mode"] == "refresh_snapshot_then_resume"
+        })
+        .count() as u64;
+
+    let projects_requiring_activity_generation = project_recommendations
+        .iter()
+        .filter(|recommendation| {
+            recommendation["recommended_next_action"] == "generate_activity_then_stats"
+                && recommendation["execution_sequence"]["mode"] == "generate_activity_then_resume"
+        })
+        .count() as u64;
+
+    json!({
+        "projects_requiring_monitor_start": projects_requiring_monitor_start,
+        "projects_requiring_snapshot_refresh": projects_requiring_snapshot_refresh,
+        "projects_requiring_activity_generation": projects_requiring_activity_generation,
+    })
+}
+
 pub(crate) fn agent_guidance_payload(
     project_count: usize,
     monitoring_count: usize,
@@ -240,6 +272,8 @@ pub(crate) fn agent_guidance_payload(
         sort_project_recommendations(project_recommendations, project_overviews);
     let verification_summary =
         execution_strategy_verification_summary(&sorted_project_recommendations);
+    let observation_summary =
+        execution_strategy_observation_summary(&sorted_project_recommendations);
     let repo_truth_summary = execution_strategy_repo_truth_summary(&sorted_project_recommendations);
     let stabilization_summary =
         execution_strategy_stabilization_summary(&sorted_project_recommendations);
@@ -338,6 +372,12 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
         "review_opendog_retention_before_large_cleanup": projects_with_storage_maintenance_candidates > 0,
         "recommend_manual_review_for_hardcoded_data": projects_with_hardcoded_data > 0,
+        "projects_requiring_monitor_start":
+            observation_summary["projects_requiring_monitor_start"].clone(),
+        "projects_requiring_snapshot_refresh":
+            observation_summary["projects_requiring_snapshot_refresh"].clone(),
+        "projects_requiring_activity_generation":
+            observation_summary["projects_requiring_activity_generation"].clone(),
         "projects_with_repo_truth_gaps": repo_truth_summary["projects_with_repo_truth_gaps"].clone(),
         "repo_truth_gap_distribution": repo_truth_summary["repo_truth_gap_distribution"].clone(),
         "mandatory_shell_check_examples": repo_truth_summary["mandatory_shell_check_examples"].clone(),

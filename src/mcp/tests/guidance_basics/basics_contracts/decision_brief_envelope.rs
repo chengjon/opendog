@@ -276,10 +276,5 @@ fn decision_brief_payload_projects_selected_snapshot_sequence() {
         "mandatory_shell_checks": []
     });
 
-    assert_selected_execution_sequence(
-        recommendation,
-        1,
-        &["demo".to_string()],
-        expected_sequence,
-    );
+    assert_selected_execution_sequence(recommendation, 1, &["demo".to_string()], expected_sequence);
 }

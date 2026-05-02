@@ -4,6 +4,8 @@ use super::*;
 mod execution_sequences;
 #[path = "workspace_guidance/lifecycle_edges.rs"]
 mod lifecycle_edges;
+#[path = "workspace_guidance/observation_sequences.rs"]
+mod observation_sequences;
 #[path = "workspace_guidance/storage_maintenance.rs"]
 mod storage_maintenance;
 #[path = "workspace_guidance/verification_sequences.rs"]
