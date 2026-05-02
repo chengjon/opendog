@@ -513,6 +513,9 @@ Useful response fields:
 - `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
 - `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
 - `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
+- `guidance.layers.execution_strategy.projects_requiring_monitor_start`
+- `guidance.layers.execution_strategy.projects_requiring_snapshot_refresh`
+- `guidance.layers.execution_strategy.projects_requiring_activity_generation`
 - `guidance.layers.multi_project_portfolio`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
@@ -587,6 +590,12 @@ When `decision.recommended_next_action = run_verification_before_high_risk_chang
 When `decision.recommended_next_action = review_failing_verification`, treat `execution_sequence.verification_commands` as the repair-and-rerun command set for the current failing verification path.
 
 When `decision.recommended_next_action = stabilize_repository_state`, treat `execution_sequence` as machine-readable ordering metadata: `strategy_mode` still names the high-level strategy, while `execution_sequence` tells the consumer to stabilize in shell first and refresh OPENDOG guidance after repository state is stable again.
+
+When `decision.recommended_next_action = start_monitor`, treat `execution_sequence.observation_steps` as the observation bootstrap order: enable monitoring first, then let real project activity happen before refreshing OPENDOG guidance.
+
+When `decision.recommended_next_action = take_snapshot`, treat `execution_sequence.observation_steps` as the snapshot refresh order: take or refresh the baseline snapshot first, then refresh OPENDOG guidance after snapshot evidence is fresh again.
+
+When `decision.recommended_next_action = generate_activity_then_stats`, treat `execution_sequence.observation_steps` as the activity-generation order: produce meaningful project activity and refresh stats before asking OPENDOG for the next recommendation.
 
 ## `get_time_window_report`
 

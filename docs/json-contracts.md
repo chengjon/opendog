@@ -23,28 +23,7 @@ Related MCP entry points follow the same versioned-contract pattern: `get_decisi
 
 When the daemon is live, treat CLI and MCP as entry surfaces that may reuse daemon-owned project state through the local control plane rather than standing up parallel monitor ownership.
 
-Current MCP-only versioned utility outputs:
-
-- `get_agent_guidance`: `guidance.schema_version = opendog.mcp.guidance.v1`
-- `get_decision_brief`: `schema_version = opendog.mcp.decision-brief.v1`
-- `create_project`: `schema_version = opendog.mcp.create-project.v1`
-- `get_global_config`: `schema_version = opendog.mcp.global-config.v1`
-- `get_project_config`: `schema_version = opendog.mcp.project-config.v1`
-- `update_global_config`: `schema_version = opendog.mcp.update-global-config.v1`
-- `update_project_config`: `schema_version = opendog.mcp.update-project-config.v1`
-- `reload_project_config`: `schema_version = opendog.mcp.reload-project-config.v1`
-- `export_project_evidence`: `schema_version = opendog.mcp.export-project-evidence.v1`
-- `start_monitor`: `schema_version = opendog.mcp.start-monitor.v1`
-- `stop_monitor`: `schema_version = opendog.mcp.stop-monitor.v1`
-- `list_projects`: `schema_version = opendog.mcp.list-projects.v1`
-- `delete_project`: `schema_version = opendog.mcp.delete-project.v1`
-- `take_snapshot`: `schema_version = opendog.mcp.snapshot.v1`
-- `get_stats`: `schema_version = opendog.mcp.stats.v1`
-- `get_unused_files`: `schema_version = opendog.mcp.unused-files.v1`
-- `get_time_window_report`: `schema_version = opendog.mcp.time-window-report.v1`
-- `compare_snapshots`: `schema_version = opendog.mcp.snapshot-compare.v1`
-- `get_usage_trends`: `schema_version = opendog.mcp.usage-trends.v1`
-- `cleanup_project_data`: `schema_version = opendog.mcp.cleanup-project-data.v1`
+MCP utility outputs follow the same versioned pattern, such as `opendog.mcp.guidance.v1`, `opendog.mcp.decision-brief.v1`, `opendog.mcp.snapshot.v1`, `opendog.mcp.stats.v1`, `opendog.mcp.cleanup-project-data.v1`, and the matching config, monitor, verification, evidence-export, report, and data-risk tool contracts.
 
 ## Contract Style
 
@@ -110,6 +89,9 @@ Version marker:
 - `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
 - `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
 - `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
+- `guidance.layers.execution_strategy.projects_requiring_monitor_start`
+- `guidance.layers.execution_strategy.projects_requiring_snapshot_refresh`
+- `guidance.layers.execution_strategy.projects_requiring_activity_generation`
 - `guidance.layers.workspace_observation.projects_with_storage_maintenance_candidates`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.coverage_state`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].observation.freshness`
@@ -217,8 +199,11 @@ Key layer fields worth checking first:
 10. If `decision.recommended_next_action = run_verification_before_high_risk_changes`, use `decision.execution_sequence.verification_commands`, then refresh OPENDOG guidance after recording fresh verification evidence.
 11. If `decision.recommended_next_action = review_failing_verification`, use the same field to repair and rerun the failing project-native verification before broader review.
 12. If `decision.recommended_next_action = stabilize_repository_state`, use `decision.execution_sequence` to stabilize in shell first, then refresh guidance after repo state is stable again.
-13. Read the relevant layer in `layers` before making broad edits.
-14. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+13. If `decision.recommended_next_action = start_monitor`, use `decision.execution_sequence.observation_steps` to enable monitoring, let real project activity happen, then refresh guidance after observation evidence exists.
+14. If `decision.recommended_next_action = take_snapshot`, use `decision.execution_sequence.observation_steps` to create or refresh the project snapshot, then refresh guidance after snapshot evidence is fresh again.
+15. If `decision.recommended_next_action = generate_activity_then_stats`, use `decision.execution_sequence.observation_steps` to create meaningful project activity and refresh stats before asking OPENDOG for the next recommendation.
+16. Read the relevant layer in `layers` before making broad edits.
+17. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
 
 Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and `reason` remain available.
 
