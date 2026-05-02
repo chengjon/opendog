@@ -106,6 +106,8 @@ Version marker:
 - `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
 - `guidance.layers.execution_strategy.repo_truth_gap_distribution`
 - `guidance.layers.execution_strategy.mandatory_shell_check_examples`
+- `guidance.layers.execution_strategy.projects_requiring_verification_run`
+- `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
 - `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
 - `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
 - `guidance.layers.workspace_observation.projects_with_storage_maintenance_candidates`
@@ -206,17 +208,19 @@ Key layer fields worth checking first:
 1. Check top-level `schema_version`.
 2. Read `decision.recommended_next_action` and `decision.target_project_id`.
 3. Pick from `entrypoints.next_mcp_tools` or `entrypoints.next_cli_commands`.
-4. Use `entrypoints.selection_reasons`, `decision.signals.attention_score`, and `decision.signals.attention_reasons` to understand why those entrypoints were chosen.
-5. If `decision.signals.storage_maintenance_candidate = true`, inspect the injected retained-evidence `cleanup_project_data` preview template before broader cleanup/refactor work.
-6. Use `entrypoints.execution_templates` for argument skeletons, parameter constraints, defaults, placeholders, priorities, run conditions, preconditions, blocking conditions, expected output fields, and follow-up routing.
+4. Use `entrypoints.selection_reasons` and `decision.signals.attention_reasons` to understand the choice.
+5. If `decision.signals.storage_maintenance_candidate = true`, inspect the `cleanup_project_data` preview template before cleanup/refactor work.
+6. Use `entrypoints.execution_templates` for argument skeletons, defaults, priorities, blockers, expected output fields, and follow-up routing.
 7. Read `layers.workspace_observation` first so stale or missing evidence can change the execution order.
 8. Read `decision.risk_profile.cleanup_gate_level` and `decision.risk_profile.refactor_gate_level` before broad edits; `caution` is advisory-only, while `blocked` means verification evidence is not ready.
 9. Read `decision.repo_truth_gaps` before broad edits when repository truth is uncertain; use `decision.mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
-10. When `decision.recommended_next_action = stabilize_repository_state`, read `decision.execution_sequence` to keep shell stabilization first and refresh OPENDOG guidance only after repo state is stable again.
-11. Read the relevant layer in `layers` before making broad edits.
-12. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+10. If `decision.recommended_next_action = run_verification_before_high_risk_changes`, use `decision.execution_sequence.verification_commands`, then refresh OPENDOG guidance after recording fresh verification evidence.
+11. If `decision.recommended_next_action = review_failing_verification`, use the same field to repair and rerun the failing project-native verification before broader review.
+12. If `decision.recommended_next_action = stabilize_repository_state`, use `decision.execution_sequence` to stabilize in shell first, then refresh guidance after repo state is stable again.
+13. Read the relevant layer in `layers` before making broad edits.
+14. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
 
-Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and human-readable `reason` fields remain available and unchanged.
+Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and `reason` remain available.
 
 ## `opendog report window --json`
 

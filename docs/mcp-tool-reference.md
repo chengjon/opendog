@@ -509,6 +509,8 @@ Useful response fields:
 - `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
 - `guidance.layers.execution_strategy.repo_truth_gap_distribution`
 - `guidance.layers.execution_strategy.mandatory_shell_check_examples`
+- `guidance.layers.execution_strategy.projects_requiring_verification_run`
+- `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
 - `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
 - `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
 - `guidance.layers.multi_project_portfolio`
@@ -579,6 +581,10 @@ Useful response fields:
 - `layers`
 
 Read `repo_truth_gaps` before broad edits when repository truth is uncertain. Use `mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
+
+When `decision.recommended_next_action = run_verification_before_high_risk_changes`, treat `execution_sequence.verification_commands` as the project-native verification steps to run before refreshing OPENDOG guidance.
+
+When `decision.recommended_next_action = review_failing_verification`, treat `execution_sequence.verification_commands` as the repair-and-rerun command set for the current failing verification path.
 
 When `decision.recommended_next_action = stabilize_repository_state`, treat `execution_sequence` as machine-readable ordering metadata: `strategy_mode` still names the high-level strategy, while `execution_sequence` tells the consumer to stabilize in shell first and refresh OPENDOG guidance after repository state is stable again.
 

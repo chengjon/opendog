@@ -42,7 +42,8 @@ fn clean_repo_risk() -> serde_json::Value {
 #[test]
 fn recommend_project_action_emits_missing_verification_sequence_from_toolchain_commands() {
     let root = rust_project_root();
-    let recommendation = recommend_project_action(&monitoring_state(root.path()), &clean_repo_risk(), &[]);
+    let recommendation =
+        recommend_project_action(&monitoring_state(root.path()), &clean_repo_risk(), &[]);
 
     assert_eq!(
         recommendation["recommended_next_action"],
@@ -112,7 +113,8 @@ fn recommend_project_action_emits_failing_verification_sequence_before_repo_stab
 #[test]
 fn recommend_project_action_allows_empty_verification_command_lists() {
     let root = TempDir::new().unwrap();
-    let recommendation = recommend_project_action(&monitoring_state(root.path()), &clean_repo_risk(), &[]);
+    let recommendation =
+        recommend_project_action(&monitoring_state(root.path()), &clean_repo_risk(), &[]);
 
     assert_eq!(
         recommendation["recommended_next_action"],

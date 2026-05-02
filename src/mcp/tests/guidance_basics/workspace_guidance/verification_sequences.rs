@@ -59,7 +59,7 @@ fn agent_guidance_summarizes_verification_sequences() {
                 },
                 "repo_truth_gaps": ["repository_mid_operation"],
                 "mandatory_shell_checks": ["git status", "git diff"]
-            })
+            }),
         ],
         &[
             workspace_verification_overview(
@@ -78,14 +78,7 @@ fn agent_guidance_summarizes_verification_sequences() {
                 false,
                 false,
             ),
-            workspace_verification_overview(
-                "stabilizing",
-                "available",
-                "fresh",
-                &[],
-                false,
-                false,
-            ),
+            workspace_verification_overview("stabilizing", "available", "fresh", &[], false, false),
         ],
     );
 

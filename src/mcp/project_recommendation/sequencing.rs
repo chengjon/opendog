@@ -40,9 +40,11 @@ fn repo_stabilization_sequence(repo_risk: &Value) -> Value {
 }
 
 fn missing_verification_sequence(project_toolchain: &Value) -> Value {
-    let mut verification_commands = commands_from_array(project_toolchain, "recommended_test_commands");
+    let mut verification_commands =
+        commands_from_array(project_toolchain, "recommended_test_commands");
     if verification_commands.is_empty() {
-        verification_commands = commands_from_array(project_toolchain, "recommended_build_commands");
+        verification_commands =
+            commands_from_array(project_toolchain, "recommended_build_commands");
     }
 
     json!({
@@ -57,7 +59,10 @@ fn missing_verification_sequence(project_toolchain: &Value) -> Value {
     })
 }
 
-fn failing_verification_sequence(verification_runs: &[VerificationRun], project_toolchain: &Value) -> Value {
+fn failing_verification_sequence(
+    verification_runs: &[VerificationRun],
+    project_toolchain: &Value,
+) -> Value {
     let verification_commands = latest_failing_command(verification_runs)
         .map(|command| vec![command])
         .filter(|commands| !commands.is_empty())
