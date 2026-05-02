@@ -99,6 +99,13 @@ Field meaning:
 - `resume_conditions`
   - stable machine-readable criteria for when verification work is complete enough to re-enter OPENDOG guidance
 
+Unlike repository-stabilization mode, this batch intentionally uses `verification_commands` rather than `stability_checks`. The naming difference is deliberate:
+
+- `stability_checks` are advisory shell truth checks for repository state
+- `verification_commands` are project-native execution commands that produce new verification evidence
+
+Consumers should branch on `mode` and then read the mode-appropriate command field rather than assuming all sequence modes use identical command-key names.
+
 ### 3. Two Verification Sequence Modes
 
 This batch should support exactly two verification sequence modes.
@@ -121,6 +128,7 @@ Preferred resume conditions:
 - `verification_evidence_fresh`
 
 This mode means "run the missing project-native verification and then refresh guidance." It does not require every verification dimension to be globally green before OPENDOG can reassess.
+If the fresh verification result still fails, that is still a valid resume point for this mode because the next recommendation pass may then pivot to `review_failing_verification`.
 
 #### Failing-evidence mode
 
@@ -140,6 +148,7 @@ Preferred resume conditions:
 - `verification_evidence_fresh`
 
 This mode means "inspect the failure, repair, rerun, then refresh guidance." It should remain distinct from the missing-evidence path so consumers can distinguish "evidence absent" from "evidence actively failing."
+Here `no_failing_verification_runs` refers to the current latest verification evidence snapshot, not the entire historical run log.
 
 ### 4. Sequencing Must Reuse Existing Recommendation Logic
 
@@ -152,15 +161,26 @@ Verification sequence generation should only appear when existing recommendation
 
 Do not create new sequence-only action paths based on raw evidence state. Recommendation eligibility and reasoning continue to own action selection.
 
-### 5. Repository Stabilization Still Wins First
+Implementation-wise, this batch should keep sequencing ownership in the recommendation layer. That can be done either by extending `execution_sequence_for_recommendation(...)` with verification inputs or by introducing a sibling helper under `src/mcp/project_recommendation/` that composes with the existing sequencing module. The important boundary is ownership, not the exact helper split.
 
-Sequence priority must remain explicit:
+### 5. Sequence Priority Must Match The Existing Eligibility Cascade
 
-1. repository stabilization
-2. verification sequencing
-3. non-sequenced actions in this batch
+Sequence priority must remain explicit and must match the current action-selection cascade in `eligibility.rs`:
 
-If recommendation eligibility already forces:
+1. failing verification
+2. missing or stale verification
+3. repository stabilization
+4. non-sequenced actions in this batch
+
+That means:
+
+- if recommendation eligibility selects `review_failing_verification`, emit failing-verification sequencing even when repository instability also exists
+- if recommendation eligibility selects `run_verification_before_high_risk_changes`, emit missing-evidence sequencing
+- emit `shell_stabilize_then_resume` only when `stabilize_repository_state` is the selected action after higher-priority verification checks have not already won
+
+This batch preserves the current recommendation ordering. Reordering repository stabilization ahead of verification gates would be a separate design change, not an implicit side effect of adding sequence payloads.
+
+If recommendation eligibility selects:
 
 - `recommended_next_action = stabilize_repository_state`
 
@@ -170,7 +190,7 @@ then OPENDOG should keep the existing:
 
 and should not also attach a verification sequence in the same recommendation payload.
 
-This keeps repository instability ahead of verification work and avoids introducing stacked sequence semantics in this batch.
+This keeps sequence generation aligned with the action already selected and avoids introducing stacked sequence semantics in this batch.
 
 ### 6. Verification Command Selection
 
@@ -182,8 +202,10 @@ Rules:
   - use `project_toolchain.recommended_test_commands`
   - if empty, fall back to `project_toolchain.recommended_build_commands`
 - for `review_failing_verification`
-  - prefer stable commands already recorded on the failing verification runs
-  - if no stable failing-run command is available, fall back to `project_toolchain.recommended_test_commands`
+  - prefer the command from the most recent failing verification run
+  - if no recorded failing-run command is available, fall back to `project_toolchain.recommended_test_commands`
+
+If neither test nor build commands are available for the missing-evidence path, or no failing-run command plus no test command is available for the failing-evidence path, `verification_commands` may be an empty array. Do not fall back to unknown-profile shell/search commands such as `git status`; those remain generic exploration commands, not verification steps.
 
 Preserve stable ordering, remove duplicates, and keep the list minimal. This batch does not expand toolchain detection or try to emit every possible lint/build/test command.
 
@@ -261,8 +283,9 @@ Verify:
 - `run_verification_before_high_risk_changes` emits `mode = run_project_verification_then_resume`
 - `review_failing_verification` emits `mode = resolve_failing_verification_then_resume`
 - missing-evidence sequences project stable `verification_commands` and resume conditions
-- failing-evidence sequences prefer the recorded failing command when available
-- `stabilize_repository_state` still wins over verification sequencing
+- failing-evidence sequences prefer the most recent recorded failing command when available
+- failing-verification sequencing still wins when repository instability also exists
+- missing or stale verification still wins over repository stabilization when the current eligibility cascade selects it
 - non-sequenced actions keep `execution_sequence = null`
 
 ### 2. Decision integration coverage
