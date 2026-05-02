@@ -137,6 +137,7 @@ pub(crate) fn recommend_project_action(
     let activity_stale = activity_is_stale(project, now_secs);
     let verification_stale = verification_is_stale(verification_runs, now_secs);
     let project_commands = detect_project_commands(&project.root_path);
+    let project_toolchain = project_toolchain_layer(&project.root_path);
     let verification_layer = verification_status_layer(verification_runs);
     let readiness = project_readiness_snapshot(repo_risk, &verification_layer);
     let cleanup_blockers = readiness["cleanup_blockers"]
@@ -176,8 +177,12 @@ pub(crate) fn recommend_project_action(
         unused_files: project.unused_files,
     };
     let eligibility = determine_action_eligibility(&signals, repo_risk);
-    let execution_sequence =
-        execution_sequence_for_recommendation(eligibility.forced_action, repo_risk);
+    let execution_sequence = execution_sequence_for_recommendation(
+        eligibility.forced_action,
+        repo_risk,
+        verification_runs,
+        &project_toolchain,
+    );
     let scores = score_review_actions(&signals, repo_risk, &eligibility);
     let best_review_action = scores
         .first()
