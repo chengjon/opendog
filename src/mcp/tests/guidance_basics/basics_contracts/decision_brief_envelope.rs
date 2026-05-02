@@ -155,3 +155,52 @@ fn decision_brief_payload_projects_selected_execution_sequence() {
         })
     );
 }
+
+#[test]
+fn decision_brief_payload_projects_selected_verification_sequence() {
+    let project_overview = fixtures::demo_project_overview();
+    let recommendation = json!({
+        "project_id": "demo",
+        "recommended_next_action": "review_failing_verification",
+        "reason": "Test evidence is failing.",
+        "confidence": "high",
+        "recommended_flow": ["Repair the failing verification before broader review."],
+        "execution_sequence": {
+            "mode": "resolve_failing_verification_then_resume",
+            "current_phase": "repair_and_verify",
+            "resume_with": "refresh_guidance_after_verification",
+            "verification_commands": ["cargo test -p api"],
+            "resume_conditions": ["no_failing_verification_runs", "verification_evidence_fresh"]
+        },
+        "repo_truth_gaps": ["working_tree_conflicted"],
+        "mandatory_shell_checks": ["git status", "git diff"]
+    });
+    let agent_guidance = agent_guidance_payload(
+        1,
+        1,
+        &["demo".to_string()],
+        &["demo".to_string()],
+        std::slice::from_ref(&recommendation),
+        std::slice::from_ref(&project_overview),
+    );
+
+    let brief = decision_brief_payload(
+        MCP_DECISION_BRIEF_V1,
+        "project",
+        Some("demo"),
+        1,
+        &agent_guidance,
+        None,
+    );
+
+    assert_eq!(
+        brief["decision"]["execution_sequence"],
+        json!({
+            "mode": "resolve_failing_verification_then_resume",
+            "current_phase": "repair_and_verify",
+            "resume_with": "refresh_guidance_after_verification",
+            "verification_commands": ["cargo test -p api"],
+            "resume_conditions": ["no_failing_verification_runs", "verification_evidence_fresh"]
+        })
+    );
+}
