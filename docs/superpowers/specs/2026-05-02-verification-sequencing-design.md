@@ -77,7 +77,7 @@ Preferred shape:
     "mode": "run_project_verification_then_resume",
     "current_phase": "verify",
     "resume_with": "refresh_guidance_after_verification",
-    "verification_commands": ["cargo test", "cargo check"],
+    "verification_commands": ["cargo test"],
     "resume_conditions": [
       "required_verification_recorded",
       "verification_evidence_fresh"
