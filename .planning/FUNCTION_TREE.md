@@ -1,6 +1,6 @@
 ---
 function_tree_version: 1.3
-last_updated: "2026-05-02"
+last_updated: "2026-05-03"
 canonical_role: business_capability_anchor
 level_model:
   L1: domain_capability
@@ -65,7 +65,7 @@ Current design posture:
 - no product-direction drift: the tree still describes the original multi-project observation plus AI decision-support mission
 - broad but bounded surface: the tree is wider than a simple monitoring backend, but each branch remains constrained by evidence, authority, and non-destructive advisory boundaries
 - current priority is selective deepening: future work should mainly improve the trustworthiness and clarity of existing `FT-03` leaves before opening unrelated new capability families
-- current hardening baseline: `FT-03.02.02`, `FT-03.03.01`, `FT-03.06.01`, and `FT-03.07.01` now cover soft verification gates, repository-truth boundary projection, and machine-readable resume sequencing for repository stabilization and verification workflows
+- current hardening baseline: `FT-03.01.01`, `FT-03.02.02`, `FT-03.03.01`, `FT-03.06.01`, and `FT-03.07.01` now cover soft verification gates, repository-truth boundary projection, and machine-readable resume sequencing for repository stabilization, verification, and observation workflows
 
 ## Structural Rules
 
@@ -329,7 +329,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [OBS-01..04]
     roadmap_phases: [6]
-    summary: Show whether OPENDOG has enough observation quality to support downstream conclusions.
+    summary: Show whether OPENDOG has enough observation quality to support downstream conclusions and which observation bootstrap step is still missing.
 
   - id: FT-03.02
     title: Repository Risk and Execution Strategy
@@ -354,7 +354,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [STRAT-01..04]
     roadmap_phases: [6]
-    summary: Recommend the next action, follow-up command path, and machine-readable resume sequence across OPENDOG, shell, and verification workflows.
+    summary: Recommend the next action, follow-up command path, and machine-readable resume sequence across OPENDOG, shell, verification, and observation workflows.
 
   - id: FT-03.03
     title: Verification Evidence
@@ -370,7 +370,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [EVID-01..04]
     roadmap_phases: [6]
-    summary: Attach recorded validation evidence, freshness, and gate judgments to recommendations and safety decisions.
+    summary: Attach recorded validation evidence, freshness, gate judgments, and verification-first sequencing context to recommendations and safety decisions.
 
   - id: FT-03.04
     title: Multi-Project Portfolio Prioritization
@@ -418,7 +418,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [STACKX-01..04]
     roadmap_phases: [6]
-    summary: Suggest project-native validation commands, search paths, and fallback behavior from repository markers.
+    summary: Suggest project-native validation commands, search paths, and fallback behavior from repository markers for review, verification, and sequencing handoff.
 
   - id: FT-03.07
     title: Constraints and Boundaries
@@ -434,7 +434,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [BOUND-01..04]
     roadmap_phases: [6]
-    summary: Clarify what was observed, what was inferred, where repository truth is missing, and when external verification is mandatory.
+    summary: Clarify what was observed, what was inferred, where repository truth is missing, and when shell or project-native verification remains mandatory.
 
   - id: FT-03.08
     title: Mock and Hardcoded Data Review
