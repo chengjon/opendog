@@ -177,12 +177,6 @@ pub(crate) fn recommend_project_action(
         unused_files: project.unused_files,
     };
     let eligibility = determine_action_eligibility(&signals, repo_risk);
-    let execution_sequence = execution_sequence_for_recommendation(
-        eligibility.forced_action,
-        repo_risk,
-        verification_runs,
-        &project_toolchain,
-    );
     let scores = score_review_actions(&signals, repo_risk, &eligibility);
     let best_review_action = scores
         .first()
@@ -202,9 +196,21 @@ pub(crate) fn recommend_project_action(
         .first()
         .cloned()
         .unwrap_or_else(|| "git status".to_string());
+    let attach_execution_sequence = |mut payload: Value| {
+        let selected_action = payload["recommended_next_action"]
+            .as_str()
+            .unwrap_or_default();
+        payload["execution_sequence"] = execution_sequence_for_recommendation(
+            selected_action,
+            repo_risk,
+            verification_runs,
+            &project_toolchain,
+        );
+        payload
+    };
 
     if eligibility.forced_action == Some("review_failing_verification") {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "review_failing_verification",
             "recommended_flow": [
@@ -226,15 +232,14 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 "opendog verification --id <project>".to_string(),
                 primary_verification_command,
                 "git diff".to_string()
             ]
-        })
+        }))
     } else if eligibility.forced_action == Some("stabilize_repository_state") {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "stabilize_repository_state",
             "recommended_flow": [
@@ -256,15 +261,14 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 "git status".to_string(),
                 "git diff".to_string(),
                 "opendog verification --id <project>".to_string()
             ]
-        })
+        }))
     } else if project.status != "monitoring" {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "start_monitor",
             "recommended_flow": [
@@ -284,14 +288,13 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog start --id {}", project.id),
                 format!("opendog stats --id {}", project.id)
             ]
-        })
+        }))
     } else if project.total_files == 0 || snapshot_stale {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "take_snapshot",
             "recommended_flow": [
@@ -315,14 +318,13 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog snapshot --id {}", project.id),
                 format!("opendog stats --id {}", project.id)
             ]
-        })
+        }))
     } else if project.accessed_files == 0 || activity_stale {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "generate_activity_then_stats",
             "recommended_flow": [
@@ -346,14 +348,13 @@ pub(crate) fn recommend_project_action(
             "verification_gate_levels": gate_levels,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 project_commands[0].clone(),
                 format!("opendog stats --id {}", project.id)
             ]
-        })
+        }))
     } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "run_verification_before_high_risk_changes",
             "recommended_flow": [
@@ -379,15 +380,14 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 primary_verification_command,
                 "opendog run-verification --id <project> --kind test --command '<cmd>'".to_string(),
                 format!("opendog stats --id {}", project.id)
             ]
-        })
+        }))
     } else if best_review_action == "review_unused_files" {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "review_unused_files",
             "recommended_flow": [
@@ -417,15 +417,14 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json.clone(),
             "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "execution_sequence": execution_sequence.clone(),
             "suggested_commands": [
                 format!("opendog unused --id {}", project.id),
                 "rg \"<pattern>\" .".to_string(),
                 project_commands[0].clone()
             ]
-        })
+        }))
     } else {
-        json!({
+        attach_execution_sequence(json!({
             "project_id": project.id,
             "recommended_next_action": "inspect_hot_files",
             "recommended_flow": [
@@ -455,12 +454,11 @@ pub(crate) fn recommend_project_action(
             "refactor_blockers": refactor_blockers,
             "repo_truth_gaps": repo_truth_gaps_json,
             "mandatory_shell_checks": mandatory_shell_checks_json,
-            "execution_sequence": execution_sequence,
             "suggested_commands": [
                 format!("opendog stats --id {}", project.id),
                 "git diff".to_string(),
                 "rg \"<pattern>\" .".to_string()
             ]
-        })
+        }))
     }
 }

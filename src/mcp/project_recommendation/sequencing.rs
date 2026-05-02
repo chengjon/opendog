@@ -39,6 +39,45 @@ fn repo_stabilization_sequence(repo_risk: &Value) -> Value {
     })
 }
 
+fn monitor_start_sequence() -> Value {
+    json!({
+        "mode": "start_monitor_then_resume",
+        "current_phase": "enable_monitoring",
+        "resume_with": "refresh_guidance_after_observation",
+        "observation_steps": ["start_monitor", "generate_real_project_activity"],
+        "resume_conditions": [
+            "monitoring_active",
+            "activity_evidence_recorded"
+        ]
+    })
+}
+
+fn snapshot_refresh_sequence() -> Value {
+    json!({
+        "mode": "refresh_snapshot_then_resume",
+        "current_phase": "snapshot",
+        "resume_with": "refresh_guidance_after_snapshot",
+        "observation_steps": ["take_snapshot"],
+        "resume_conditions": [
+            "snapshot_available",
+            "snapshot_evidence_fresh"
+        ]
+    })
+}
+
+fn activity_generation_sequence() -> Value {
+    json!({
+        "mode": "generate_activity_then_resume",
+        "current_phase": "generate_activity",
+        "resume_with": "refresh_guidance_after_activity",
+        "observation_steps": ["generate_real_project_activity", "refresh_stats"],
+        "resume_conditions": [
+            "activity_evidence_recorded",
+            "activity_evidence_fresh"
+        ]
+    })
+}
+
 fn missing_verification_sequence(project_toolchain: &Value) -> Value {
     let mut verification_commands =
         commands_from_array(project_toolchain, "recommended_test_commands");
@@ -81,19 +120,22 @@ fn failing_verification_sequence(
 }
 
 pub(crate) fn execution_sequence_for_recommendation(
-    forced_action: Option<&str>,
+    selected_action: &str,
     repo_risk: &Value,
     verification_runs: &[VerificationRun],
     project_toolchain: &Value,
 ) -> Value {
-    match forced_action {
-        Some("review_failing_verification") => {
+    match selected_action {
+        "review_failing_verification" => {
             failing_verification_sequence(verification_runs, project_toolchain)
         }
-        Some("run_verification_before_high_risk_changes") => {
+        "run_verification_before_high_risk_changes" => {
             missing_verification_sequence(project_toolchain)
         }
-        Some("stabilize_repository_state") => repo_stabilization_sequence(repo_risk),
+        "stabilize_repository_state" => repo_stabilization_sequence(repo_risk),
+        "start_monitor" => monitor_start_sequence(),
+        "take_snapshot" => snapshot_refresh_sequence(),
+        "generate_activity_then_stats" => activity_generation_sequence(),
         _ => Value::Null,
     }
 }

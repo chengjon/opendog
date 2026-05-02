@@ -1,5 +1,7 @@
 use super::*;
 
+#[path = "project_recommendations/observation_sequence.rs"]
+mod observation_sequence;
 #[path = "project_recommendations/prioritization_scoring.rs"]
 mod prioritization_scoring;
 #[path = "project_recommendations/readiness_progression.rs"]
