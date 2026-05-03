@@ -13,7 +13,7 @@
 ## File Structure
 
 - Create: `src/mcp/review_candidates.rs`
-- Modify: `src/mcp.rs`
+- Modify: `src/mcp/mod.rs`
 - Modify: `src/mcp/project_recommendation.rs:120-470`
 - Create: `src/mcp/tests/repo_and_readiness/action_recommendations/project_recommendations/review_focus.rs`
 - Modify: `src/mcp/tests/repo_and_readiness/action_recommendations/project_recommendations.rs:1-20`
@@ -287,7 +287,7 @@ git commit -m "feat: add review focus signals"
 
 **Files:**
 - Create: `src/mcp/review_candidates.rs`
-- Modify: `src/mcp.rs`
+- Modify: `src/mcp/mod.rs`
 
 - [ ] **Step 1: Add the shared candidate helper module**
 
@@ -372,7 +372,7 @@ pub(crate) fn build_review_candidate(
 ```
 
 ```rust
-// src/mcp.rs
+// src/mcp/mod.rs
 mod review_candidates;
 ```
 
@@ -385,7 +385,7 @@ Expected: PASS.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/mcp.rs src/mcp/review_candidates.rs
+git add src/mcp/mod.rs src/mcp/review_candidates.rs
 git commit -m "refactor: add shared review candidate helper"
 ```
 
