@@ -208,6 +208,28 @@ mod tests {
     }
 
     #[test]
+    fn build_review_candidate_marks_hot_file_repo_risk_from_high_risk_level() {
+        let candidate = build_review_candidate(
+            "hot_file",
+            "src/main.rs",
+            "primary",
+            "hot",
+            vec![],
+            &json!({}),
+            CandidateFreshness::default(),
+            &json!({
+                "risk_level": "high",
+                "large_diff": false
+            }),
+        );
+
+        assert_eq!(
+            candidate["candidate_risk_hints"],
+            json!(["repo_risk_elevated"])
+        );
+    }
+
+    #[test]
     fn build_review_candidate_keeps_unknown_kind_empty() {
         let candidate = build_review_candidate(
             "unknown_kind",
