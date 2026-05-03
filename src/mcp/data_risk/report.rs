@@ -15,11 +15,10 @@ impl MockDataReport {
         let has_hardcoded = !self.hardcoded_candidates.is_empty();
         let has_mock = !self.mock_candidates.is_empty();
         let has_mixed = !self.mixed_review_files.is_empty();
-        let has_runtime_shared = candidate_has_rule(&self.hardcoded_candidates, "path.runtime_shared");
-        let has_high_severity_content = candidate_has_rule(
-            &self.hardcoded_candidates,
-            "content.business_literal_combo",
-        );
+        let has_runtime_shared =
+            candidate_has_rule(&self.hardcoded_candidates, "path.runtime_shared");
+        let has_high_severity_content =
+            candidate_has_rule(&self.hardcoded_candidates, "content.business_literal_combo");
 
         let (primary_focus, priority_order, basis) =
             if has_hardcoded && (has_mixed || has_runtime_shared || has_high_severity_content) {
@@ -33,7 +32,11 @@ impl MockDataReport {
                 if has_high_severity_content {
                     basis.push("high_severity_content_hits_present");
                 }
-                ("hardcoded", json!(["hardcoded", "mixed", "mock"]), json!(basis))
+                (
+                    "hardcoded",
+                    json!(["hardcoded", "mixed", "mock"]),
+                    json!(basis),
+                )
             } else if has_mixed {
                 (
                     "mixed",
