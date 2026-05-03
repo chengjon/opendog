@@ -4,6 +4,9 @@ use std::path::Path;
 use crate::core::stats;
 use crate::storage::queries::{StatsEntry, VerificationRun};
 
+use super::super::super::review_candidates::{
+    build_review_candidate, CandidateFreshness, ReviewCandidateContext,
+};
 use super::super::super::{
     build_constraints_boundaries_layer, common_boundary_hints, detect_mock_data_report,
     detect_project_commands, project_readiness_snapshot, project_toolchain_layer,
@@ -99,28 +102,37 @@ pub(in crate::mcp) fn stats_guidance(
         let verification_layer = verification_status_layer(verification_runs);
         let readiness = project_readiness_snapshot(&repo_risk, &verification_layer);
         let mock_summary = detect_mock_data_report(root_path, entries).to_value(5);
+        let context = ReviewCandidateContext {
+            mock_summary: &mock_summary,
+            freshness: CandidateFreshness::default(),
+            repo_risk: &repo_risk,
+        };
         let mut file_recommendations = Vec::new();
-        file_recommendations.push(json!({
-            "kind": "hot_file",
-            "file_path": hottest.file_path,
-            "reason": "This file currently has the highest observed access activity.",
-            "suggested_commands": [
+        file_recommendations.push(build_review_candidate(
+            "hot_file",
+            &hottest.file_path,
+            "primary",
+            "This file currently has the highest observed access activity.",
+            vec![
                 format!("rg \"{}\" .", hottest.file_path),
                 "git diff".to_string(),
-                project_commands[0].clone()
-            ]
-        }));
+                project_commands[0].clone(),
+            ],
+            context,
+        ));
         if let Some(unused_candidate) = entries.iter().find(|e| e.access_count == 0) {
-            file_recommendations.push(json!({
-                "kind": "unused_candidate",
-                "file_path": unused_candidate.file_path,
-                "reason": "This file appears in the snapshot but has no recorded accesses yet.",
-                "suggested_commands": [
+            file_recommendations.push(build_review_candidate(
+                "unused_candidate",
+                &unused_candidate.file_path,
+                "secondary",
+                "This file appears in the snapshot but has no recorded accesses yet.",
+                vec![
                     format!("rg \"{}\" .", unused_candidate.file_path),
                     "git grep <symbol>".to_string(),
-                    project_commands[0].clone()
-                ]
-            }));
+                    project_commands[0].clone(),
+                ],
+                context,
+            ));
         }
         guidance["file_recommendations"] = json!(file_recommendations.clone());
         guidance["layers"]["workspace_observation"] = json!({
