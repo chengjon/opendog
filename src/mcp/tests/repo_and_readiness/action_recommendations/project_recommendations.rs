@@ -12,6 +12,8 @@ mod reason_stability;
 mod repo_stabilization_sequence;
 #[path = "project_recommendations/repo_truth_boundaries.rs"]
 mod repo_truth_boundaries;
+#[path = "project_recommendations/review_focus.rs"]
+mod review_focus;
 #[path = "project_recommendations/verification_gates.rs"]
 mod verification_gates;
 #[path = "project_recommendations/verification_sequence.rs"]

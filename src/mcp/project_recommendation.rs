@@ -127,6 +127,43 @@ where
     (monitored_projects, recommendations, project_overviews)
 }
 
+pub(crate) fn review_focus_for_action(
+    selected_action: &str,
+    signals: &RecommendationSignals,
+    repo_risk: &Value,
+) -> Value {
+    match selected_action {
+        "inspect_hot_files" => {
+            let mut risk_hints = Vec::new();
+            if repo_risk["risk_level"].as_str().unwrap_or("low") != "low"
+                || repo_risk["large_diff"].as_bool().unwrap_or(false)
+            {
+                risk_hints.push("repo_risk_elevated");
+            }
+            if signals.activity_stale {
+                risk_hints.push("activity_evidence_stale");
+            }
+            json!({
+                "candidate_family": "hot_file",
+                "candidate_basis": ["highest_access_activity", "activity_present"],
+                "candidate_risk_hints": risk_hints,
+            })
+        }
+        "review_unused_files" => {
+            let mut risk_hints = Vec::new();
+            if signals.snapshot_stale {
+                risk_hints.push("snapshot_evidence_stale");
+            }
+            json!({
+                "candidate_family": "unused_candidate",
+                "candidate_basis": ["zero_recorded_access", "snapshot_present"],
+                "candidate_risk_hints": risk_hints,
+            })
+        }
+        _ => Value::Null,
+    }
+}
+
 pub(crate) fn recommend_project_action(
     project: &ProjectGuidanceState,
     repo_risk: &Value,
@@ -208,9 +245,20 @@ pub(crate) fn recommend_project_action(
         );
         payload
     };
+    let attach_review_focus = |mut payload: Value| {
+        let selected_action = payload["recommended_next_action"]
+            .as_str()
+            .unwrap_or_default();
+        payload["review_focus"] = review_focus_for_action(selected_action, &signals, repo_risk);
+        payload
+    };
+    let attach_recommendation_metadata = |payload: Value| {
+        let payload = attach_execution_sequence(payload);
+        attach_review_focus(payload)
+    };
 
     if eligibility.forced_action == Some("review_failing_verification") {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "review_failing_verification",
             "recommended_flow": [
@@ -239,7 +287,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if eligibility.forced_action == Some("stabilize_repository_state") {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "stabilize_repository_state",
             "recommended_flow": [
@@ -268,7 +316,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if project.status != "monitoring" {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "start_monitor",
             "recommended_flow": [
@@ -294,7 +342,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if project.total_files == 0 || snapshot_stale {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "take_snapshot",
             "recommended_flow": [
@@ -324,7 +372,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if project.accessed_files == 0 || activity_stale {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "generate_activity_then_stats",
             "recommended_flow": [
@@ -354,7 +402,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "run_verification_before_high_risk_changes",
             "recommended_flow": [
@@ -387,7 +435,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else if best_review_action == "review_unused_files" {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "review_unused_files",
             "recommended_flow": [
@@ -424,7 +472,7 @@ pub(crate) fn recommend_project_action(
             ]
         }))
     } else {
-        attach_execution_sequence(json!({
+        attach_recommendation_metadata(json!({
             "project_id": project.id,
             "recommended_next_action": "inspect_hot_files",
             "recommended_flow": [
