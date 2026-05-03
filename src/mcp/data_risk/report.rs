@@ -4,12 +4,65 @@ use std::collections::BTreeMap;
 use super::rules::{data_risk_rule_meta, review_priority_score};
 use super::{DataCandidate, MockDataReport};
 
+fn candidate_has_rule(candidates: &[DataCandidate], rule: &str) -> bool {
+    candidates
+        .iter()
+        .any(|candidate| candidate.rule_hits.iter().any(|hit| hit == rule))
+}
+
 impl MockDataReport {
+    pub(crate) fn data_risk_focus(&self) -> Value {
+        let has_hardcoded = !self.hardcoded_candidates.is_empty();
+        let has_mock = !self.mock_candidates.is_empty();
+        let has_mixed = !self.mixed_review_files.is_empty();
+        let has_runtime_shared = candidate_has_rule(&self.hardcoded_candidates, "path.runtime_shared");
+        let has_high_severity_content = candidate_has_rule(
+            &self.hardcoded_candidates,
+            "content.business_literal_combo",
+        );
+
+        let (primary_focus, priority_order, basis) =
+            if has_hardcoded && (has_mixed || has_runtime_shared || has_high_severity_content) {
+                let mut basis = vec!["hardcoded_candidates_present"];
+                if has_mixed {
+                    basis.push("mixed_review_files_present");
+                }
+                if has_runtime_shared {
+                    basis.push("runtime_shared_candidates_present");
+                }
+                if has_high_severity_content {
+                    basis.push("high_severity_content_hits_present");
+                }
+                ("hardcoded", json!(["hardcoded", "mixed", "mock"]), json!(basis))
+            } else if has_mixed {
+                (
+                    "mixed",
+                    json!(["mixed", "hardcoded", "mock"]),
+                    json!(["mixed_review_files_present"]),
+                )
+            } else if has_mock {
+                (
+                    "mock",
+                    json!(["mock", "hardcoded", "mixed"]),
+                    json!(["mock_candidates_present"]),
+                )
+            } else {
+                ("none", json!([]), json!(["no_candidates_detected"]))
+            };
+
+        json!({
+            "primary_focus": primary_focus,
+            "priority_order": priority_order,
+            "basis": basis,
+        })
+    }
+
     pub(crate) fn to_value(&self, limit: usize) -> Value {
         json!({
             "mock_candidate_count": self.mock_candidates.len(),
             "hardcoded_candidate_count": self.hardcoded_candidates.len(),
             "mixed_review_file_count": self.mixed_review_files.len(),
+            "data_risk_focus": self.data_risk_focus(),
             "rule_groups_summary": self.rule_groups_summary(),
             "rule_hits_summary": self.rule_hits_summary(),
             "mock_data_candidates": self.mock_candidates.iter().take(limit).map(data_candidate_value).collect::<Vec<_>>(),

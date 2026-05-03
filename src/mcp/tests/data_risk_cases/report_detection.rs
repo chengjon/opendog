@@ -149,3 +149,112 @@ fn mock_data_report_filtering_respects_type_and_priority() {
     assert_eq!(filtered.hardcoded_candidates.len(), 1);
     assert_eq!(filtered.mixed_review_files, vec!["src/customer_seed.rs"]);
 }
+
+#[test]
+fn mock_data_report_derives_hardcoded_focus_from_runtime_shared_high_severity_hits() {
+    let report = super::MockDataReport {
+        mock_candidates: vec![],
+        hardcoded_candidates: vec![super::DataCandidate {
+            file_path: "src/customer_seed.rs".to_string(),
+            confidence: "high",
+            review_priority: "high",
+            path_classification: "runtime_shared",
+            rule_hits: vec![
+                "path.runtime_shared".to_string(),
+                "content.business_literal_combo".to_string(),
+            ],
+            matched_keywords: vec!["customer".to_string(), "email".to_string()],
+            reasons: vec!["hardcoded".to_string()],
+            evidence: vec!["runtime".to_string()],
+            access_count: 1,
+            file_type: "rs".to_string(),
+        }],
+        mixed_review_files: vec!["src/customer_seed.rs".to_string()],
+    };
+
+    assert_eq!(
+        report.data_risk_focus(),
+        json!({
+            "primary_focus": "hardcoded",
+            "priority_order": ["hardcoded", "mixed", "mock"],
+            "basis": [
+                "hardcoded_candidates_present",
+                "mixed_review_files_present",
+                "runtime_shared_candidates_present",
+                "high_severity_content_hits_present"
+            ]
+        })
+    );
+}
+
+#[test]
+fn mock_data_report_derives_mixed_focus_when_mixed_files_exist_after_hardcoded_filtering() {
+    let report = super::MockDataReport {
+        mock_candidates: vec![super::DataCandidate {
+            file_path: "src/demo.rs".to_string(),
+            confidence: "medium",
+            review_priority: "high",
+            path_classification: "unknown",
+            rule_hits: vec!["path.mock_token".to_string()],
+            matched_keywords: vec!["demo".to_string()],
+            reasons: vec!["mock".to_string()],
+            evidence: vec!["demo".to_string()],
+            access_count: 0,
+            file_type: "rs".to_string(),
+        }],
+        hardcoded_candidates: vec![],
+        mixed_review_files: vec!["src/demo.rs".to_string()],
+    };
+
+    assert_eq!(
+        report.data_risk_focus(),
+        json!({
+            "primary_focus": "mixed",
+            "priority_order": ["mixed", "hardcoded", "mock"],
+            "basis": ["mixed_review_files_present"]
+        })
+    );
+}
+
+#[test]
+fn mock_data_report_derives_mock_focus_when_only_mock_candidates_exist() {
+    let report = super::MockDataReport {
+        mock_candidates: vec![super::DataCandidate {
+            file_path: "tests/fixtures/demo.json".to_string(),
+            confidence: "high",
+            review_priority: "medium",
+            path_classification: "test_only",
+            rule_hits: vec!["path.test_only".to_string()],
+            matched_keywords: vec!["demo".to_string()],
+            reasons: vec!["mock".to_string()],
+            evidence: vec!["fixture".to_string()],
+            access_count: 0,
+            file_type: "json".to_string(),
+        }],
+        hardcoded_candidates: vec![],
+        mixed_review_files: vec![],
+    };
+
+    assert_eq!(
+        report.data_risk_focus(),
+        json!({
+            "primary_focus": "mock",
+            "priority_order": ["mock", "hardcoded", "mixed"],
+            "basis": ["mock_candidates_present"]
+        })
+    );
+}
+
+#[test]
+fn mock_data_report_derives_none_focus_when_no_candidates_exist() {
+    let report = super::MockDataReport::default();
+
+    assert_eq!(
+        report.data_risk_focus(),
+        json!({
+            "primary_focus": "none",
+            "priority_order": [],
+            "basis": ["no_candidates_detected"]
+        })
+    );
+}
