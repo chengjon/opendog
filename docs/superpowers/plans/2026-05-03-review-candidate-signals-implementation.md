@@ -300,6 +300,12 @@ pub(crate) struct CandidateFreshness {
     pub(crate) activity_stale: bool,
 }
 
+pub(crate) struct ReviewCandidateContext<'a> {
+    pub(crate) mock_summary: &'a Value,
+    pub(crate) freshness: CandidateFreshness,
+    pub(crate) repo_risk: &'a Value,
+}
+
 fn candidate_basis_for(
     kind: &str,
     mock_summary: &Value,
@@ -330,7 +336,7 @@ fn candidate_basis_for(
 
 fn candidate_risk_hints_for(
     kind: &str,
-    freshness: &CandidateFreshness,
+    freshness: CandidateFreshness,
     repo_risk: &Value,
 ) -> Vec<&'static str> {
     let mut risk_hints = Vec::new();
@@ -355,17 +361,15 @@ pub(crate) fn build_review_candidate(
     priority: &str,
     reason: &str,
     suggested_commands: Vec<String>,
-    mock_summary: &Value,
-    freshness: &CandidateFreshness,
-    repo_risk: &Value,
+    context: ReviewCandidateContext<'_>,
 ) -> Value {
     json!({
         "kind": kind,
         "file_path": file_path,
         "reason": reason,
         "suggested_commands": suggested_commands,
-        "candidate_basis": candidate_basis_for(kind, mock_summary, file_path),
-        "candidate_risk_hints": candidate_risk_hints_for(kind, freshness, repo_risk),
+        "candidate_basis": candidate_basis_for(kind, context.mock_summary, file_path),
+        "candidate_risk_hints": candidate_risk_hints_for(kind, context.freshness, context.repo_risk),
         "candidate_priority": priority,
     })
 }
@@ -501,7 +505,9 @@ Expected: FAIL because candidate objects do not yet include `candidate_priority`
 
 ```rust
 // src/mcp/project_guidance/stats_unused/stats.rs
-use crate::mcp::review_candidates::{build_review_candidate, CandidateFreshness};
+use crate::mcp::review_candidates::{
+    build_review_candidate, CandidateFreshness, ReviewCandidateContext,
+};
 
 let freshness = CandidateFreshness {
     snapshot_stale: false,
@@ -519,9 +525,11 @@ file_recommendations.push(build_review_candidate(
         "git diff".to_string(),
         project_commands[0].clone(),
     ],
-    &mock_summary,
-    &freshness,
-    &repo_risk,
+    ReviewCandidateContext {
+        mock_summary: &mock_summary,
+        freshness,
+        repo_risk: &repo_risk,
+    },
 ));
 
 if let Some(unused_candidate) = entries.iter().find(|e| e.access_count == 0) {
@@ -535,9 +543,11 @@ if let Some(unused_candidate) = entries.iter().find(|e| e.access_count == 0) {
             "git grep <symbol>".to_string(),
             project_commands[0].clone(),
         ],
-        &mock_summary,
-        &freshness,
-        &repo_risk,
+        ReviewCandidateContext {
+            mock_summary: &mock_summary,
+            freshness,
+            repo_risk: &repo_risk,
+        },
     ));
 }
 ```
@@ -672,7 +682,9 @@ Expected: FAIL because unused candidate objects do not yet include the new machi
 
 ```rust
 // src/mcp/project_guidance/stats_unused/unused.rs
-use crate::mcp::review_candidates::{build_review_candidate, CandidateFreshness};
+use crate::mcp::review_candidates::{
+    build_review_candidate, CandidateFreshness, ReviewCandidateContext,
+};
 
 let freshness = CandidateFreshness {
     snapshot_stale: false,
@@ -694,9 +706,11 @@ let file_recommendations: Vec<Value> = unused_entries
                 "git grep <symbol>".to_string(),
                 project_commands[0].clone(),
             ],
-            &mock_summary,
-            &freshness,
-            &repo_risk,
+            ReviewCandidateContext {
+                mock_summary: &mock_summary,
+                freshness,
+                repo_risk: &repo_risk,
+            },
         )
     })
     .collect();

@@ -1,13 +1,21 @@
-#![allow(dead_code)]
-
 use serde_json::{json, Value};
 
+#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct CandidateFreshness {
     pub(crate) snapshot_stale: bool,
     pub(crate) activity_stale: bool,
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
+#[derive(Clone, Copy)]
+pub(crate) struct ReviewCandidateContext<'a> {
+    pub(crate) mock_summary: &'a Value,
+    pub(crate) freshness: CandidateFreshness,
+    pub(crate) repo_risk: &'a Value,
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
 fn summary_contains_path(summary: &Value, key: &str, file_path: &str) -> bool {
     summary[key]
         .as_array()
@@ -22,6 +30,7 @@ fn summary_contains_path(summary: &Value, key: &str, file_path: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn candidate_basis_for(kind: &str, mock_summary: &Value, file_path: &str) -> Vec<&'static str> {
     let mut basis = match kind {
         "hot_file" => vec!["highest_access_activity", "activity_present"],
@@ -43,6 +52,7 @@ fn candidate_basis_for(kind: &str, mock_summary: &Value, file_path: &str) -> Vec
     basis
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn candidate_risk_hints_for(
     kind: &str,
     freshness: CandidateFreshness,
@@ -65,23 +75,22 @@ fn candidate_risk_hints_for(
     risk_hints
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn build_review_candidate(
     kind: &str,
     file_path: &str,
     priority: &str,
     reason: &str,
     suggested_commands: Vec<String>,
-    mock_summary: &Value,
-    freshness: CandidateFreshness,
-    repo_risk: &Value,
+    context: ReviewCandidateContext<'_>,
 ) -> Value {
     json!({
         "kind": kind,
         "file_path": file_path,
         "reason": reason,
         "suggested_commands": suggested_commands,
-        "candidate_basis": candidate_basis_for(kind, mock_summary, file_path),
-        "candidate_risk_hints": candidate_risk_hints_for(kind, freshness, repo_risk),
+        "candidate_basis": candidate_basis_for(kind, context.mock_summary, file_path),
+        "candidate_risk_hints": candidate_risk_hints_for(kind, context.freshness, context.repo_risk),
         "candidate_priority": priority,
     })
 }
@@ -110,9 +119,11 @@ mod tests {
             "primary",
             "hot",
             vec!["cargo test".to_string()],
-            &summary,
-            CandidateFreshness::default(),
-            &low_repo_risk(),
+            ReviewCandidateContext {
+                mock_summary: &summary,
+                freshness: CandidateFreshness::default(),
+                repo_risk: &low_repo_risk(),
+            },
         );
 
         assert_eq!(
@@ -140,12 +151,14 @@ mod tests {
             "secondary",
             "unused",
             vec!["git grep <symbol>".to_string()],
-            &summary,
-            CandidateFreshness {
-                snapshot_stale: true,
-                activity_stale: false,
+            ReviewCandidateContext {
+                mock_summary: &summary,
+                freshness: CandidateFreshness {
+                    snapshot_stale: true,
+                    activity_stale: false,
+                },
+                repo_risk: &low_repo_risk(),
             },
-            &low_repo_risk(),
         );
 
         assert_eq!(
@@ -171,12 +184,14 @@ mod tests {
             "primary",
             "hot",
             vec![],
-            &json!({}),
-            CandidateFreshness {
-                snapshot_stale: false,
-                activity_stale: true,
+            ReviewCandidateContext {
+                mock_summary: &json!({}),
+                freshness: CandidateFreshness {
+                    snapshot_stale: false,
+                    activity_stale: true,
+                },
+                repo_risk: &low_repo_risk(),
             },
-            &low_repo_risk(),
         );
 
         assert_eq!(
@@ -193,12 +208,14 @@ mod tests {
             "primary",
             "hot",
             vec![],
-            &json!({}),
-            CandidateFreshness::default(),
-            &json!({
-                "risk_level": "low",
-                "large_diff": true
-            }),
+            ReviewCandidateContext {
+                mock_summary: &json!({}),
+                freshness: CandidateFreshness::default(),
+                repo_risk: &json!({
+                    "risk_level": "low",
+                    "large_diff": true
+                }),
+            },
         );
 
         assert_eq!(
@@ -215,12 +232,14 @@ mod tests {
             "primary",
             "hot",
             vec![],
-            &json!({}),
-            CandidateFreshness::default(),
-            &json!({
-                "risk_level": "high",
-                "large_diff": false
-            }),
+            ReviewCandidateContext {
+                mock_summary: &json!({}),
+                freshness: CandidateFreshness::default(),
+                repo_risk: &json!({
+                    "risk_level": "high",
+                    "large_diff": false
+                }),
+            },
         );
 
         assert_eq!(
@@ -237,18 +256,20 @@ mod tests {
             "secondary",
             "hot",
             vec![],
-            &json!({
-                "mock_data_candidates": [{"file_path": "src/main.rs"}],
-                "hardcoded_data_candidates": [{"file_path": "src/main.rs"}]
-            }),
-            CandidateFreshness {
-                snapshot_stale: true,
-                activity_stale: true,
+            ReviewCandidateContext {
+                mock_summary: &json!({
+                    "mock_data_candidates": [{"file_path": "src/main.rs"}],
+                    "hardcoded_data_candidates": [{"file_path": "src/main.rs"}]
+                }),
+                freshness: CandidateFreshness {
+                    snapshot_stale: true,
+                    activity_stale: true,
+                },
+                repo_risk: &json!({
+                    "risk_level": "high",
+                    "large_diff": true
+                }),
             },
-            &json!({
-                "risk_level": "high",
-                "large_diff": true
-            }),
         );
 
         assert_eq!(candidate["candidate_basis"], json!([]));
