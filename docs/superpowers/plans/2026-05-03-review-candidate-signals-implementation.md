@@ -152,7 +152,10 @@ fn recommend_project_action_keeps_review_focus_null_when_stale_snapshot_preempts
     );
 
     assert_eq!(recommendation["recommended_next_action"], "take_snapshot");
-    assert!(recommendation["review_focus"].is_null());
+    assert_eq!(
+        recommendation.get("review_focus"),
+        Some(&serde_json::Value::Null)
+    );
 }
 
 #[test]
@@ -169,7 +172,10 @@ fn recommend_project_action_keeps_review_focus_null_when_stale_activity_preempts
     );
 
     assert_eq!(recommendation["recommended_next_action"], "generate_activity_then_stats");
-    assert!(recommendation["review_focus"].is_null());
+    assert_eq!(
+        recommendation.get("review_focus"),
+        Some(&serde_json::Value::Null)
+    );
 }
 
 #[test]
@@ -191,7 +197,10 @@ fn recommend_project_action_keeps_review_focus_null_for_non_review_actions() {
     );
 
     assert_eq!(recommendation["recommended_next_action"], "start_monitor");
-    assert!(recommendation["review_focus"].is_null());
+    assert_eq!(
+        recommendation.get("review_focus"),
+        Some(&serde_json::Value::Null)
+    );
 }
 ```
 
@@ -262,7 +271,7 @@ mod review_focus;
 
 Run: `cargo test review_focus --lib`
 
-Expected: PASS with 5 tests passing.
+Expected: PASS with 6 tests passing.
 
 - [ ] **Step 5: Commit**
 
