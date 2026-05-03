@@ -124,7 +124,8 @@ This batch should keep `basis` intentionally small:
 - `mock_candidates_present`
 - `hardcoded_candidates_present`
 - `mixed_review_files_present`
-- `runtime_shared_high_severity_present`
+- `runtime_shared_candidates_present`
+- `high_severity_content_hits_present`
 
 Rules:
 
@@ -132,7 +133,24 @@ Rules:
 - `basis` should describe why the selected focus won, not every fact in the report
 - `basis` should be derived only from existing counts and existing candidate rule hits
 
-### 5. Derive `primary_focus` From Existing Results Only
+### 5. Canonical Derivation Site
+
+`data_risk_focus` derivation should have exactly one owner:
+
+- `MockDataReport::data_risk_focus(&self) -> Value`
+
+Preferred implementation location:
+
+- `src/mcp/data_risk/report.rs`
+
+Rules:
+
+- `project_data_risk_payload(...)` must consume this canonical method
+- `data_risk_guidance(...)` must consume this canonical method
+- workspace aggregation must consume this canonical method or already-rendered values derived from it
+- no sibling module should reimplement the focus rules inline
+
+### 6. Derive `primary_focus` From Existing Results Only
 
 `data_risk_focus` must consume existing results:
 
@@ -167,7 +185,22 @@ This preserves the current product posture:
 - mixed files stay ahead of plain mock-only review
 - mock-only findings remain review signals, not high-risk governance events
 
-### 6. Keep `priority_order` Stable Instead Of Dynamic
+Preferred basis mapping:
+
+- `hardcoded_candidates_present`
+  - include when `primary_focus = "hardcoded"`
+- `mixed_review_files_present`
+  - include when `mixed_review_file_count > 0`
+- `runtime_shared_candidates_present`
+  - include when any hardcoded candidate hits `path.runtime_shared`
+- `high_severity_content_hits_present`
+  - include when any hardcoded candidate hits `content.business_literal_combo`
+- `mock_candidates_present`
+  - include when `primary_focus = "mock"`
+- `no_candidates_detected`
+  - include only when `primary_focus = "none"`
+
+### 7. Keep `priority_order` Stable Instead Of Dynamic
 
 This batch should not introduce a separate ranking engine. A fixed order per focus is enough:
 
@@ -182,14 +215,16 @@ This batch should not introduce a separate ranking engine. A fixed order per foc
 
 This gives AI consumers a direct machine-readable order instead of forcing them to reinterpret counts or prose.
 
-### 7. Project Data-Risk Guidance Should Mirror The Same Focus
+These order entries are review-attention domains, not guaranteed-disjoint file sets. In particular, `mixed` review files may also appear in the broader `hardcoded` or `mock` candidate arrays.
+
+### 8. Project Data-Risk Guidance Should Mirror The Same Focus
 
 `data_risk_guidance(...)` should consume the same already-derived `data_risk_focus` and expose it directly rather than recomputing a parallel explanation.
 
 Rules:
 
 - `recommended_flow` prose stays as-is in spirit
-- `guidance.layers.cleanup_refactor_candidates` can mirror `data_risk_focus`
+- `guidance.layers.cleanup_refactor_candidates` must include the already-derived `data_risk_focus`
 - no second inference path should be created inside guidance
 
 This keeps a single data-risk explanation source for:
@@ -197,7 +232,7 @@ This keeps a single data-risk explanation source for:
 - `project_data_risk_payload(...)`
 - `data_risk_guidance(...)`
 
-### 8. Workspace Guidance Should Add Small Focus Aggregates
+### 9. Workspace Guidance Should Add Small Focus Aggregates
 
 Workspace guidance should add compact machine-readable summary fields:
 
@@ -222,7 +257,20 @@ Existing count-based fields remain:
 
 The new fields are interpretation summaries, not replacements.
 
-### 9. `agent_guidance` And `decision_brief` Should Only Project Existing Data-Risk Focus
+Preferred shape:
+
+```json
+{
+  "data_risk_focus_distribution": {
+    "hardcoded": 2,
+    "mixed": 0,
+    "mock": 1,
+    "none": 3
+  }
+}
+```
+
+### 10. `agent_guidance` And `decision_brief` Should Only Project Existing Data-Risk Focus
 
 `agent_guidance` should consume existing workspace/project data-risk results and add:
 
@@ -242,7 +290,7 @@ Rules:
 - `decision_brief_payload(...)` must not invent its own focus logic
 - the selected project should inherit the already-computed focus for that project
 
-### 10. Output Surfaces
+### 11. Output Surfaces
 
 This batch should update exactly four surfaces.
 
@@ -269,6 +317,16 @@ This batch should update exactly four surfaces.
 
 `agent_guidance_payload(...)` and `decision_brief_payload(...)` should consume the existing focus object rather than recomputing it.
 
+## Contract Compatibility
+
+This batch is intended to be backward-compatible and additive under the current schema versions.
+
+Rules:
+
+- no contract version bump is required for these extra fields
+- existing required fields keep their current meaning
+- `data_risk_focus` and focus-aggregation fields are optional additions under existing versioned payloads
+
 ## Out Of Scope
 
 This batch does not:
@@ -294,6 +352,11 @@ Add focused tests for:
 - `none` focus when no candidates exist
 - `priority_order` and `basis` stability
 
+Suggested placement:
+
+- extend `src/mcp/tests/data_risk_cases/report_detection.rs`
+- add a dedicated `focus_derivation.rs` leaf only if `report_detection.rs` becomes structurally oversized
+
 ### 2. Workspace aggregation
 
 Add tests for:
@@ -304,6 +367,10 @@ Add tests for:
 - `projects_requiring_mixed_file_review`
 
 and confirm no regression in existing count-based aggregation.
+
+Suggested placement:
+
+- extend `src/mcp/tests/data_risk_cases/workspace_aggregation.rs`
 
 ### 3. Guidance and decision projection
 
@@ -319,6 +386,11 @@ and confirm no regression in:
 - repo-truth fields
 - sequencing fields
 - verification gate fields
+
+Suggested placement:
+
+- extend `src/mcp/tests/data_risk_cases/single_project_guidance.rs`
+- extend the relevant decision-brief contract tests under `src/mcp/tests/guidance_basics/basics_contracts/decision_brief_envelope.rs`
 
 ## Rationale
 
