@@ -53,8 +53,19 @@ fn passing_runs() -> Vec<VerificationRun> {
     }]
 }
 
+fn assert_explicit_null_review_focus(recommendation: &serde_json::Value) {
+    let object = recommendation
+        .as_object()
+        .expect("recommendation should be a JSON object");
+    assert!(object.contains_key("review_focus"));
+    assert_eq!(
+        recommendation.get("review_focus"),
+        Some(&serde_json::Value::Null)
+    );
+}
+
 #[test]
-fn recommend_project_action_emits_hot_file_review_focus() {
+fn recommend_project_action_emits_hot_file_review_focus_for_high_repo_risk() {
     let root = rust_project_root();
     let recommendation = recommend_project_action(
         &ProjectGuidanceState {
@@ -64,6 +75,40 @@ fn recommend_project_action_emits_hot_file_review_focus() {
         &json!({
             "status": "available",
             "risk_level": "high",
+            "is_dirty": true,
+            "operation_states": [],
+            "conflicted_count": 0,
+            "lockfile_anomalies": [],
+            "large_diff": false
+        }),
+        &passing_runs(),
+    );
+
+    assert_eq!(
+        recommendation["recommended_next_action"],
+        "inspect_hot_files"
+    );
+    assert_eq!(
+        recommendation["review_focus"],
+        json!({
+            "candidate_family": "hot_file",
+            "candidate_basis": ["highest_access_activity", "activity_present"],
+            "candidate_risk_hints": ["repo_risk_elevated"]
+        })
+    );
+}
+
+#[test]
+fn recommend_project_action_emits_hot_file_review_focus_for_large_diff() {
+    let root = rust_project_root();
+    let recommendation = recommend_project_action(
+        &ProjectGuidanceState {
+            unused_files: 0,
+            ..base_state(root.path())
+        },
+        &json!({
+            "status": "available",
+            "risk_level": "low",
             "is_dirty": true,
             "operation_states": [],
             "conflicted_count": 0,
@@ -123,7 +168,7 @@ fn recommend_project_action_keeps_review_focus_null_when_stale_snapshot_preempts
     );
 
     assert_eq!(recommendation["recommended_next_action"], "take_snapshot");
-    assert!(recommendation["review_focus"].is_null());
+    assert_explicit_null_review_focus(&recommendation);
 }
 
 #[test]
@@ -143,7 +188,7 @@ fn recommend_project_action_keeps_review_focus_null_when_stale_activity_preempts
         recommendation["recommended_next_action"],
         "generate_activity_then_stats"
     );
-    assert!(recommendation["review_focus"].is_null());
+    assert_explicit_null_review_focus(&recommendation);
 }
 
 #[test]
@@ -165,5 +210,5 @@ fn recommend_project_action_keeps_review_focus_null_for_non_review_actions() {
     );
 
     assert_eq!(recommendation["recommended_next_action"], "start_monitor");
-    assert!(recommendation["review_focus"].is_null());
+    assert_explicit_null_review_focus(&recommendation);
 }
