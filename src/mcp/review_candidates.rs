@@ -22,15 +22,16 @@ fn summary_contains_path(summary: &Value, key: &str, file_path: &str) -> bool {
         .unwrap_or(false)
 }
 
-pub(crate) fn candidate_basis_for(
-    kind: &str,
-    mock_summary: &Value,
-    file_path: &str,
-) -> Vec<&'static str> {
+fn candidate_basis_for(kind: &str, mock_summary: &Value, file_path: &str) -> Vec<&'static str> {
     let mut basis = match kind {
         "hot_file" => vec!["highest_access_activity", "activity_present"],
-        _ => vec!["zero_recorded_access", "snapshot_present"],
+        "unused_candidate" => vec!["zero_recorded_access", "snapshot_present"],
+        _ => Vec::new(),
     };
+
+    if basis.is_empty() {
+        return basis;
+    }
 
     if summary_contains_path(mock_summary, "mock_data_candidates", file_path) {
         basis.push("mock_data_overlap");
@@ -42,7 +43,7 @@ pub(crate) fn candidate_basis_for(
     basis
 }
 
-pub(crate) fn candidate_risk_hints_for(
+fn candidate_risk_hints_for(
     kind: &str,
     freshness: CandidateFreshness,
     repo_risk: &Value,
@@ -204,5 +205,31 @@ mod tests {
             candidate["candidate_risk_hints"],
             json!(["repo_risk_elevated"])
         );
+    }
+
+    #[test]
+    fn build_review_candidate_keeps_unknown_kind_empty() {
+        let candidate = build_review_candidate(
+            "unknown_kind",
+            "src/main.rs",
+            "secondary",
+            "hot",
+            vec![],
+            &json!({
+                "mock_data_candidates": [{"file_path": "src/main.rs"}],
+                "hardcoded_data_candidates": [{"file_path": "src/main.rs"}]
+            }),
+            CandidateFreshness {
+                snapshot_stale: true,
+                activity_stale: true,
+            },
+            &json!({
+                "risk_level": "high",
+                "large_diff": true
+            }),
+        );
+
+        assert_eq!(candidate["candidate_basis"], json!([]));
+        assert_eq!(candidate["candidate_risk_hints"], json!([]));
     }
 }
