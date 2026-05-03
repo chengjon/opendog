@@ -176,29 +176,15 @@ fn stats_guidance_surfaces_refactor_gate_level_in_execution_strategy() {
 }
 
 #[test]
-fn unused_guidance_surfaces_candidate_files() {
+fn unused_guidance_marks_first_candidate_as_primary() {
     let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(dir.path().join("src/old.rs"), "pub fn old() {}\n").unwrap();
+    std::fs::write(dir.path().join("src/legacy.rs"), "pub fn legacy() {}\n").unwrap();
+
     let entries = vec![
-        StatsEntry {
-            file_path: "src/old.rs".to_string(),
-            size: 10,
-            file_type: "rs".to_string(),
-            access_count: 0,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        },
-        StatsEntry {
-            file_path: "src/older.rs".to_string(),
-            size: 10,
-            file_type: "rs".to_string(),
-            access_count: 0,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        },
+        stats_entry("src/old.rs", 0, 0),
+        stats_entry("src/legacy.rs", 0, 0),
     ];
 
     let value = unused_guidance(dir.path(), &entries, &[]);
@@ -206,7 +192,14 @@ fn unused_guidance_surfaces_candidate_files() {
         value["layers"]["workspace_observation"]["unused_candidates"],
         json!(2)
     );
-    assert_eq!(value["file_recommendations"][0]["file_path"], "src/old.rs");
+    assert_eq!(
+        value["file_recommendations"][0]["candidate_priority"],
+        "primary"
+    );
+    assert_eq!(
+        value["file_recommendations"][0]["candidate_basis"],
+        json!(["zero_recorded_access", "snapshot_present"])
+    );
     assert!(value["summary"]
         .as_str()
         .unwrap()
@@ -214,34 +207,53 @@ fn unused_guidance_surfaces_candidate_files() {
 }
 
 #[test]
-fn unused_guidance_reuses_shared_cleanup_reason() {
+fn unused_guidance_marks_overlap_in_candidate_basis() {
     let dir = TempDir::new().unwrap();
-    let entries = vec![StatsEntry {
-        file_path: "src/old.rs".to_string(),
-        size: 10,
-        file_type: "rs".to_string(),
-        access_count: 0,
-        estimated_duration_ms: 0,
-        modification_count: 0,
-        last_access_time: None,
-        first_seen_time: None,
-    }];
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/legacy.rs"),
+        "const CUSTOMER_EMAIL: &str = \"demo@example.com\";\nconst INVOICE_NO: &str = \"INV-1\";\nconst STREET: &str = \"Main Street\";\n",
+    )
+    .unwrap();
+
+    let value = unused_guidance(dir.path(), &[stats_entry("src/legacy.rs", 0, 0)], &[]);
+    assert_eq!(
+        value["file_recommendations"][0]["candidate_basis"],
+        json!([
+            "zero_recorded_access",
+            "snapshot_present",
+            "hardcoded_data_overlap"
+        ])
+    );
+}
+
+#[test]
+fn unused_guidance_marks_later_candidates_as_secondary() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(dir.path().join("src/old.rs"), "pub fn old() {}\n").unwrap();
+    std::fs::write(dir.path().join("src/legacy.rs"), "pub fn legacy() {}\n").unwrap();
 
     let value = unused_guidance(
         dir.path(),
-        &entries,
-        &[VerificationRun {
-            id: 1,
-            kind: "test".to_string(),
-            status: "passed".to_string(),
-            command: "cargo test".to_string(),
-            exit_code: Some(0),
-            summary: None,
-            source: "cli".to_string(),
-            started_at: None,
-            finished_at: fresh_ts(),
-        }],
+        &[
+            stats_entry("src/old.rs", 0, 0),
+            stats_entry("src/legacy.rs", 0, 0),
+        ],
+        &[],
     );
+    assert_eq!(
+        value["file_recommendations"][1]["candidate_priority"],
+        "secondary"
+    );
+}
+
+#[test]
+fn unused_guidance_reuses_shared_cleanup_reason() {
+    let dir = TempDir::new().unwrap();
+    let entries = vec![stats_entry("src/old.rs", 0, 0)];
+
+    let value = unused_guidance(dir.path(), &entries, &passing_verification_runs());
 
     assert_eq!(
         value["layers"]["cleanup_refactor_candidates"]["safe_for_cleanup"],

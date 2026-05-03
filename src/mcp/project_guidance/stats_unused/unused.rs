@@ -3,6 +3,9 @@ use std::path::Path;
 
 use crate::storage::queries::{StatsEntry, VerificationRun};
 
+use super::super::super::review_candidates::{
+    build_review_candidate, CandidateFreshness, ReviewCandidateContext,
+};
 use super::super::super::{
     build_constraints_boundaries_layer, common_boundary_hints, detect_mock_data_report,
     detect_project_commands, project_readiness_snapshot, project_toolchain_layer,
@@ -50,20 +53,28 @@ pub(in crate::mcp) fn unused_guidance(
         let verification_layer = verification_status_layer(verification_runs);
         let readiness = project_readiness_snapshot(&repo_risk, &verification_layer);
         let mock_summary = detect_mock_data_report(root_path, unused_entries).to_value(5);
+        let context = ReviewCandidateContext {
+            mock_summary: &mock_summary,
+            freshness: CandidateFreshness::default(),
+            repo_risk: &repo_risk,
+        };
         let file_recommendations: Vec<Value> = unused_entries
             .iter()
+            .enumerate()
             .take(3)
-            .map(|entry| {
-                json!({
-                    "kind": "unused_candidate",
-                    "file_path": entry.file_path,
-                    "reason": "This file has not been observed as accessed in the current snapshot window.",
-                    "suggested_commands": [
+            .map(|(idx, entry)| {
+                build_review_candidate(
+                    "unused_candidate",
+                    &entry.file_path,
+                    if idx == 0 { "primary" } else { "secondary" },
+                    "This file has not been observed as accessed in the current snapshot window.",
+                    vec![
                         format!("rg \"{}\" .", entry.file_path),
                         "git grep <symbol>".to_string(),
-                        project_commands[0].clone()
-                    ]
-                })
+                        project_commands[0].clone(),
+                    ],
+                    context,
+                )
             })
             .collect();
         guidance["file_recommendations"] = json!(file_recommendations.clone());
