@@ -167,6 +167,49 @@ fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> 
     })
 }
 
+fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Value {
+    let mut distribution = json!({
+        "hardcoded": 0,
+        "mixed": 0,
+        "mock": 0,
+        "none": 0,
+    });
+    let mut projects_requiring_hardcoded_review = 0_u64;
+    let mut projects_requiring_mock_review = 0_u64;
+    let mut projects_requiring_mixed_file_review = 0_u64;
+
+    for overview in project_overviews {
+        match overview["mock_data_summary"]["data_risk_focus"]["primary_focus"]
+            .as_str()
+            .unwrap_or("none")
+        {
+            "hardcoded" => {
+                distribution["hardcoded"] =
+                    json!(distribution["hardcoded"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_hardcoded_review += 1;
+            }
+            "mixed" => {
+                distribution["mixed"] = json!(distribution["mixed"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_mixed_file_review += 1;
+            }
+            "mock" => {
+                distribution["mock"] = json!(distribution["mock"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_mock_review += 1;
+            }
+            _ => {
+                distribution["none"] = json!(distribution["none"].as_u64().unwrap_or(0) + 1);
+            }
+        }
+    }
+
+    json!({
+        "data_risk_focus_distribution": distribution,
+        "projects_requiring_hardcoded_review": projects_requiring_hardcoded_review,
+        "projects_requiring_mock_review": projects_requiring_mock_review,
+        "projects_requiring_mixed_file_review": projects_requiring_mixed_file_review,
+    })
+}
+
 pub(crate) fn agent_guidance_payload(
     project_count: usize,
     monitoring_count: usize,
@@ -277,6 +320,7 @@ pub(crate) fn agent_guidance_payload(
     let repo_truth_summary = execution_strategy_repo_truth_summary(&sorted_project_recommendations);
     let stabilization_summary =
         execution_strategy_stabilization_summary(&sorted_project_recommendations);
+    let data_risk_focus_summary = execution_strategy_data_risk_focus_summary(project_overviews);
     let recommended_flow = agent_guidance_recommended_flow(
         project_count,
         monitoring_count,
@@ -337,6 +381,13 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_storage_maintenance_candidates": projects_with_storage_maintenance_candidates,
         "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
         "total_storage_reclaimable_bytes": storage_maintenance["total_approx_reclaimable_bytes"].clone(),
+        "data_risk_focus_distribution": data_risk_focus_summary["data_risk_focus_distribution"].clone(),
+        "projects_requiring_hardcoded_review":
+            data_risk_focus_summary["projects_requiring_hardcoded_review"].clone(),
+        "projects_requiring_mock_review":
+            data_risk_focus_summary["projects_requiring_mock_review"].clone(),
+        "projects_requiring_mixed_file_review":
+            data_risk_focus_summary["projects_requiring_mixed_file_review"].clone(),
         "notes": notes,
     });
     value["guidance"]["layers"]["execution_strategy"] = json!({
@@ -372,6 +423,13 @@ pub(crate) fn agent_guidance_payload(
         "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
         "review_opendog_retention_before_large_cleanup": projects_with_storage_maintenance_candidates > 0,
         "recommend_manual_review_for_hardcoded_data": projects_with_hardcoded_data > 0,
+        "data_risk_focus_distribution": data_risk_focus_summary["data_risk_focus_distribution"].clone(),
+        "projects_requiring_hardcoded_review":
+            data_risk_focus_summary["projects_requiring_hardcoded_review"].clone(),
+        "projects_requiring_mock_review":
+            data_risk_focus_summary["projects_requiring_mock_review"].clone(),
+        "projects_requiring_mixed_file_review":
+            data_risk_focus_summary["projects_requiring_mixed_file_review"].clone(),
         "projects_requiring_monitor_start":
             observation_summary["projects_requiring_monitor_start"].clone(),
         "projects_requiring_snapshot_refresh":

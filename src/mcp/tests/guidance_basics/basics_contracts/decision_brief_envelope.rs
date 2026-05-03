@@ -76,6 +76,19 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
     );
     assert_eq!(brief["decision"]["execution_sequence"], Value::Null);
     assert_eq!(
+        brief["decision"]["data_risk_focus"],
+        json!({
+            "primary_focus": "hardcoded",
+            "priority_order": ["hardcoded", "mixed", "mock"],
+            "basis": [
+                "hardcoded_candidates_present",
+                "mixed_review_files_present",
+                "runtime_shared_candidates_present",
+                "high_severity_content_hits_present"
+            ]
+        })
+    );
+    assert_eq!(
         brief["decision"]["action_profile"]["action_class"],
         "verification_recovery"
     );
@@ -112,11 +125,28 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         json!(true)
     );
     assert_eq!(
+        brief["decision"]["signals"]["mixed_review_file_count"],
+        json!(1)
+    );
+    assert_eq!(
         brief["decision"]["signals"]["storage_reclaimable_bytes"],
         json!(2048)
     );
     assert_eq!(
         brief["layers"]["workspace_observation"]["projects_with_hardcoded_candidates"],
+        json!(1)
+    );
+    assert_eq!(
+        brief["layers"]["workspace_observation"]["data_risk_focus_distribution"],
+        json!({
+            "hardcoded": 1,
+            "mixed": 0,
+            "mock": 0,
+            "none": 0
+        })
+    );
+    assert_eq!(
+        brief["layers"]["execution_strategy"]["projects_requiring_hardcoded_review"],
         json!(1)
     );
     assert_eq!(

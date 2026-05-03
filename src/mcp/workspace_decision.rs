@@ -71,6 +71,7 @@ where
             "mock_candidate_count": summary["mock_candidate_count"].clone(),
             "hardcoded_candidate_count": summary["hardcoded_candidate_count"].clone(),
             "mixed_review_file_count": summary["mixed_review_file_count"].clone(),
+            "data_risk_focus": summary["data_risk_focus"].clone(),
             "rule_groups_summary": summary["rule_groups_summary"].clone(),
             "rule_hits_summary": summary["rule_hits_summary"].clone(),
             "top_hardcoded_candidates": summary["hardcoded_data_candidates"].clone(),
@@ -186,10 +187,30 @@ pub(crate) fn decision_brief_payload(
             risk_observation["total_mock_candidates"].clone();
         layers["workspace_observation"]["total_hardcoded_candidates"] =
             risk_observation["total_hardcoded_candidates"].clone();
+        layers["workspace_observation"]["data_risk_focus_distribution"] =
+            risk_observation["data_risk_focus_distribution"].clone();
+        layers["workspace_observation"]["projects_requiring_hardcoded_review"] =
+            risk_observation["projects_requiring_hardcoded_review"].clone();
+        layers["workspace_observation"]["projects_requiring_mock_review"] =
+            risk_observation["projects_requiring_mock_review"].clone();
+        layers["workspace_observation"]["projects_requiring_mixed_file_review"] =
+            risk_observation["projects_requiring_mixed_file_review"].clone();
         layers["workspace_observation"]["rule_groups_summary"] =
             risk_observation["rule_groups_summary"].clone();
         layers["workspace_observation"]["rule_hits_summary"] =
             risk_observation["rule_hits_summary"].clone();
+        layers["execution_strategy"]["data_risk_focus_distribution"] = data_risk_guidance["layers"]
+            ["execution_strategy"]["data_risk_focus_distribution"]
+            .clone();
+        layers["execution_strategy"]["projects_requiring_hardcoded_review"] = data_risk_guidance
+            ["layers"]["execution_strategy"]["projects_requiring_hardcoded_review"]
+            .clone();
+        layers["execution_strategy"]["projects_requiring_mock_review"] = data_risk_guidance
+            ["layers"]["execution_strategy"]["projects_requiring_mock_review"]
+            .clone();
+        layers["execution_strategy"]["projects_requiring_mixed_file_review"] = data_risk_guidance
+            ["layers"]["execution_strategy"]["projects_requiring_mixed_file_review"]
+            .clone();
         layers["multi_project_portfolio"]["priority_projects"] =
             data_risk_guidance["layers"]["multi_project_portfolio"]["priority_projects"].clone();
         layers["multi_project_portfolio"]["rule_groups_summary"] =
@@ -220,6 +241,7 @@ pub(crate) fn decision_brief_payload(
                     "repo_truth_gaps": top_candidate["repo_truth_gaps"].clone(),
                     "mandatory_shell_checks": top_candidate["mandatory_shell_checks"].clone(),
                     "execution_sequence": top_candidate["execution_sequence"].clone(),
+                    "data_risk_focus": matched_overview["mock_data_summary"]["data_risk_focus"].clone(),
                     "target_project_id": target_project_id,
                     "strategy_mode": strategy["global_strategy_mode"].clone(),
                     "preferred_primary_tool": strategy["preferred_primary_tool"].clone(),
@@ -251,6 +273,10 @@ pub(crate) fn decision_brief_payload(
                             .as_u64()
                             .unwrap_or(0),
                         "mock_candidate_count": top_candidate["mock_candidate_count"]
+                            .as_u64()
+                            .unwrap_or(0),
+                        "mixed_review_file_count": matched_overview["mock_data_summary"]
+                            ["mixed_review_file_count"]
                             .as_u64()
                             .unwrap_or(0),
                         "storage_maintenance_candidate": storage_maintenance["maintenance_candidate"]

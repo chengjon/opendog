@@ -34,7 +34,16 @@ fn agent_guidance_includes_shell_and_tool_advice() {
             },
             "mock_data_summary": {
                 "hardcoded_candidate_count": 1,
-                "mock_candidate_count": 0
+                "mock_candidate_count": 0,
+                "data_risk_focus": {
+                    "primary_focus": "hardcoded",
+                    "priority_order": ["hardcoded", "mixed", "mock"],
+                    "basis": [
+                        "hardcoded_candidates_present",
+                        "runtime_shared_candidates_present",
+                        "high_severity_content_hits_present"
+                    ]
+                }
             },
             "storage_maintenance": {
                 "maintenance_candidate": true,
@@ -110,6 +119,27 @@ fn agent_guidance_includes_shell_and_tool_advice() {
     assert_eq!(
         value["guidance"]["layers"]["execution_strategy"]["mandatory_shell_check_examples"],
         json!(["git status", "git diff"])
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["data_risk_focus_distribution"],
+        json!({
+            "hardcoded": 1,
+            "mixed": 0,
+            "mock": 0,
+            "none": 0
+        })
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["projects_requiring_hardcoded_review"],
+        json!(1)
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["execution_strategy"]["projects_requiring_mock_review"],
+        json!(0)
+    );
+    assert_eq!(
+        value["guidance"]["layers"]["workspace_observation"]["projects_requiring_hardcoded_review"],
+        json!(1)
     );
     assert_eq!(
         value["guidance"]["layers"]["constraints_boundaries"]["status"],

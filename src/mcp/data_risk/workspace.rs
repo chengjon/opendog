@@ -10,6 +10,7 @@ pub(crate) fn workspace_data_risk_overview_payload(
 ) -> Value {
     let rule_hits_summary = aggregate_workspace_rule_hits(project_summaries);
     let rule_groups_summary = aggregate_workspace_rule_groups(project_summaries);
+    let data_risk_focus_summary = aggregate_workspace_data_risk_focus(project_summaries);
     let matched_projects = project_summaries.len();
     let projects_with_hardcoded = project_summaries
         .iter()
@@ -105,6 +106,13 @@ pub(crate) fn workspace_data_risk_overview_payload(
         "projects_with_hardcoded_candidates": projects_with_hardcoded,
         "total_mock_candidates": total_mock_candidates,
         "total_hardcoded_candidates": total_hardcoded_candidates,
+        "data_risk_focus_distribution": data_risk_focus_summary["distribution"].clone(),
+        "projects_requiring_hardcoded_review":
+            data_risk_focus_summary["projects_requiring_hardcoded_review"].clone(),
+        "projects_requiring_mock_review":
+            data_risk_focus_summary["projects_requiring_mock_review"].clone(),
+        "projects_requiring_mixed_file_review":
+            data_risk_focus_summary["projects_requiring_mixed_file_review"].clone(),
         "rule_groups_summary": rule_groups_summary,
         "rule_hits_summary": rule_hits_summary,
     });
@@ -124,6 +132,14 @@ pub(crate) fn workspace_data_risk_overview_payload(
         json!(projects_with_hardcoded);
     guidance["layers"]["execution_strategy"]["review_mock_data_before_cleanup"] =
         json!(projects_with_hardcoded > 0);
+    guidance["layers"]["execution_strategy"]["data_risk_focus_distribution"] =
+        data_risk_focus_summary["distribution"].clone();
+    guidance["layers"]["execution_strategy"]["projects_requiring_hardcoded_review"] =
+        data_risk_focus_summary["projects_requiring_hardcoded_review"].clone();
+    guidance["layers"]["execution_strategy"]["projects_requiring_mock_review"] =
+        data_risk_focus_summary["projects_requiring_mock_review"].clone();
+    guidance["layers"]["execution_strategy"]["projects_requiring_mixed_file_review"] =
+        data_risk_focus_summary["projects_requiring_mixed_file_review"].clone();
     guidance["layers"]["cleanup_refactor_candidates"] = json!({
         "status": "available",
         "priority_projects": priority_projects,
@@ -201,6 +217,49 @@ fn workspace_dominant_rule_group(summary: &Value) -> Value {
         })
         .cloned();
     dominant.unwrap_or(Value::Null)
+}
+
+fn aggregate_workspace_data_risk_focus(project_summaries: &[Value]) -> Value {
+    let mut distribution = json!({
+        "hardcoded": 0,
+        "mixed": 0,
+        "mock": 0,
+        "none": 0,
+    });
+    let mut projects_requiring_hardcoded_review = 0_u64;
+    let mut projects_requiring_mock_review = 0_u64;
+    let mut projects_requiring_mixed_file_review = 0_u64;
+
+    for summary in project_summaries {
+        match summary["data_risk_focus"]["primary_focus"]
+            .as_str()
+            .unwrap_or("none")
+        {
+            "hardcoded" => {
+                distribution["hardcoded"] =
+                    json!(distribution["hardcoded"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_hardcoded_review += 1;
+            }
+            "mixed" => {
+                distribution["mixed"] = json!(distribution["mixed"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_mixed_file_review += 1;
+            }
+            "mock" => {
+                distribution["mock"] = json!(distribution["mock"].as_u64().unwrap_or(0) + 1);
+                projects_requiring_mock_review += 1;
+            }
+            _ => {
+                distribution["none"] = json!(distribution["none"].as_u64().unwrap_or(0) + 1);
+            }
+        }
+    }
+
+    json!({
+        "distribution": distribution,
+        "projects_requiring_hardcoded_review": projects_requiring_hardcoded_review,
+        "projects_requiring_mock_review": projects_requiring_mock_review,
+        "projects_requiring_mixed_file_review": projects_requiring_mixed_file_review,
+    })
 }
 
 fn aggregate_workspace_rule_hits(project_summaries: &[Value]) -> Value {

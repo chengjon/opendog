@@ -9,6 +9,11 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
                 "mock_candidate_count": 1,
                 "hardcoded_candidate_count": 0,
                 "mixed_review_file_count": 0,
+                "data_risk_focus": {
+                    "primary_focus": "mock",
+                    "priority_order": ["mock", "hardcoded", "mixed"],
+                    "basis": ["mock_candidates_present"]
+                },
                 "rule_groups_summary": [
                     {"group": "path", "severity": "low", "count": 1}
                 ],
@@ -21,6 +26,16 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
                 "mock_candidate_count": 2,
                 "hardcoded_candidate_count": 3,
                 "mixed_review_file_count": 1,
+                "data_risk_focus": {
+                    "primary_focus": "hardcoded",
+                    "priority_order": ["hardcoded", "mixed", "mock"],
+                    "basis": [
+                        "hardcoded_candidates_present",
+                        "mixed_review_files_present",
+                        "runtime_shared_candidates_present",
+                        "high_severity_content_hits_present"
+                    ]
+                },
                 "rule_groups_summary": [
                     {"group": "classification", "severity": "medium", "count": 2},
                     {"group": "content", "severity": "medium", "count": 1}
@@ -37,6 +52,27 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
     assert_eq!(
         payload["layers"]["workspace_observation"]["projects_with_hardcoded_candidates"],
         json!(1)
+    );
+    assert_eq!(
+        payload["layers"]["workspace_observation"]["data_risk_focus_distribution"],
+        json!({
+            "hardcoded": 1,
+            "mixed": 0,
+            "mock": 1,
+            "none": 0
+        })
+    );
+    assert_eq!(
+        payload["layers"]["workspace_observation"]["projects_requiring_hardcoded_review"],
+        json!(1)
+    );
+    assert_eq!(
+        payload["layers"]["workspace_observation"]["projects_requiring_mock_review"],
+        json!(1)
+    );
+    assert_eq!(
+        payload["layers"]["workspace_observation"]["projects_requiring_mixed_file_review"],
+        json!(0)
     );
     assert_eq!(
         payload["layers"]["workspace_observation"]["total_registered_projects"],
@@ -59,6 +95,11 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
         json!("beta")
     );
     assert_eq!(
+        payload["layers"]["multi_project_portfolio"]["priority_projects"][0]["data_risk_focus"]
+            ["primary_focus"],
+        json!("hardcoded")
+    );
+    assert_eq!(
         payload["layers"]["multi_project_portfolio"]["priority_projects"][0]["dominant_rule_group"]
             ["group"],
         json!("classification")
@@ -66,6 +107,15 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
     assert_eq!(
         payload["layers"]["execution_strategy"]["review_mock_data_before_cleanup"],
         json!(true)
+    );
+    assert_eq!(
+        payload["layers"]["execution_strategy"]["data_risk_focus_distribution"],
+        json!({
+            "hardcoded": 1,
+            "mixed": 0,
+            "mock": 1,
+            "none": 0
+        })
     );
     assert_eq!(
         payload["recommended_flow"][0],

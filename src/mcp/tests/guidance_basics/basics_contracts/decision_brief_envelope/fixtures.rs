@@ -62,7 +62,17 @@ pub(super) fn demo_project_overview() -> serde_json::Value {
         "mock_data_summary": {
             "hardcoded_candidate_count": 1,
             "mock_candidate_count": 2,
-            "mixed_review_file_count": 1
+            "mixed_review_file_count": 1,
+            "data_risk_focus": {
+                "primary_focus": "hardcoded",
+                "priority_order": ["hardcoded", "mixed", "mock"],
+                "basis": [
+                    "hardcoded_candidates_present",
+                    "mixed_review_files_present",
+                    "runtime_shared_candidates_present",
+                    "high_severity_content_hits_present"
+                ]
+            }
         }
     })
 }
@@ -90,6 +100,16 @@ pub(super) fn demo_workspace_data_guidance() -> serde_json::Value {
             "recommended_next_action": "review_failing_verification",
             "reason": "Test evidence is failing.",
             "confidence": "high",
+            "data_risk_focus": {
+                "primary_focus": "hardcoded",
+                "priority_order": ["hardcoded", "mixed", "mock"],
+                "basis": [
+                    "hardcoded_candidates_present",
+                    "mixed_review_files_present",
+                    "runtime_shared_candidates_present",
+                    "high_severity_content_hits_present"
+                ]
+            },
             "rule_groups_summary": [
                 {"group": "content", "severity": "high", "count": 1}
             ],
