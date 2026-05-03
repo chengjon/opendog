@@ -10,6 +10,8 @@ use super::MockDataReport;
 
 pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> Value {
     let boundary_hints = common_boundary_hints(root_path);
+    let rendered = report.to_value(10);
+    let focus = rendered["data_risk_focus"].clone();
     let summary = if report.hardcoded_candidates.is_empty() && report.mock_candidates.is_empty() {
         "No mock or hardcoded data candidates were detected in the current snapshot-derived file set."
     } else if !report.hardcoded_candidates.is_empty() {
@@ -57,7 +59,7 @@ pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> V
             ],
         );
     }
-    let rendered = report.to_value(10);
+    guidance["data_risk_focus"] = focus.clone();
     guidance["layers"]["workspace_observation"] = json!({
         "status": "available",
         "analysis_state": "ready",
@@ -67,6 +69,7 @@ pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> V
     });
     guidance["layers"]["cleanup_refactor_candidates"] = json!({
         "status": "available",
+        "data_risk_focus": focus,
         "mock_data_candidates": rendered["mock_data_candidates"].clone(),
         "hardcoded_data_candidates": rendered["hardcoded_data_candidates"].clone(),
         "mixed_review_files": rendered["mixed_review_files"].clone(),
@@ -120,6 +123,7 @@ pub(crate) fn project_data_risk_payload(
                 "mixed_review_file_count",
                 rendered["mixed_review_file_count"].clone(),
             ),
+            ("data_risk_focus", rendered["data_risk_focus"].clone()),
             (
                 "rule_groups_summary",
                 rendered["rule_groups_summary"].clone(),

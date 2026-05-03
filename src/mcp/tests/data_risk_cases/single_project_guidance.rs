@@ -1,4 +1,6 @@
 use super::*;
+use crate::contracts::MCP_DATA_RISK_V1;
+use crate::mcp::project_data_risk_payload;
 
 #[test]
 fn data_risk_guidance_surfaces_counts_and_candidates() {
@@ -9,29 +11,62 @@ fn data_risk_guidance_surfaces_counts_and_candidates() {
         r#"const CUSTOMER: &str = "Acme Corp"; const EMAIL: &str = "ops@corp.com"; const ADDRESS: &str = "1 Market Street";"#,
     )
     .unwrap();
-    let report = detect_mock_data_report(
-        dir.path(),
-        &[StatsEntry {
-            file_path: "src/customer_seed.rs".to_string(),
-            size: 10,
-            file_type: "rs".to_string(),
-            access_count: 2,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        }],
-    );
+    let entries = vec![StatsEntry {
+        file_path: "src/customer_seed.rs".to_string(),
+        size: 10,
+        file_type: "rs".to_string(),
+        access_count: 2,
+        estimated_duration_ms: 0,
+        modification_count: 0,
+        last_access_time: None,
+        first_seen_time: None,
+    }];
+    let report = detect_mock_data_report(dir.path(), &entries);
 
     let guidance = data_risk_guidance(dir.path(), &report);
+    let payload = project_data_risk_payload(
+        MCP_DATA_RISK_V1,
+        "demo",
+        "all",
+        "low",
+        10,
+        dir.path(),
+        &entries,
+    );
     assert_eq!(
         guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
         json!(1)
     );
     assert_eq!(
+        guidance["data_risk_focus"],
+        json!({
+            "primary_focus": "hardcoded",
+            "priority_order": ["hardcoded", "mixed", "mock"],
+            "basis": [
+                "hardcoded_candidates_present",
+                "mixed_review_files_present",
+                "runtime_shared_candidates_present",
+                "high_severity_content_hits_present"
+            ]
+        })
+    );
+    assert_eq!(
         guidance["layers"]["cleanup_refactor_candidates"]["hardcoded_data_candidates"][0]
             ["file_path"],
         json!("src/customer_seed.rs")
+    );
+    assert_eq!(
+        guidance["layers"]["cleanup_refactor_candidates"]["data_risk_focus"],
+        guidance["data_risk_focus"]
+    );
+    assert_eq!(payload["data_risk_focus"], guidance["data_risk_focus"]);
+    assert_eq!(
+        payload["guidance"]["data_risk_focus"],
+        guidance["data_risk_focus"]
+    );
+    assert_eq!(
+        payload["guidance"]["layers"]["cleanup_refactor_candidates"]["data_risk_focus"],
+        guidance["data_risk_focus"]
     );
     assert_eq!(
         guidance["recommended_flow"][0],
