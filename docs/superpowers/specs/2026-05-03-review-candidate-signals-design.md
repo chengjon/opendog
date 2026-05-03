@@ -80,7 +80,7 @@ Preferred shape:
   "review_focus": {
     "candidate_family": "hot_file",
     "candidate_basis": ["highest_access_activity", "activity_present"],
-    "candidate_risk_hints": ["repo_risk_elevated", "activity_evidence_stale"]
+    "candidate_risk_hints": ["repo_risk_elevated"]
   }
 }
 ```
@@ -100,6 +100,13 @@ This batch should support exactly two families:
 - `unused_candidate`
 
 Non-review actions should keep `review_focus = null`.
+
+Under the current recommendation cascade, stale snapshot and stale activity states are observation-first:
+
+- stale snapshot selects `take_snapshot` before any review action
+- stale activity selects `generate_activity_then_stats` before any review action
+
+That means recommendation-level `review_focus` should only describe reachable review actions. Stale-evidence hints belong on the observation-first action or later candidate-level payloads, not on `review_focus`.
 
 ### 3. Add Three Candidate-Level Machine-Readable Fields
 
@@ -152,7 +159,7 @@ This batch should not make `recommend_project_action(...)` construct concrete fi
 Recommended helper split:
 
 - `review_focus_for_action(...)`
-  - input: selected action, readiness/freshness signals, repo risk
+  - input: selected action, repo risk
   - output: recommendation-level `review_focus`
 
 - `build_review_candidate(...)`
@@ -172,7 +179,7 @@ and avoids leaking full recommendation scoring into file-level payloads.
 
 For clarity:
 
-- `review_focus_for_action(...)` may continue to consume recommendation-layer signals such as `RecommendationSignals`
+- `review_focus_for_action(...)` stays limited to reachable review-action metadata
 - `build_review_candidate(...)` should consume the already-available `&Value` returned by `project_readiness_snapshot(...)` plus simple freshness/repository-risk inputs
 
 That keeps guidance code paths from depending on raw recommendation-only structs.
@@ -201,10 +208,11 @@ Preferred risk-hint rules:
 
 - hotspot review
   - include `repo_risk_elevated` when repo risk is not low or `large_diff = true`
-  - include `activity_evidence_stale` when activity freshness is stale
 
-- unused review
-  - include `snapshot_evidence_stale` when snapshot freshness is stale
+Stale freshness does not appear in recommendation-level `review_focus` under the current cascade because:
+
+- `take_snapshot` preempts `review_unused_files` when snapshot evidence is stale
+- `generate_activity_then_stats` preempts `inspect_hot_files` when activity evidence is stale
 
 This preserves the existing action cascade while making the selected review family easier to consume.
 
@@ -269,9 +277,10 @@ Testing should stay focused on the new candidate-signal contract.
 Add or extend focused tests proving:
 
 - `inspect_hot_files` emits `review_focus.candidate_family = "hot_file"`
-- hotspot review carries `activity_evidence_stale` and `repo_risk_elevated` when those facts are present
+- reachable hotspot review carries `repo_risk_elevated` when that fact is present
 - `review_unused_files` emits `review_focus.candidate_family = "unused_candidate"`
-- unused review carries `snapshot_evidence_stale` when that fact is present
+- stale snapshot selects `take_snapshot` and keeps `review_focus = null`
+- stale activity selects `generate_activity_then_stats` and keeps `review_focus = null`
 - non-review actions keep `review_focus = null`
 
 #### Stats guidance tests

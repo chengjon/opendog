@@ -1,6 +1,4 @@
 use super::*;
-use crate::mcp::project_recommendation::eligibility::{GateLevel, RecommendationSignals};
-use crate::mcp::project_recommendation::review_focus_for_action;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
@@ -90,7 +88,7 @@ fn recommend_project_action_emits_hot_file_review_focus() {
 }
 
 #[test]
-fn recommend_project_action_emits_unused_review_focus_for_stale_snapshot() {
+fn recommend_project_action_emits_unused_review_focus() {
     let root = rust_project_root();
     let recommendation = recommend_project_action(
         &base_state(root.path()),
@@ -110,33 +108,42 @@ fn recommend_project_action_emits_unused_review_focus_for_stale_snapshot() {
             "candidate_risk_hints": []
         })
     );
+}
 
-    let review_focus = review_focus_for_action(
-        "review_unused_files",
-        &RecommendationSignals {
-            cleanup_gate_level: GateLevel::Allow,
-            refactor_gate_level: GateLevel::Allow,
-            monitoring_active: true,
-            snapshot_available: true,
-            activity_available: true,
-            snapshot_stale: true,
-            activity_stale: false,
-            verification_missing: false,
-            verification_stale: false,
-            verification_failing: false,
-            unused_files: 4,
+#[test]
+fn recommend_project_action_keeps_review_focus_null_when_stale_snapshot_preempts_review() {
+    let root = rust_project_root();
+    let recommendation = recommend_project_action(
+        &ProjectGuidanceState {
+            latest_snapshot_captured_at: Some(stale_ts()),
+            ..base_state(root.path())
         },
         &clean_repo_risk(),
+        &passing_runs(),
+    );
+
+    assert_eq!(recommendation["recommended_next_action"], "take_snapshot");
+    assert!(recommendation["review_focus"].is_null());
+}
+
+#[test]
+fn recommend_project_action_keeps_review_focus_null_when_stale_activity_preempts_review() {
+    let root = rust_project_root();
+    let recommendation = recommend_project_action(
+        &ProjectGuidanceState {
+            unused_files: 0,
+            latest_activity_at: Some(stale_ts()),
+            ..base_state(root.path())
+        },
+        &clean_repo_risk(),
+        &passing_runs(),
     );
 
     assert_eq!(
-        review_focus,
-        json!({
-            "candidate_family": "unused_candidate",
-            "candidate_basis": ["zero_recorded_access", "snapshot_present"],
-            "candidate_risk_hints": ["snapshot_evidence_stale"]
-        })
+        recommendation["recommended_next_action"],
+        "generate_activity_then_stats"
     );
+    assert!(recommendation["review_focus"].is_null());
 }
 
 #[test]

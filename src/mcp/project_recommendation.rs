@@ -127,11 +127,7 @@ where
     (monitored_projects, recommendations, project_overviews)
 }
 
-pub(crate) fn review_focus_for_action(
-    selected_action: &str,
-    signals: &RecommendationSignals,
-    repo_risk: &Value,
-) -> Value {
+pub(crate) fn review_focus_for_action(selected_action: &str, repo_risk: &Value) -> Value {
     match selected_action {
         "inspect_hot_files" => {
             let mut risk_hints = Vec::new();
@@ -140,26 +136,17 @@ pub(crate) fn review_focus_for_action(
             {
                 risk_hints.push("repo_risk_elevated");
             }
-            if signals.activity_stale {
-                risk_hints.push("activity_evidence_stale");
-            }
             json!({
                 "candidate_family": "hot_file",
                 "candidate_basis": ["highest_access_activity", "activity_present"],
                 "candidate_risk_hints": risk_hints,
             })
         }
-        "review_unused_files" => {
-            let mut risk_hints = Vec::new();
-            if signals.snapshot_stale {
-                risk_hints.push("snapshot_evidence_stale");
-            }
-            json!({
-                "candidate_family": "unused_candidate",
-                "candidate_basis": ["zero_recorded_access", "snapshot_present"],
-                "candidate_risk_hints": risk_hints,
-            })
-        }
+        "review_unused_files" => json!({
+            "candidate_family": "unused_candidate",
+            "candidate_basis": ["zero_recorded_access", "snapshot_present"],
+            "candidate_risk_hints": [],
+        }),
         _ => Value::Null,
     }
 }
@@ -249,7 +236,7 @@ pub(crate) fn recommend_project_action(
         let selected_action = payload["recommended_next_action"]
             .as_str()
             .unwrap_or_default();
-        payload["review_focus"] = review_focus_for_action(selected_action, &signals, repo_risk);
+        payload["review_focus"] = review_focus_for_action(selected_action, repo_risk);
         payload
     };
     let attach_recommendation_metadata = |payload: Value| {

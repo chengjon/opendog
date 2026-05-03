@@ -4,7 +4,7 @@
 
 **Goal:** Add machine-readable review-candidate signals for cleanup and refactor review paths, then reuse the same candidate vocabulary in `stats` and `unused` guidance without changing the action enum or expanding `decision_brief` / `agent_guidance`.
 
-**Architecture:** Keep action selection recommendation-owned under `src/mcp/project_recommendation/`, add a small recommendation-level `review_focus`, and introduce a shared `src/mcp/review_candidates.rs` helper so `stats_guidance(...)` and `unused_guidance(...)` stop hand-assembling divergent candidate payloads. Reuse existing `detect_mock_data_report(...)` output instead of rescanning file content, and keep freshness-style risk hints recommendation-owned in this batch because the current stats/unused guidance call chain does not carry snapshot/activity timestamps.
+**Architecture:** Keep action selection recommendation-owned under `src/mcp/project_recommendation/`, add a small recommendation-level `review_focus`, and introduce a shared `src/mcp/review_candidates.rs` helper so `stats_guidance(...)` and `unused_guidance(...)` stop hand-assembling divergent candidate payloads. Reuse existing `detect_mock_data_report(...)` output instead of rescanning file content. Recommendation-level `review_focus` stays limited to reachable review-family metadata because stale snapshot/activity states are observation-first and preempt review actions in the current cascade.
 
 **Tech Stack:** Rust, `serde_json`, Cargo unit/integration tests, Markdown docs
 
@@ -120,14 +120,10 @@ fn recommend_project_action_emits_hot_file_review_focus() {
 }
 
 #[test]
-fn recommend_project_action_emits_unused_review_focus_for_stale_snapshot() {
+fn recommend_project_action_emits_unused_review_focus() {
     let root = rust_project_root();
     let recommendation = recommend_project_action(
-        &ProjectGuidanceState {
-            latest_snapshot_captured_at: Some(stale_ts()),
-            latest_activity_at: Some(fresh_ts()),
-            ..base_state(root.path())
-        },
+        &base_state(root.path()),
         &clean_repo_risk(),
         &passing_runs(),
     );
@@ -138,9 +134,42 @@ fn recommend_project_action_emits_unused_review_focus_for_stale_snapshot() {
         json!({
             "candidate_family": "unused_candidate",
             "candidate_basis": ["zero_recorded_access", "snapshot_present"],
-            "candidate_risk_hints": ["snapshot_evidence_stale"]
+            "candidate_risk_hints": []
         })
     );
+}
+
+#[test]
+fn recommend_project_action_keeps_review_focus_null_when_stale_snapshot_preempts_review() {
+    let root = rust_project_root();
+    let recommendation = recommend_project_action(
+        &ProjectGuidanceState {
+            latest_snapshot_captured_at: Some(stale_ts()),
+            ..base_state(root.path())
+        },
+        &clean_repo_risk(),
+        &passing_runs(),
+    );
+
+    assert_eq!(recommendation["recommended_next_action"], "take_snapshot");
+    assert!(recommendation["review_focus"].is_null());
+}
+
+#[test]
+fn recommend_project_action_keeps_review_focus_null_when_stale_activity_preempts_review() {
+    let root = rust_project_root();
+    let recommendation = recommend_project_action(
+        &ProjectGuidanceState {
+            unused_files: 0,
+            latest_activity_at: Some(stale_ts()),
+            ..base_state(root.path())
+        },
+        &clean_repo_risk(),
+        &passing_runs(),
+    );
+
+    assert_eq!(recommendation["recommended_next_action"], "generate_activity_then_stats");
+    assert!(recommendation["review_focus"].is_null());
 }
 
 #[test]
@@ -178,7 +207,6 @@ Expected: FAIL because recommendation payloads do not yet include `review_focus`
 // src/mcp/project_recommendation.rs
 fn review_focus_for_action(
     selected_action: &str,
-    signals: &RecommendationSignals,
     repo_risk: &Value,
 ) -> Value {
     match selected_action {
@@ -189,26 +217,17 @@ fn review_focus_for_action(
             {
                 risk_hints.push("repo_risk_elevated");
             }
-            if signals.activity_stale {
-                risk_hints.push("activity_evidence_stale");
-            }
             json!({
                 "candidate_family": "hot_file",
                 "candidate_basis": ["highest_access_activity", "activity_present"],
                 "candidate_risk_hints": risk_hints,
             })
         }
-        "review_unused_files" => {
-            let mut risk_hints = Vec::new();
-            if signals.snapshot_stale {
-                risk_hints.push("snapshot_evidence_stale");
-            }
-            json!({
-                "candidate_family": "unused_candidate",
-                "candidate_basis": ["zero_recorded_access", "snapshot_present"],
-                "candidate_risk_hints": risk_hints,
-            })
-        }
+        "review_unused_files" => json!({
+            "candidate_family": "unused_candidate",
+            "candidate_basis": ["zero_recorded_access", "snapshot_present"],
+            "candidate_risk_hints": [],
+        }),
         _ => Value::Null,
     }
 }
@@ -220,7 +239,7 @@ let attach_review_focus = |mut payload: Value| {
     let selected_action = payload["recommended_next_action"]
         .as_str()
         .unwrap_or_default();
-    payload["review_focus"] = review_focus_for_action(selected_action, &signals, repo_risk);
+    payload["review_focus"] = review_focus_for_action(selected_action, repo_risk);
     payload
 };
 
@@ -243,7 +262,7 @@ mod review_focus;
 
 Run: `cargo test review_focus --lib`
 
-Expected: PASS with 3 tests passing.
+Expected: PASS with 5 tests passing.
 
 - [ ] **Step 5: Commit**
 
