@@ -75,11 +75,15 @@ fn stats_guidance_marks_hot_file_candidate_as_primary_with_basis() {
 }
 
 #[test]
-fn stats_guidance_marks_companion_unused_candidate_as_secondary() {
+fn stats_guidance_marks_companion_unused_candidate_as_secondary_with_basis() {
     let dir = TempDir::new().unwrap();
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
     std::fs::write(dir.path().join("src/main.rs"), "fn main() {}\n").unwrap();
-    std::fs::write(dir.path().join("src/old.rs"), "pub fn old() {}\n").unwrap();
+    std::fs::write(
+        dir.path().join("src/old.rs"),
+        "const CUSTOMER_EMAIL: &str = \"demo@example.com\";\nconst CUSTOMER_STREET: &str = \"1 Demo Street\";\n",
+    )
+    .unwrap();
 
     let value = stats_guidance(
         dir.path(),
@@ -97,7 +101,15 @@ fn stats_guidance_marks_companion_unused_candidate_as_secondary() {
     );
     assert_eq!(
         value["file_recommendations"][1]["candidate_basis"],
-        json!(["zero_recorded_access", "snapshot_present"])
+        json!([
+            "zero_recorded_access",
+            "snapshot_present",
+            "hardcoded_data_overlap"
+        ])
+    );
+    assert_eq!(
+        value["file_recommendations"][1]["candidate_risk_hints"],
+        json!([])
     );
 }
 
