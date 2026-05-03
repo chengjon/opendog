@@ -180,8 +180,12 @@ fn detect_mock_data_report_rejects_unknown_weak_tokens_without_mock_content() {
 #[test]
 fn detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates() {
     // keep the existing fixture setup, but change the key expectations:
+    // before: report.mock_candidates.len() == 3
+    // after:  report.mock_candidates.len() == 2
     assert_eq!(report.mock_candidates.len(), 2);
     assert_eq!(report.hardcoded_candidates.len(), 1);
+    // before: src/customer_seed.rs was asserted inside mixed_review_files
+    // after:  weak runtime path tokens alone no longer create mock+hardcoded overlap
     assert!(report.mixed_review_files.is_empty());
 
     let rendered = report.to_value(5);
@@ -265,6 +269,7 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
     }
 
     let weak_path_is_allowed =
+        // path_classification must be the already-computed value from classify_path_kind()
         weak_path_mock_hit && allow_weak_path_token_as_mock_signal(path_classification, has_content_mock_signal);
     if weak_path_is_allowed {
         mock_reasons.push(

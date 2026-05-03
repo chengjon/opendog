@@ -110,6 +110,8 @@ Preferred behavior:
 
 This keeps the detection lightweight while aligning path intent with actual risk.
 
+This is a real behavior change for `unknown` paths. Current code still upgrades `unknown + weak token only` because all path tokens are treated uniformly through the flat `mock_path_tokens` array.
+
 ### 4. Require Additional Evidence Before Weak Runtime Paths Become Mock Candidates
 
 For `runtime_shared` or `unknown` paths, a weak token should only contribute to mock classification when combined with stronger evidence already available in the current scan:
@@ -118,6 +120,8 @@ For `runtime_shared` or `unknown` paths, a weak token should only contribute to 
 - other existing path/context signals that clearly indicate test-oriented use
 
 The batch does not add new evidence sources. It only changes when existing weak path hits are allowed to matter.
+
+Implementation note: the gating signal should reuse the existing content-token result already computed in `detect_mock_data_report(...)`, such as `content_mock_keywords` or an equivalent derived boolean like `has_content_mock_signal`.
 
 ### 5. Keep Hardcoded Detection Stable
 
@@ -172,9 +176,11 @@ Preferred helper structure:
 
 - `path_has_strong_mock_token(path_lower: &str) -> bool`
 - `path_has_weak_mock_token(path_lower: &str) -> bool`
-- `allow_weak_path_token_as_mock_signal(path_lower: &str, path_classification: &str) -> bool`
+- `allow_weak_path_token_as_mock_signal(path_classification: &str, has_content_mock_signal: bool) -> bool`
 
 Existing `mock_path_tokens` usage should be rewritten through these helpers rather than replaced with scattered inline conditionals.
+
+`path_classification` should be passed through from the existing `classify_path_kind()` call site rather than recomputed inside the helper.
 
 The implementation should keep one clear rule:
 
@@ -217,6 +223,12 @@ Regression checks should also confirm downstream effects indirectly:
 - `mixed_review_files` count drops for weak-token-only runtime cases
 - `data_risk_focus.primary_focus` remains `hardcoded` instead of flipping to `mixed` when the only mock evidence was a weak runtime path token
 
+Breaking test updates to call out explicitly:
+
+- in `detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates`
+  - `report.mock_candidates.len()` should drop from `3` to `2`
+  - the assertion that `src/customer_seed.rs` appears in `mixed_review_files` should be removed or inverted
+
 ## Compatibility And Risk Control
 
 Compatibility rules:
@@ -257,3 +269,4 @@ This batch does not do any of the following:
 - new content heuristics for pseudo-business data
 - automatic remediation or file rewriting
 - a broader redesign of `data_risk_focus`
+- word-boundary-aware token matching for path fragments such as `seed` versus `seedless`
