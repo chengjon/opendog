@@ -32,6 +32,7 @@ mod project_guidance;
 mod project_handlers;
 mod project_recommendation;
 mod repo_risk;
+pub(crate) mod review_candidates;
 mod risk_handlers;
 mod server_core;
 mod storage_maintenance;
