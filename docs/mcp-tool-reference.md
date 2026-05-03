@@ -514,10 +514,12 @@ Useful response fields:
 - `guidance.layers.execution_strategy.{projects_requiring_verification_run,projects_requiring_failing_verification_repair}`
 - `guidance.layers.execution_strategy.{projects_requiring_repo_stabilization,repo_stabilization_priority_projects}`
 - `guidance.layers.execution_strategy.{projects_requiring_monitor_start,projects_requiring_snapshot_refresh,projects_requiring_activity_generation}`
+- `guidance.layers.execution_strategy.{data_risk_focus_distribution,projects_requiring_hardcoded_review,projects_requiring_mock_review,projects_requiring_mixed_file_review}`
 - `guidance.layers.multi_project_portfolio`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].{attention_score,attention_band,attention_reasons}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.{risk_findings,highest_priority_finding}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].verification_gate_levels`
+- `guidance.layers.multi_project_portfolio.project_overviews[*].mock_data_summary.data_risk_focus`
 - `guidance.layers.verification_evidence.{cleanup_gate_distribution,refactor_gate_distribution}`
 - `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_{basis,risk_hints,priority}`
 
@@ -566,6 +568,7 @@ Useful response fields:
 - `decision.repo_truth_gaps`
 - `decision.mandatory_shell_checks`
 - `decision.execution_sequence`
+- `decision.data_risk_focus`
 - `decision.risk_profile`
 - `decision.risk_profile.cleanup_gate_level`
 - `decision.risk_profile.refactor_gate_level`
@@ -573,6 +576,7 @@ Useful response fields:
 - `decision.risk_profile.repo_risk_finding_counts`
 - `decision.signals.attention_score`
 - `decision.signals.attention_band`
+- `decision.signals.mixed_review_file_count`
 - `decision.signals.attention_reasons`
 - `decision.signals.storage_maintenance_candidate`
 - `decision.signals.storage_reclaimable_bytes`
@@ -887,12 +891,11 @@ Useful response fields:
 
 - `schema_version`
 - `project_id`
-- `mock_candidate_count`
-- `hardcoded_candidate_count`
-- `mixed_review_file_count`
-- `mock_data_candidates`
-- `hardcoded_data_candidates`
+- `data_risk_focus`
+- `mock_candidate_count`, `hardcoded_candidate_count`, `mixed_review_file_count`
+- `mock_data_candidates`, `hardcoded_data_candidates`
 - `guidance`
+- `data_risk_focus` uses `primary_focus` (`none | mock | hardcoded | mixed`), `priority_order`, and stable `basis` keys such as `hardcoded_candidates_present` or `mixed_review_files_present`
 
 ## `get_workspace_data_risk_overview`
 
@@ -921,8 +924,10 @@ Useful response fields:
 
 - `guidance.schema_version`
 - `guidance.recommended_flow`
-- `guidance.layers.workspace_observation`
+- `guidance.layers.workspace_observation.{data_risk_focus_distribution,projects_requiring_hardcoded_review,projects_requiring_mock_review,projects_requiring_mixed_file_review}`
+- `guidance.layers.execution_strategy.{data_risk_focus_distribution,projects_requiring_hardcoded_review,projects_requiring_mock_review,projects_requiring_mixed_file_review}`
 - `guidance.layers.multi_project_portfolio.priority_projects`
+- `guidance.layers.multi_project_portfolio.priority_projects[*].data_risk_focus`
 - `projects`
 
 ## Runtime behavior

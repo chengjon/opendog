@@ -85,23 +85,14 @@ Version marker:
 - `guidance.project_recommendations[*].execution_sequence`
 - `file_recommendations[*].candidate_*`
 - `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_*`
-- `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
-- `guidance.layers.execution_strategy.repo_truth_gap_distribution`
-- `guidance.layers.execution_strategy.mandatory_shell_check_examples`
-- `guidance.layers.execution_strategy.projects_requiring_verification_run`
-- `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
-- `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
-- `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
-- `guidance.layers.execution_strategy.projects_requiring_monitor_start`
-- `guidance.layers.execution_strategy.projects_requiring_snapshot_refresh`
-- `guidance.layers.execution_strategy.projects_requiring_activity_generation`
-- `guidance.layers.workspace_observation.projects_with_storage_maintenance_candidates`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].observation.coverage_state`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].observation.freshness`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].observation.evidence_gaps`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].attention_score`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].attention_band`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].attention_reasons`
+- `guidance.layers.execution_strategy.{projects_with_repo_truth_gaps,repo_truth_gap_distribution,mandatory_shell_check_examples}`
+- `guidance.layers.execution_strategy.{projects_requiring_verification_run,projects_requiring_failing_verification_repair}`
+- `guidance.layers.execution_strategy.{projects_requiring_repo_stabilization,repo_stabilization_priority_projects}`
+- `guidance.layers.execution_strategy.{projects_requiring_monitor_start,projects_requiring_snapshot_refresh,projects_requiring_activity_generation}`
+- `guidance.layers.execution_strategy.{data_risk_focus_distribution,projects_requiring_hardcoded_review,projects_requiring_mock_review,projects_requiring_mixed_file_review}`
+- `guidance.layers.workspace_observation.{projects_with_storage_maintenance_candidates,data_risk_focus_distribution}`
+- `guidance.layers.multi_project_portfolio.project_overviews[*].observation.{coverage_state,freshness,evidence_gaps}`
+- `guidance.layers.multi_project_portfolio.project_overviews[*].{attention_score,attention_band,attention_reasons}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.risk_findings`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.highest_priority_finding`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.finding_counts`
@@ -125,11 +116,11 @@ Note: review_focus names family; candidate_basis says why; candidate_risk_hints 
 1. Check `guidance.schema_version`.
 2. Read `guidance.recommended_flow`.
 3. Take the first item in `guidance.layers.multi_project_portfolio.priority_candidates`.
-4. Use its `attention_score`, `attention_band`, `recommended_next_action`, and `recommended_flow` to choose the next command.
-5. Read `guidance.layers.workspace_observation` to distinguish missing evidence from stale evidence before acting on any recommendation.
-6. If `guidance.layers.storage_maintenance.priority_projects` is non-empty, consider a retained-evidence `cleanup-data --dry-run` pass before long cleanup/refactor sessions.
-7. Read verification gate levels before broad modification: `allow` means ready, `caution` means advisory gaps remain, `blocked` means stop and fix evidence first.
-8. Read constraints fields after verification so repo-risk blockers can further narrow what is safe.
+4. Use its attention fields, `recommended_next_action`, and `recommended_flow` to choose the next command.
+5. Read `guidance.layers.workspace_observation` for missing vs stale evidence before acting.
+6. If `guidance.layers.storage_maintenance.priority_projects` is non-empty, consider a retained-evidence `cleanup-data --dry-run` pass.
+7. Read verification gate levels before broad modification: `allow` is ready, `caution` is advisory-only, `blocked` means stop and fix evidence first.
+8. Read constraints fields after verification so repo-risk blockers can narrow what is safe.
 
 ## `opendog decision-brief --json`
 
@@ -165,15 +156,12 @@ Version marker:
 - `decision.summary`
 - `decision.reason`
 - `decision.recommended_flow`
-- `decision.repo_truth_gaps`
-- `decision.mandatory_shell_checks`
-- `decision.execution_sequence`
+- `decision.{repo_truth_gaps,mandatory_shell_checks,execution_sequence,data_risk_focus}`
 - `decision.safe_for_cleanup`
 - `decision.safe_for_refactor`
 - `decision.verification_status`
-- `decision.risk_profile.primary_repo_risk_finding`
-- `decision.risk_profile.cleanup_gate_level`
-- `decision.risk_profile.refactor_gate_level`
+- `decision.risk_profile.{primary_repo_risk_finding,cleanup_gate_level,refactor_gate_level}`
+- `decision.signals.mixed_review_file_count`
 
 ### Advisory context
 
@@ -519,9 +507,12 @@ Version marker:
 - `mixed_review_files`
 - `hardcoded_candidate_count`
 - `mock_candidate_count`
+- `data_risk_focus.primary_focus`
+- `data_risk_focus.priority_order`
 
 ### Explanatory fields
 
+- `data_risk_focus.basis`
 - `rule_groups_summary`
 - `rule_hits_summary`
 - `hardcoded_data_candidates[*].rule_hits`
@@ -539,9 +530,12 @@ Version marker:
 
 1. Check top-level `schema_version`.
 2. Read `guidance.recommended_flow`.
-3. Inspect `hardcoded_data_candidates` before `mock_data_candidates`.
-4. Treat `mixed_review_files` as elevated review targets.
-5. Use suggested commands and rule hits to move into shell verification.
+3. Read `data_risk_focus.{primary_focus,priority_order}` before scanning candidate arrays.
+4. Inspect `hardcoded_data_candidates` before `mock_data_candidates` when `primary_focus = "hardcoded"`.
+5. Treat `mixed_review_files` as elevated review targets when `primary_focus = "mixed"` or its basis includes `mixed_review_files_present`.
+6. Use suggested commands and rule hits to move into shell verification.
+
+Compatibility rule: `data_risk_focus` explains priority; counts answer "how many", arrays answer files, and summaries answer rules.
 
 ## `opendog verification --json`
 
