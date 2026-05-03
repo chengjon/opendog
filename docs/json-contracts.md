@@ -78,10 +78,17 @@ Version marker:
 - `guidance.project_recommendations[*].reason`
 - `guidance.project_recommendations[*].recommended_next_action`
 - `guidance.project_recommendations[*].recommended_flow`
+- `guidance.project_recommendations[*].review_focus`
 - `guidance.project_recommendations[*].verification_gate_levels.*`
 - `guidance.project_recommendations[*].repo_truth_gaps`
 - `guidance.project_recommendations[*].mandatory_shell_checks`
 - `guidance.project_recommendations[*].execution_sequence`
+- `file_recommendations[*].candidate_basis`
+- `file_recommendations[*].candidate_risk_hints`
+- `file_recommendations[*].candidate_priority`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
 - `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
 - `guidance.layers.execution_strategy.repo_truth_gap_distribution`
 - `guidance.layers.execution_strategy.mandatory_shell_check_examples`
@@ -108,6 +115,13 @@ Version marker:
 - `guidance.layers.verification_evidence.cleanup_gate_distribution`
 - `guidance.layers.verification_evidence.refactor_gate_distribution`
 - `guidance.layers.constraints_boundaries`
+
+Review-candidate note:
+
+- `review_focus` names the selected review family on recommendation payloads.
+- `candidate_basis` gives positive reasons for why a file is worth reviewing first.
+- `candidate_risk_hints` gives advisory environment caveats only.
+- Exact cleanup/refactor gate state still lives on the parent recommendation or guidance layer.
 
 ### Advisory context
 

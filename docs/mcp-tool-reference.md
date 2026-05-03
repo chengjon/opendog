@@ -236,6 +236,14 @@ Useful response fields:
 - `summary.unused`
 - `files`
 - `guidance`
+- `guidance.file_recommendations[*].candidate_basis`
+- `guidance.file_recommendations[*].candidate_risk_hints`
+- `guidance.file_recommendations[*].candidate_priority`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
+
+These candidate fields are review aids, not delete/refactor permission fields. Use the parent cleanup/refactor gate state for safety decisions.
 
 ## `get_unused_files`
 
@@ -259,6 +267,14 @@ Useful response fields:
 - `unused_count`
 - `files`
 - `guidance`
+- `guidance.file_recommendations[*].candidate_basis`
+- `guidance.file_recommendations[*].candidate_risk_hints`
+- `guidance.file_recommendations[*].candidate_priority`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
+
+These candidate fields are review aids, not delete/refactor permission fields. Use the parent cleanup/refactor gate state for safety decisions.
 
 ## `get_global_config`
 
@@ -499,10 +515,14 @@ Useful response fields:
 - `guidance.schema_version`
 - `guidance.recommended_flow`
 - `guidance.project_recommendations`
+- `guidance.project_recommendations[*].review_focus`
 - `guidance.project_recommendations[*].verification_gate_levels`
 - `guidance.project_recommendations[*].repo_truth_gaps`
 - `guidance.project_recommendations[*].mandatory_shell_checks`
 - `guidance.project_recommendations[*].execution_sequence`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
 - `guidance.layers.execution_strategy`
 - `guidance.layers.execution_strategy.cleanup_gate_level`
 - `guidance.layers.execution_strategy.refactor_gate_level`
@@ -520,6 +540,8 @@ Useful response fields:
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_reasons`
+
+`review_focus` and candidate-level `candidate_*` fields are review aids only. They do not replace the parent cleanup/refactor gate fields.
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.risk_findings`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.highest_priority_finding`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].verification_gate_levels`
