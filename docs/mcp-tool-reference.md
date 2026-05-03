@@ -236,14 +236,8 @@ Useful response fields:
 - `summary.unused`
 - `files`
 - `guidance`
-- `guidance.file_recommendations[*].candidate_basis`
-- `guidance.file_recommendations[*].candidate_risk_hints`
-- `guidance.file_recommendations[*].candidate_priority`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
 
-These candidate fields are review aids, not delete/refactor permission fields. Use the parent cleanup/refactor gate state for safety decisions.
+Review-candidate aids: `guidance.file_recommendations[*].candidate_{basis,risk_hints,priority}` plus matching cleanup/refactor candidates. Use parent cleanup/refactor gate state for safety decisions.
 
 ## `get_unused_files`
 
@@ -267,14 +261,8 @@ Useful response fields:
 - `unused_count`
 - `files`
 - `guidance`
-- `guidance.file_recommendations[*].candidate_basis`
-- `guidance.file_recommendations[*].candidate_risk_hints`
-- `guidance.file_recommendations[*].candidate_priority`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
 
-These candidate fields are review aids, not delete/refactor permission fields. Use the parent cleanup/refactor gate state for safety decisions.
+Review-candidate aids: `guidance.file_recommendations[*].candidate_{basis,risk_hints,priority}` plus matching cleanup/refactor candidates. Use parent cleanup/refactor gate state for safety decisions.
 
 ## `get_global_config`
 
@@ -520,33 +508,20 @@ Useful response fields:
 - `guidance.project_recommendations[*].repo_truth_gaps`
 - `guidance.project_recommendations[*].mandatory_shell_checks`
 - `guidance.project_recommendations[*].execution_sequence`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_basis`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_risk_hints`
-- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_priority`
 - `guidance.layers.execution_strategy`
-- `guidance.layers.execution_strategy.cleanup_gate_level`
-- `guidance.layers.execution_strategy.refactor_gate_level`
-- `guidance.layers.execution_strategy.projects_with_repo_truth_gaps`
-- `guidance.layers.execution_strategy.repo_truth_gap_distribution`
-- `guidance.layers.execution_strategy.mandatory_shell_check_examples`
-- `guidance.layers.execution_strategy.projects_requiring_verification_run`
-- `guidance.layers.execution_strategy.projects_requiring_failing_verification_repair`
-- `guidance.layers.execution_strategy.projects_requiring_repo_stabilization`
-- `guidance.layers.execution_strategy.repo_stabilization_priority_projects`
-- `guidance.layers.execution_strategy.projects_requiring_monitor_start`
-- `guidance.layers.execution_strategy.projects_requiring_snapshot_refresh`
-- `guidance.layers.execution_strategy.projects_requiring_activity_generation`
+- `guidance.layers.execution_strategy.{cleanup_gate_level,refactor_gate_level}`
+- `guidance.layers.execution_strategy.{projects_with_repo_truth_gaps,repo_truth_gap_distribution,mandatory_shell_check_examples}`
+- `guidance.layers.execution_strategy.{projects_requiring_verification_run,projects_requiring_failing_verification_repair}`
+- `guidance.layers.execution_strategy.{projects_requiring_repo_stabilization,repo_stabilization_priority_projects}`
+- `guidance.layers.execution_strategy.{projects_requiring_monitor_start,projects_requiring_snapshot_refresh,projects_requiring_activity_generation}`
 - `guidance.layers.multi_project_portfolio`
-- `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
-- `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
-- `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_reasons`
-
-`review_focus` and candidate-level `candidate_*` fields are review aids only. They do not replace the parent cleanup/refactor gate fields.
-- `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.risk_findings`
-- `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.highest_priority_finding`
+- `guidance.layers.multi_project_portfolio.priority_candidates[*].{attention_score,attention_band,attention_reasons}`
+- `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.{risk_findings,highest_priority_finding}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].verification_gate_levels`
-- `guidance.layers.verification_evidence.cleanup_gate_distribution`
-- `guidance.layers.verification_evidence.refactor_gate_distribution`
+- `guidance.layers.verification_evidence.{cleanup_gate_distribution,refactor_gate_distribution}`
+- `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_{basis,risk_hints,priority}`
+
+`review_focus` and candidate-level `candidate_*` fields are review aids only, not replacements for the parent cleanup/refactor gate fields.
 - `guidance.layers.storage_maintenance`
 
 ## `get_decision_brief`
