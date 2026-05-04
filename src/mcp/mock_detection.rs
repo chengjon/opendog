@@ -135,7 +135,7 @@ fn content_preview_snippet(content: &str, keywords: &[String]) -> Option<String>
 }
 
 pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> MockDataReport {
-    let mock_path_tokens = [
+    let strong_mock_path_tokens = [
         "mock",
         "mocks",
         "fixture",
@@ -144,14 +144,10 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         "stubs",
         "fake",
         "fakes",
-        "sample",
-        "samples",
-        "demo",
-        "seed",
-        "seeds",
         "testdata",
         "__fixtures__",
     ];
+    let weak_mock_path_tokens = ["sample", "samples", "demo", "seed", "seeds"];
     let mock_content_tokens = [
         "mock",
         "fixture",
@@ -200,18 +196,31 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         let mut mock_reasons = Vec::new();
         let mut mock_evidence = Vec::new();
         let mut mock_rule_hits = Vec::new();
-        let mut mock_keywords = matched_keywords(&path_lower, &mock_path_tokens, 4);
-        if mock_path_tokens
-            .iter()
-            .any(|token| path_lower.contains(token))
+        let content_mock_keywords = matched_keywords(&content_lower, &mock_content_tokens, 4);
+        let has_content_mock_signal =
+            !content_lower.is_empty() && !content_mock_keywords.is_empty();
+        let strong_path_mock_keywords = matched_keywords(&path_lower, &strong_mock_path_tokens, 4);
+        let weak_path_mock_keywords = matched_keywords(&path_lower, &weak_mock_path_tokens, 4);
+        let has_strong_path_mock_signal = !strong_path_mock_keywords.is_empty();
+        let has_weak_path_mock_signal = !weak_path_mock_keywords.is_empty();
+
+        let allow_weak_path_mock_signal = match path_classification {
+            "test_only" | "generated_artifact" => true,
+            "runtime_shared" | "unknown" => has_content_mock_signal,
+            _ => false,
+        };
+
+        let mut mock_keywords = strong_path_mock_keywords;
+        mock_keywords.extend(weak_path_mock_keywords.clone());
+
+        if has_strong_path_mock_signal || (has_weak_path_mock_signal && allow_weak_path_mock_signal)
         {
             mock_reasons
                 .push("Path contains explicit mock/fixture/demo/test-data markers.".to_string());
             mock_evidence.push(entry.file_path.clone());
             mock_rule_hits.push("path.mock_token".to_string());
         }
-        let content_mock_keywords = matched_keywords(&content_lower, &mock_content_tokens, 4);
-        if !content_lower.is_empty() && !content_mock_keywords.is_empty() {
+        if has_content_mock_signal {
             mock_reasons
                 .push("File content mentions mock/fixture/fake/sample data tokens.".to_string());
             mock_evidence.push(format!(

@@ -58,7 +58,7 @@ fn detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates() {
         ],
     );
 
-    assert_eq!(report.mock_candidates.len(), 3);
+    assert_eq!(report.mock_candidates.len(), 2);
     assert_eq!(report.hardcoded_candidates.len(), 1);
     assert_eq!(report.hardcoded_candidates[0].review_priority, "high");
     assert_eq!(
@@ -107,10 +107,162 @@ fn detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates() {
         .unwrap()
         .iter()
         .any(|kw| kw == "customer"));
-    assert!(report
+    assert!(!report
         .mixed_review_files
         .iter()
         .any(|path| path == "src/customer_seed.rs"));
+}
+
+#[test]
+fn detect_mock_data_report_runtime_shared_weak_token_only_stays_hardcoded_only() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/customer_seed.rs"),
+        r#"const CUSTOMER: &str = "Acme Corp"; const EMAIL: &str = "ops@corp.com"; const ADDRESS: &str = "1 Market Street";"#,
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "src/customer_seed.rs".to_string(),
+            size: 10,
+            file_type: "rs".to_string(),
+            access_count: 2,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert!(report.mock_candidates.is_empty());
+    assert_eq!(report.hardcoded_candidates.len(), 1);
+    assert!(report.mixed_review_files.is_empty());
+    assert_eq!(
+        report.data_risk_focus(),
+        json!({
+            "primary_focus": "hardcoded",
+            "priority_order": ["hardcoded", "mixed", "mock"],
+            "basis": [
+                "hardcoded_candidates_present",
+                "runtime_shared_candidates_present",
+                "high_severity_content_hits_present"
+            ]
+        })
+    );
+}
+
+#[test]
+fn detect_mock_data_report_test_only_and_example_weak_tokens_remain_mock_candidates() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("tests/fixtures")).unwrap();
+    std::fs::create_dir_all(dir.path().join("examples")).unwrap();
+    std::fs::write(
+        dir.path().join("tests/fixtures/sample.json"),
+        r#"{"customer": "Demo"}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("examples/seed.json"),
+        r#"{"customer": "Demo"}"#,
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[
+            StatsEntry {
+                file_path: "tests/fixtures/sample.json".to_string(),
+                size: 10,
+                file_type: "json".to_string(),
+                access_count: 0,
+                estimated_duration_ms: 0,
+                modification_count: 0,
+                last_access_time: None,
+                first_seen_time: None,
+            },
+            StatsEntry {
+                file_path: "examples/seed.json".to_string(),
+                size: 10,
+                file_type: "json".to_string(),
+                access_count: 0,
+                estimated_duration_ms: 0,
+                modification_count: 0,
+                last_access_time: None,
+                first_seen_time: None,
+            },
+        ],
+    );
+
+    assert_eq!(report.mock_candidates.len(), 2);
+    assert!(report
+        .mock_candidates
+        .iter()
+        .all(|candidate| candidate.path_classification == "test_only"));
+}
+
+#[test]
+fn detect_mock_data_report_runtime_shared_weak_token_with_mock_content_stays_mock_candidate() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/customer_seed.rs"),
+        r#"const LABEL: &str = "seed data"; const MOCK_MODE: bool = true;"#,
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "src/customer_seed.rs".to_string(),
+            size: 10,
+            file_type: "rs".to_string(),
+            access_count: 1,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert_eq!(report.mock_candidates.len(), 1);
+    assert_eq!(
+        report.mock_candidates[0].path_classification,
+        "runtime_shared"
+    );
+    assert!(report.mock_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "content.mock_token"));
+}
+
+#[test]
+fn detect_mock_data_report_unknown_path_weak_token_only_is_not_mock_candidate() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("docs")).unwrap();
+    std::fs::write(
+        dir.path().join("docs/sample_notes.md"),
+        "customer migration notes",
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "docs/sample_notes.md".to_string(),
+            size: 10,
+            file_type: "md".to_string(),
+            access_count: 0,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert!(report.mock_candidates.is_empty());
 }
 
 #[test]
