@@ -44,7 +44,6 @@ fn data_risk_guidance_surfaces_counts_and_candidates() {
             "priority_order": ["hardcoded", "mixed", "mock"],
             "basis": [
                 "hardcoded_candidates_present",
-                "mixed_review_files_present",
                 "runtime_shared_candidates_present",
                 "high_severity_content_hits_present"
             ]

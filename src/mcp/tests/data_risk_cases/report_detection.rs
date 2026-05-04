@@ -201,6 +201,16 @@ fn detect_mock_data_report_test_only_and_example_weak_tokens_remain_mock_candida
         .mock_candidates
         .iter()
         .all(|candidate| candidate.path_classification == "test_only"));
+    assert!(report.mock_candidates.iter().all(|candidate| {
+        candidate
+            .rule_hits
+            .iter()
+            .any(|hit| hit == "path.mock_token")
+            && !candidate
+                .rule_hits
+                .iter()
+                .any(|hit| hit == "content.mock_token")
+    }));
 }
 
 #[test]
@@ -209,7 +219,7 @@ fn detect_mock_data_report_runtime_shared_weak_token_with_mock_content_stays_moc
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
     std::fs::write(
         dir.path().join("src/customer_seed.rs"),
-        r#"const LABEL: &str = "seed data"; const MOCK_MODE: bool = true;"#,
+        r#"const LABEL: &str = "fixture payload";"#,
     )
     .unwrap();
 
@@ -232,6 +242,10 @@ fn detect_mock_data_report_runtime_shared_weak_token_with_mock_content_stays_moc
         report.mock_candidates[0].path_classification,
         "runtime_shared"
     );
+    assert!(report.mock_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "path.mock_token"));
     assert!(report.mock_candidates[0]
         .rule_hits
         .iter()
@@ -263,6 +277,42 @@ fn detect_mock_data_report_unknown_path_weak_token_only_is_not_mock_candidate() 
     );
 
     assert!(report.mock_candidates.is_empty());
+}
+
+#[test]
+fn detect_mock_data_report_unknown_path_weak_token_with_mock_content_becomes_mock_candidate() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("docs")).unwrap();
+    std::fs::write(
+        dir.path().join("docs/sample_notes.md"),
+        "fixture walkthrough for onboarding",
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "docs/sample_notes.md".to_string(),
+            size: 10,
+            file_type: "md".to_string(),
+            access_count: 0,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert_eq!(report.mock_candidates.len(), 1);
+    assert_eq!(report.mock_candidates[0].path_classification, "unknown");
+    assert!(report.mock_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "path.mock_token"));
+    assert!(report.mock_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "content.mock_token"));
 }
 
 #[test]
