@@ -29,8 +29,8 @@ Primary surfaces touched:
 Primary modules touched:
 
 - `src/cli/config_commands.rs`
-- `src/config.rs`
-- `src/config/patching.rs`
+- `src/config.rs` (patch struct definitions and config-facing tests)
+- `src/config/patching.rs` (patch impl blocks and list-application logic)
 - `src/core/project.rs`
 - `src/control/protocol.rs`
 - `src/control/request_handler.rs`
@@ -182,6 +182,8 @@ That includes:
 
 This protection should remain in patch-level emptiness checks so daemon requests cannot bypass it.
 
+Both `is_empty()` implementations must be updated so empty incremental fields are treated as no-op input alongside missing overwrite fields.
+
 ## Implementation Shape
 
 Primary ownership should remain split as follows:
@@ -190,6 +192,7 @@ Primary ownership should remain split as follows:
   - defines new flags
   - enforces argument conflicts where clap can express them clearly
   - constructs richer patch objects
+  - updates clap help strings for the new flags; in-code CLI help is in scope even though external operator docs are out of scope for this batch
 - config patching layer
   - normalizes incremental inputs
   - applies overwrite and add/remove operations deterministically
@@ -199,6 +202,9 @@ Primary ownership should remain split as follows:
   - persists updated global config or project overrides
 - control protocol layer
   - serializes new patch fields so daemon-backed updates behave the same as local updates
+  - extends `ControlRequest::UpdateGlobalConfig` and `ControlRequest::UpdateProjectConfig` with new inline fields in `src/control/protocol.rs`
+  - updates client-side request construction in `src/control/client/config_ops.rs`
+  - updates server-side patch reconstruction in `src/control/request_handler.rs`
 
 Storage format does not change. Persisted project records still store only `ProjectConfigOverrides`, and global config still stores only the final `ProjectConfig`.
 
@@ -234,11 +240,20 @@ Primary coverage areas:
 
 Likely test files:
 
-- `src/config.rs`
+- `src/config.rs` for behavior assertions alongside the existing patch/config tests
 - `src/config/patching.rs`
 - `src/control/tests.rs`
 - `tests/integration_test/storage_project_snapshot.rs`
 - `tests/integration_test/daemon_process_cli.rs`
+
+## Acceptance Criteria
+
+The feature is complete when all of the following are true:
+
+- new unit and integration tests covering overwrite, add, remove, inherit, and daemon parity pass
+- `opendog config set-global --help` and `opendog config set-project --help` expose the new flags with clear descriptions
+- incremental CLI invocations persist the expected global config or project overrides after normalization
+- daemon-backed updates produce the same persisted and effective results as direct mode updates for equivalent inputs
 
 ## Non-Goals
 
@@ -249,4 +264,4 @@ Do not:
 - add new config fields outside ignore/process lists
 - change on-disk config schema shape
 - redefine project inheritance behavior beyond the approved materialize-on-increment rule
-- update operator-facing docs in this batch
+- update external operator-facing docs in this batch
