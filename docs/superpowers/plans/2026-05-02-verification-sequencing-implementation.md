@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented and re-verified. Checklist remains archival.
+
 **Goal:** Add machine-readable verification-first `execution_sequence` modes for missing and failing verification actions, then project and summarize them through decision and guidance payloads without changing the existing action enum or CLI text output.
 
 **Architecture:** Extend recommendation-side sequencing so `recommend_project_action(...)` remains the single source of truth for all sequence modes. Reuse the existing `execution_sequence` field, keep repository-stabilization sequencing intact, and add only the minimal workspace summary counts needed for verification-first flows.

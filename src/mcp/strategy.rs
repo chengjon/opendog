@@ -1,5 +1,19 @@
 use serde_json::{json, Value};
 
+fn apply_repo_risk_context(first_step: String, risk_strategy_coupling: Option<&Value>) -> String {
+    let Some(coupling) = risk_strategy_coupling else {
+        return first_step;
+    };
+    if coupling["status"].as_str() != Some("coupled") {
+        return first_step;
+    }
+    let Some(summary) = coupling["primary_repo_risk_finding"]["summary"].as_str() else {
+        return first_step;
+    };
+
+    format!("{first_step}; top repository risk: {summary}")
+}
+
 pub(super) fn strategy_profile(
     strategy_mode: &str,
     preferred_primary_tool: &str,
@@ -101,6 +115,7 @@ pub(super) fn agent_guidance_recommended_flow(
     monitoring_count: usize,
     top_recommendation: Option<&Value>,
     workspace_strategy: &Value,
+    risk_strategy_coupling: Option<&Value>,
 ) -> Value {
     if project_count == 0 {
         return workspace_strategy["recommended_flow"].clone();
@@ -115,7 +130,7 @@ pub(super) fn agent_guidance_recommended_flow(
         .as_str()
         .unwrap_or_default();
 
-    let steps = match action {
+    let mut steps = match action {
         "review_failing_verification" => vec![
             format!(
                 "Start with project '{}' because failing or uncertain verification needs to be stabilized first.",
@@ -211,6 +226,10 @@ pub(super) fn agent_guidance_recommended_flow(
             }
         }
     };
+
+    if let Some(first_step) = steps.first_mut() {
+        *first_step = apply_repo_risk_context(first_step.clone(), risk_strategy_coupling);
+    }
 
     json!(steps)
 }

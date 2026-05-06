@@ -7,6 +7,7 @@ mod report_commands;
 mod verification_commands;
 
 use crate::core::project::ProjectManager;
+use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 use crate::error::OpenDogError;
 use clap::Parser;
@@ -225,16 +226,20 @@ pub fn run() {
             vacuum,
             dry_run,
             json,
-        } => project_commands::cmd_cleanup_data(
-            &pm,
-            &id,
-            &scope,
-            older_than_days,
-            keep_snapshot_runs,
-            vacuum,
-            dry_run,
-            json,
-        ),
+        } => CleanupScope::parse(&scope).and_then(|scope| {
+            project_commands::cmd_cleanup_data(
+                &pm,
+                &id,
+                ProjectDataCleanupRequest {
+                    scope,
+                    older_than_days,
+                    keep_snapshot_runs,
+                    vacuum,
+                    dry_run,
+                },
+                json,
+            )
+        }),
         Cli::Report { command } => cmd_report(&pm, command),
         Cli::Mcp => {
             crate::mcp::run_stdio();

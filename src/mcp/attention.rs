@@ -209,6 +209,48 @@ fn project_attention_summary(overview: &Value) -> Value {
     })
 }
 
+fn thin_attention_batch_entry(project: &Value) -> Value {
+    json!({
+        "project_id": project["project_id"].clone(),
+        "recommended_next_action": project["recommended_next_action"].clone(),
+        "attention_score": project["attention_score"].clone(),
+        "attention_band": project["attention_band"].clone(),
+    })
+}
+
+fn attention_batches_from_queue(
+    attention_queue: &[Value],
+    project_count: usize,
+    status: &str,
+) -> Value {
+    let immediate = attention_queue
+        .first()
+        .map(thin_attention_batch_entry)
+        .into_iter()
+        .collect::<Vec<_>>();
+    let next = attention_queue
+        .iter()
+        .skip(1)
+        .take(2)
+        .map(thin_attention_batch_entry)
+        .collect::<Vec<_>>();
+    let later = attention_queue
+        .iter()
+        .skip(3)
+        .map(thin_attention_batch_entry)
+        .collect::<Vec<_>>();
+
+    json!({
+        "status": status,
+        "source": "attention_queue",
+        "batched_project_count": attention_queue.len(),
+        "unbatched_project_count": project_count.saturating_sub(attention_queue.len()),
+        "immediate": immediate,
+        "next": next,
+        "later": later,
+    })
+}
+
 pub(super) fn enrich_project_overview_with_attention(overview: &Value) -> Value {
     let mut enriched = overview.clone();
     let attention = project_attention_summary(&enriched);
@@ -221,6 +263,7 @@ pub(super) fn enrich_project_overview_with_attention(overview: &Value) -> Value 
 }
 
 pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
+    let status = "available";
     let enriched_project_overviews = project_overviews
         .iter()
         .map(enrich_project_overview_with_attention)
@@ -339,8 +382,11 @@ pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
     });
     attention_queue.truncate(5);
 
+    let attention_batches =
+        attention_batches_from_queue(&attention_queue, project_overviews.len(), status);
+
     json!({
-        "status": "available",
+        "status": status,
         "project_count": project_overviews.len(),
         "priority_model": "action_urgency_plus_evidence_risk",
         "dirty_projects": dirty_projects,
@@ -353,6 +399,7 @@ pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
         "total_hardcoded_candidates": total_hardcoded_candidates,
         "projects_in_operation": projects_in_operation,
         "attention_queue": attention_queue,
+        "attention_batches": attention_batches,
     })
 }
 

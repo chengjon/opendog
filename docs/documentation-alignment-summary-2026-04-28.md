@@ -71,7 +71,7 @@ README 从混合型文档收口为入口型文档：
 - [ai-playbook.md](./ai-playbook.md)：AI 使用顺序、shell 切换、安全规则
 - [mcp-tool-reference.md](./mcp-tool-reference.md)：MCP 请求/响应使用说明
 - [json-contracts.md](./json-contracts.md)：机器消费字段、schema、稳定性与错误契约
-- [.planning/FUNCTION_TREE.md](../.planning/FUNCTION_TREE.md)：能力治理锚点
+- [FUNCTION_TREE.md](../FUNCTION_TREE.md)：能力治理锚点
 
 ### 3.5 统一导航
 
@@ -129,7 +129,7 @@ README 从混合型文档收口为入口型文档：
 
 - [.planning/PROJECT.md](../.planning/PROJECT.md)
 - [.planning/STATE.md](../.planning/STATE.md)
-- [.planning/FUNCTION_TREE.md](../.planning/FUNCTION_TREE.md)
+- [FUNCTION_TREE.md](../FUNCTION_TREE.md)
 - [opendog-project-panorama-and-rollout-plan.md](./opendog-project-panorama-and-rollout-plan.md)
 
 同步后的统一判断是：
@@ -158,7 +158,7 @@ README 从混合型文档收口为入口型文档：
 
 1. [.planning/PROJECT.md](../.planning/PROJECT.md)
 2. [.planning/STATE.md](../.planning/STATE.md)
-3. [.planning/FUNCTION_TREE.md](../.planning/FUNCTION_TREE.md)
+3. [FUNCTION_TREE.md](../FUNCTION_TREE.md)
 
 对于历史追溯：
 

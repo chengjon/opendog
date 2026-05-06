@@ -268,13 +268,15 @@ pub(super) fn base_templates(
         _ => vec![json!({
             "template_id": "guidance.refresh",
             "kind": "mcp_tool",
-            "tool": "get_agent_guidance",
-            "args_template": {},
+            "tool": "get_guidance",
+            "args_template": { "detail": "summary" },
             "preconditions": [],
             "blocking_conditions": [],
             "success_signal": format!("guidance is refreshed; current verification status is {}", verification_status),
-            "parameter_schema": {},
-            "default_values": {},
+            "parameter_schema": {
+                "detail": { "type": "enum", "required": false, "allowed_values": ["summary", "decision"] }
+            },
+            "default_values": { "detail": "summary" },
             "placeholder_hints": []
         })],
     }

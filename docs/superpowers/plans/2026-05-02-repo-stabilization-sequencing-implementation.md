@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented in the current repo and re-verified during the Phase 6 audit. This checklist remains archival and was not retro-backfilled in the aggregated dirty `master` worktree.
+
 **Goal:** Add a machine-readable `execution_sequence` for `stabilize_repository_state`, project it into decision and guidance payloads, and document the new sequencing contract without changing the existing action enum or CLI text output.
 
 **Architecture:** Keep sequencing logic as a small recommendation-side helper under `src/mcp/project_recommendation/`, then treat recommendation output as the source of truth for both `decision_brief` and `agent_guidance` summaries. Reuse the current forced-action path in `eligibility.rs`; do not widen action-trigger semantics or build a general workflow engine.

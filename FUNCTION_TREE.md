@@ -58,6 +58,10 @@ It should be read with two different intents:
 - day-to-day consumption: understand which capability family owns an already shipped CLI, MCP, daemon, or guidance behavior
 - structural change control: keep new requirements, task cards, and future capability edits anchored to the right `FT-*` leaves
 
+Related review entrypoint:
+
+- for the overdesign review chain and scope-reduction decisions, start at [docs/superpowers/reviews/README.md](/opt/claude/opendog/docs/superpowers/reviews/README.md)
+
 This distinction matters because OPENDOG's runtime product is intentionally consumed as a lightweight three-layer system, while this file exists mainly as a governance overlay for capability evolution.
 
 Current design posture:
@@ -513,6 +517,155 @@ FT-03 AI Decision Support and Governance
     FT-03.08.02 Detect and prioritize hardcoded pseudo-business data
 ```
 
+## Current Implementation Distribution
+
+This section complements the capability tree with the current code and interface shape.
+
+### Code Module Distribution
+
+Current implementation is concentrated in these directories:
+
+- `src/core/` — observation core, snapshot, monitoring, reporting, export, retention, verification primitives
+- `src/storage/` — SQLite schema and query layer
+- `src/control/` — daemon-local control plane, protocol, request routing, client reuse
+- `src/config/` — configuration loading, validation, patching, ignore rules, path helpers
+- `src/cli/` — operator-facing command parsing and output
+- `src/mcp/` — MCP routing, payloads, guidance, decision logic, data-risk, toolchain, workspace aggregation
+
+Current rough weight by source area:
+
+- `src/mcp`: 115 files, about 15.2k lines
+- `src/core`: 16 files, about 2.9k lines
+- `src/control`: 11 files, about 1.6k lines
+- full `src`: 179 Rust files, about 24.8k lines
+
+Interpretation:
+
+- `src/core/` is the observation kernel
+- `src/control/` is the runtime coordination layer
+- `src/mcp/` is the largest current surface and carries most of the AI-facing orchestration complexity
+
+### CLI Menu Distribution
+
+Current CLI top-level commands:
+
+- `create`
+- `snapshot`
+- `start`
+- `stop`
+- `config`
+- `export`
+- `cleanup-data`
+- `report`
+- `mcp`
+- `stats`
+- `unused`
+- `list`
+- `agent-guidance`
+- `decision-brief`
+- `data-risk`
+- `workspace-data-risk`
+- `record-verification`
+- `verification`
+- `run-verification`
+- `delete`
+- `daemon`
+
+Current CLI subcommands:
+
+- `config`
+  - `show`
+  - `set-project`
+  - `set-global`
+  - `reload`
+- `report`
+  - `window`
+  - `compare`
+  - `trend`
+
+Re-grouped by intent, the CLI currently covers:
+
+- project lifecycle: `create`, `list`, `delete`
+- observation: `snapshot`, `start`, `stop`, `stats`, `unused`
+- reporting: `report window`, `report compare`, `report trend`, `export`
+- AI guidance: `agent-guidance`, `decision-brief`, `data-risk`, `workspace-data-risk`
+- verification: `verification`, `record-verification`, `run-verification`
+- operations/runtime: `config *`, `cleanup-data`, `daemon`, `mcp`
+
+### MCP Tool Distribution
+
+Current MCP tool set:
+
+- project and monitoring
+  - `create_project`
+  - `list_projects`
+  - `delete_project`
+  - `take_snapshot`
+  - `start_monitor`
+  - `stop_monitor`
+- observation and reporting
+  - `get_stats`
+  - `get_unused_files`
+  - `get_time_window_report`
+  - `compare_snapshots`
+  - `get_usage_trends`
+- configuration inspection
+  - `get_global_config`
+  - `get_project_config`
+- guidance and decision
+  - `get_guidance`
+- verification
+  - `get_verification_status`
+  - `record_verification_result`
+  - `run_verification_command`
+- data risk and workspace prioritization
+  - `get_data_risk_candidates`
+  - `get_workspace_data_risk_overview`
+
+### Interface Relationship Notes
+
+From a capability perspective, several public entrypoints are close variants of the same capability family:
+
+- guidance family
+  - `agent-guidance`
+  - `decision-brief`
+  - `get_guidance`
+  - `workspace-data-risk`
+  - `get_workspace_data_risk_overview`
+- reporting family
+  - `stats`
+  - `unused`
+  - `report window`
+  - `report compare`
+  - `report trend`
+  - `get_stats`
+  - `get_unused_files`
+  - `get_time_window_report`
+  - `compare_snapshots`
+  - `get_usage_trends`
+- verification family
+  - `verification`
+  - `record-verification`
+  - `run-verification`
+  - `get_verification_status`
+  - `record_verification_result`
+  - `run_verification_command`
+- operations family
+  - `config *`
+  - `cleanup-data`
+  - `export`
+  - `daemon`
+  - `mcp`
+
+Operator-only downscope now applied:
+
+- CLI-only operator mutations and artifact flows
+  - `opendog config set-global`
+  - `opendog config set-project`
+  - `opendog config reload`
+  - `opendog export`
+  - `opendog cleanup-data`
+
 ## Governance Usage
 
 ### Requirement Authoring
@@ -561,7 +714,7 @@ In other words: keep governance strong where capability boundaries move, and kee
 - Task cards should adopt `FT-*` mapping immediately through `.planning/TASK_CARD_TEMPLATE.md`
 - Task cards should live under `.planning/task-cards/` so they can be validated consistently
 - Requirement sections should carry inline `Maps to FT:` lines and can be checked with `scripts/validate_requirement_mappings.py`
-- Runtime readers should not mistake this file for the primary product entrypoint; normal usage should usually start from README, capability index, AI playbook, CLI help, or MCP tool docs
+- Runtime readers should not mistake this file for the only product entrypoint; normal usage can still start from README, capability index, AI playbook, CLI help, or MCP tool docs
 - The current evolution focus is still vertical improvement inside `FT-03`, not horizontal expansion into unrelated capability families
 
 ## Gradual Requirement Mapping Plan

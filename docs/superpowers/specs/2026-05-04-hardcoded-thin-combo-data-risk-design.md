@@ -1,7 +1,7 @@
 # Hardcoded Thin-Combo Data-Risk Design
 
 Date: 2026-05-04
-Status: proposed
+Status: implemented and verified (2026-05-05)
 Scope: Phase 6 selective deepening
 
 ## Goal
@@ -11,6 +11,8 @@ Strengthen `FT-03.08.02` so OPENDOG stops promoting thin business/literal combin
 The target is intentionally narrow:
 
 - reduce false positives from `business keyword + literal marker` combinations
+- reduce recurring false positives from `runtime_shared` paths whose names include weak tokens such as `seed`, `demo`, or `sample`
+- reduce recurring false positives from broad literal markers such as `city`, `postal`, `zip`, `usd`, `cny`, and `phone`
 - preserve current detection for dense runtime/shared pseudo-business data
 - keep the current scan-cost model unchanged
 - keep `data_risk_focus`, workspace aggregation, and decision projection schemas unchanged
@@ -81,6 +83,7 @@ The change is narrower:
 
 - add stronger combo gating before a file is promoted into `hardcoded_candidates`
 - tighten when `path.runtime_shared` may amplify hardcoded confidence
+- downgrade overly broad literal markers instead of removing them outright
 
 ### 2. Distinguish Dense Combos From Thin Combos
 
@@ -152,7 +155,46 @@ That means:
 
 This keeps `path.runtime_shared` useful as a confidence and focus amplifier while preventing it from reintroducing the thin-combo false-positive path by itself.
 
-### 6. Let Focus And Mixed-Review Clean Up Through Input Tightening
+### 6. Downgrade Broad Literal Markers Instead Of Removing Them
+
+This batch should keep the current literal vocabulary but stop treating every marker as equally strong evidence.
+
+Recommended split:
+
+- **strong literal markers**
+  - `@`
+  - `street`
+  - `road`
+  - `avenue`
+  - `$`
+  - `customer_id`
+  - `tenant_id`
+  - `invoice_no`
+- **weak literal markers**
+  - `city`
+  - `postal`
+  - `zip`
+  - `usd`
+  - `cny`
+  - `phone`
+
+Weak markers should stay observable, but they should contribute less to `literal_hits`.
+
+Preferred rule:
+
+- strong markers continue to count directly
+- weak markers are discounted so that two weak hits together contribute one effective literal hit
+
+This keeps the strong-combo thresholds unchanged while making ordinary config/default files much less likely to accumulate accidental literal density from generic labels alone.
+
+Examples:
+
+- `customer + order + phone + city` in a runtime file should no longer be enough for hardcoded promotion
+- `customer + order + price + phone + city + postal + zip + usd` may still become hardcoded because the weak markers accumulate into denser evidence
+
+This is a weighting change, not a rule deletion. The existing marker list stays visible in evidence, and the signal remains reversible if later tuning shows recall dropped too far.
+
+### 7. Let Focus And Mixed-Review Clean Up Through Input Tightening
 
 `MockDataReport::data_risk_focus()` should not change its rules in this batch.
 
@@ -174,7 +216,7 @@ This preserves the current layering:
 - detection owns candidate generation
 - report/focus logic consumes candidate sets
 
-### 7. Keep This Change Commutative With Runtime Weak-Token Tightening
+### 8. Keep This Change Commutative With Runtime Weak-Token Tightening
 
 This spec and `2026-05-04-runtime-weak-token-data-risk-design.md` both modify `detect_mock_data_report(...)`, but they tighten different entry paths:
 
@@ -199,6 +241,7 @@ Preferred helper structure:
 
 - `is_strong_hardcoded_combo(path_classification: &str, business_hits: usize, literal_hits: usize) -> bool`
 - `allow_runtime_shared_hardcoded_amplification(path_classification: &str, combo_is_strong: bool) -> bool`
+- `discounted_weak_literal_hits(raw_weak_hits: usize) -> usize`
 
 Rules:
 
@@ -212,6 +255,9 @@ The implementation should keep one clear split:
 - dense combos may still create `content.business_literal_combo`
 - thin combos may not
 - `path.runtime_shared` may only be attached after a strong combo has already qualified the file as hardcoded
+
+This is intentionally implemented through threshold tightening and path-aware amplification only.
+It does not introduce new scanning passes, semantic parsing, configuration flags, or MCP/CLI contract changes.
 
 ## Test Strategy
 

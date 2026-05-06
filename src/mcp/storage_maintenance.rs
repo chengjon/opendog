@@ -174,14 +174,11 @@ fn storage_maintenance_execution_templates(
         .unwrap_or(0);
     let mut templates = vec![json!({
         "template_id": "storage.cleanup.preview",
-        "kind": "mcp_tool",
-        "tool": "cleanup_project_data",
-        "args_template": {
-            "id": project_id_value,
-            "scope": "all",
-            "older_than_days": 30,
-            "dry_run": true
-        },
+        "kind": "cli_command",
+        "command_template": format!(
+            "opendog cleanup-data --id {} --scope all --older-than-days 30 --dry-run --json",
+            project_id_value
+        ),
         "preconditions": [
             "project must exist in OPENDOG",
             "use dry-run first before deleting retained OPENDOG evidence"
@@ -192,12 +189,14 @@ fn storage_maintenance_execution_templates(
             "id": { "type": "string", "required": true, "source": "project_id" },
             "scope": { "type": "enum", "required": true, "allowed_values": ["activity", "snapshots", "verification", "all"] },
             "older_than_days": { "type": "integer", "required": false },
-            "dry_run": { "type": "boolean", "required": false }
+            "dry_run": { "type": "boolean", "required": false },
+            "json": { "type": "boolean", "required": false }
         },
         "default_values": {
             "scope": "all",
             "older_than_days": 30,
-            "dry_run": true
+            "dry_run": true,
+            "json": true
         },
         "placeholder_hints": project_placeholder_hint.clone(),
         "priority": 1,
@@ -310,9 +309,6 @@ pub(super) fn augment_entrypoints_for_storage_maintenance(
     }
 
     let project_id_value = project_id.unwrap_or("<project>");
-    if let Some(items) = entrypoints["next_mcp_tools"].as_array_mut() {
-        items.insert(0, json!("cleanup_project_data"));
-    }
     if let Some(items) = entrypoints["next_cli_commands"].as_array_mut() {
         items.insert(
             0,
@@ -326,8 +322,11 @@ pub(super) fn augment_entrypoints_for_storage_maintenance(
         items.insert(
             0,
             json!({
-                "kind": "mcp_tool",
-                "target": "cleanup_project_data",
+                "kind": "cli_command",
+                "target": format!(
+                    "opendog cleanup-data --id {} --scope all --older-than-days 30 --dry-run --json",
+                    project_id_value
+                ),
                 "why": storage_maintenance["summary"].clone(),
             }),
         );

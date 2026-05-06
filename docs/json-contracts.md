@@ -4,9 +4,9 @@
 
 This document defines the recommended machine-consumption contract for OPENDOG JSON outputs.
 
-It is not a formal schema registry. It tells downstream agents and scripts which fields should drive decisions first, which are explanatory, and which remain advisory.
+It is not a formal schema registry. It tells downstream agents which fields drive decisions first and which remain explanatory or advisory.
 
-Authority rule: `git`, tests, lint, and build remain external truth sources. Treat OPENDOG output as decision-support evidence and switch to shell or project-native validation when confirmation is required.
+Authority rule: `git`, tests, lint, and build are the external truth sources.
 
 ## Quick Navigation
 
@@ -17,28 +17,28 @@ Authority rule: `git`, tests, lint, and build remain external truth sources. Tre
 
 ## Scope
 
-Current CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
+CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
 
-Related MCP entry points follow the same versioned-contract pattern: `get_decision_brief`, `get_agent_guidance`, `create_project`, config get/update/reload, evidence export, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, cleanup, verification status/record/run, and data-risk overview tools.
+Related MCP entry points use the same versioned-contract pattern: `get_guidance`, `create_project`, config inspection, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, verification, and data-risk tools.
 
-When the daemon is live, treat CLI and MCP as entry surfaces that may reuse daemon-owned project state through the local control plane rather than standing up parallel monitor ownership.
+When the daemon is live, CLI and MCP may reuse daemon-owned state through the local control plane.
 
-MCP utility outputs follow the same versioned pattern, such as `opendog.mcp.guidance.v1`, `opendog.mcp.decision-brief.v1`, `opendog.mcp.snapshot.v1`, `opendog.mcp.stats.v1`, `opendog.mcp.cleanup-project-data.v1`, and the matching config, monitor, verification, evidence-export, report, and data-risk tool contracts.
+MCP utility outputs use the same versioned pattern, including `opendog.mcp.guidance.v1` and `opendog.mcp.decision-brief.v1`.
 
 ## Contract Style
 
 Always check `schema_version` first.
 
-If the version is unknown, treat the payload as unsupported rather than guessing from field names. For MCP tools, this applies to both success and error responses. If `status = error`, branch on `error_code` first and only use freeform `error` text for display or debugging.
+If the version is unknown, treat the payload as unsupported. For MCP tools, this applies to success and error responses. If `status = error`, branch on `error_code` first.
 
-For scoped AI guidance tools, prefer explicit scope controls instead of post-filtering client-side:
+For scoped AI guidance tools, prefer explicit scope controls:
 
-- `get_agent_guidance({ "project_id": "<ID>", "top": N })`
-- `get_decision_brief({ "project_id": "<ID>", "top": N })`
+- `get_guidance({ "project_id": "<ID>", "top": N, "detail": "summary" })`
+- `get_guidance({ "project_id": "<ID>", "top": N, "detail": "decision" })`
 
 ### Primary decision fields
 
-Use these as the main machine-input signals for ranking, branching, and choosing the next command.
+Use these as the main signals for ranking and branching.
 
 ### Explanatory fields
 
@@ -53,6 +53,7 @@ Use these as supporting metadata only. Do not make high-risk decisions from them
 Version marker:
 
 - `guidance.schema_version = opendog.mcp.guidance.v1`
+- MCP equivalent: `get_guidance({ "project_id": "<ID>", "top": N, "detail": "summary" })`
 
 ### Primary decision fields
 
@@ -60,16 +61,20 @@ Version marker:
 - `guidance.layers.execution_strategy.global_strategy_mode`
 - `guidance.layers.execution_strategy.preferred_primary_tool`
 - `guidance.layers.execution_strategy.preferred_secondary_tool`
+- `guidance.layers.execution_strategy.review_focus_projection`
 - `guidance.layers.workspace_observation.projects_missing_snapshot`
 - `guidance.layers.workspace_observation.projects_missing_verification`
 - `guidance.layers.workspace_observation.projects_with_stale_snapshot`
 - `guidance.layers.workspace_observation.projects_with_stale_verification`
 - `guidance.layers.multi_project_portfolio.priority_candidates`
 - `guidance.layers.multi_project_portfolio.attention_queue`
+- `guidance.layers.multi_project_portfolio.attention_batches`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_score`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_band`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].attention_reasons`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].priority_basis`
+- `guidance.layers.multi_project_portfolio.attention_batches.{batched_project_count,unbatched_project_count}`
+- `guidance.layers.multi_project_portfolio.attention_batches.{immediate,next,later}[*].{project_id,recommended_next_action,attention_score,attention_band}`
 - `guidance.layers.storage_maintenance.priority_projects`
 
 ### Explanatory fields
@@ -85,7 +90,7 @@ Version marker:
 - `guidance.project_recommendations[*].execution_sequence`
 - `file_recommendations[*].candidate_*`
 - `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_*`
-- `guidance.layers.execution_strategy.{projects_with_repo_truth_gaps,repo_truth_gap_distribution,mandatory_shell_check_examples}`
+- `guidance.layers.execution_strategy.{projects_with_repo_truth_gaps,repo_truth_gap_distribution,mandatory_shell_check_examples,risk_strategy_coupling,external_truth_boundary}`
 - `guidance.layers.execution_strategy.{projects_requiring_verification_run,projects_requiring_failing_verification_repair}`
 - `guidance.layers.execution_strategy.{projects_requiring_repo_stabilization,repo_stabilization_priority_projects}`
 - `guidance.layers.execution_strategy.{projects_requiring_monitor_start,projects_requiring_snapshot_refresh,projects_requiring_activity_generation}`
@@ -103,7 +108,9 @@ Version marker:
 - `guidance.layers.verification_evidence.refactor_gate_distribution`
 - `guidance.layers.constraints_boundaries`
 
-Note: review_focus names family; candidate_basis says why; candidate_risk_hints stays advisory; gates stay on parent layer.
+Note: `risk_strategy_coupling` and `external_truth_boundary` are read-only explanations; `review_focus` and `candidate_*` stay advisory. `attention_batches` is a read-only projection of `attention_queue`, not a scheduling engine.
+
+Guidance-consumption note: `guidance.layers.execution_strategy.review_focus_projection` is a read-only top-project projection; use it to see current review intent, not to infer file-level previews.
 
 ### Advisory context
 
@@ -118,16 +125,18 @@ Note: review_focus names family; candidate_basis says why; candidate_risk_hints 
 3. Take the first item in `guidance.layers.multi_project_portfolio.priority_candidates`.
 4. Use its attention fields, `recommended_next_action`, and `recommended_flow` to choose the next command.
 5. Read `guidance.layers.workspace_observation` for missing vs stale evidence before acting.
-6. If `guidance.layers.storage_maintenance.priority_projects` is non-empty, consider a retained-evidence `cleanup-data --dry-run` pass.
-7. Read verification gate levels before broad modification: `allow` is ready, `caution` is advisory-only, `blocked` means stop and fix evidence first.
-8. Read constraints fields after verification so repo-risk blockers can narrow what is safe.
+6. If `guidance.layers.storage_maintenance.priority_projects` is non-empty, consider `cleanup-data --dry-run`.
+7. Read `guidance.layers.execution_strategy.external_truth_boundary` to decide whether OPENDOG guidance can continue or must hand off to repo or verification truth.
+8. Read verification gate levels before broad modification: `allow` is ready, `caution` is advisory-only, `blocked` means stop and fix evidence first.
+9. Read constraints after verification so repo-risk blockers narrow what is safe.
 
 ## `opendog decision-brief --json`
 
 Version marker:
 
 - `schema_version = opendog.cli.decision-brief.v1`
-- MCP equivalent: `schema_version = opendog.mcp.decision-brief.v1`
+- MCP equivalent call: `get_guidance({ "project_id": "<ID>", "top": N, "detail": "decision" })`
+- MCP equivalent schema: `schema_version = opendog.mcp.decision-brief.v1`
 
 ### Primary decision fields
 
@@ -137,6 +146,7 @@ Version marker:
 - `decision.strategy_mode`
 - `decision.action_profile`
 - `decision.risk_profile`
+- `decision.review_focus`
 - `entrypoints.next_mcp_tools`
 - `entrypoints.next_cli_commands`
 - `entrypoints.selection_reasons`
@@ -156,7 +166,7 @@ Version marker:
 - `decision.summary`
 - `decision.reason`
 - `decision.recommended_flow`
-- `decision.{repo_truth_gaps,mandatory_shell_checks,execution_sequence,data_risk_focus}`
+- `decision.{repo_truth_gaps,mandatory_shell_checks,external_truth_boundary,execution_sequence,data_risk_focus}`
 - `decision.safe_for_cleanup`
 - `decision.safe_for_refactor`
 - `decision.verification_status`
@@ -184,21 +194,21 @@ Key layer fields worth checking first:
 2. Read `decision.recommended_next_action` and `decision.target_project_id`.
 3. Pick from `entrypoints.next_mcp_tools` or `entrypoints.next_cli_commands`.
 4. Use `entrypoints.selection_reasons` and `decision.signals.attention_reasons` to understand the choice.
-5. If `decision.signals.storage_maintenance_candidate = true`, inspect the `cleanup_project_data` preview template before cleanup/refactor work.
+5. If `decision.signals.storage_maintenance_candidate = true`, inspect the `cleanup-data` preview template before cleanup/refactor work.
 6. Use `entrypoints.execution_templates` for argument skeletons, defaults, priorities, blockers, expected output fields, and follow-up routing.
 7. Read `layers.workspace_observation` first so stale or missing evidence can change the execution order.
-8. Read `decision.risk_profile.cleanup_gate_level` and `decision.risk_profile.refactor_gate_level` before broad edits; `caution` is advisory-only, while `blocked` means verification evidence is not ready.
-9. Read `decision.repo_truth_gaps` before broad edits when repository truth is uncertain; use `decision.mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
-10. If `decision.recommended_next_action = run_verification_before_high_risk_changes`, use `decision.execution_sequence.verification_commands`, then refresh OPENDOG guidance after recording fresh verification evidence.
-11. If `decision.recommended_next_action = review_failing_verification`, use the same field to repair and rerun the failing project-native verification before broader review.
-12. If `decision.recommended_next_action = stabilize_repository_state`, use `decision.execution_sequence` to stabilize in shell first, then refresh guidance after repo state is stable again.
-13. If `decision.recommended_next_action = start_monitor`, use `decision.execution_sequence.observation_steps` to enable monitoring, let real project activity happen, then refresh guidance after observation evidence exists.
-14. If `decision.recommended_next_action = take_snapshot`, use `decision.execution_sequence.observation_steps` to create or refresh the project snapshot, then refresh guidance after snapshot evidence is fresh again.
-15. If `decision.recommended_next_action = generate_activity_then_stats`, use `decision.execution_sequence.observation_steps` to create meaningful project activity and refresh stats before asking OPENDOG for the next recommendation.
-16. Read the relevant layer in `layers` before making broad edits.
-17. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
+8. Read `decision.external_truth_boundary` before broad edits; if `mode = must_switch_to_external_truth`, run its `minimum_external_checks` first.
+9. Read `decision.risk_profile.cleanup_gate_level` and `decision.risk_profile.refactor_gate_level` before broad edits; `caution` is advisory-only, while `blocked` means verification evidence is not ready.
+10. Read `decision.repo_truth_gaps` when repository truth is uncertain; use `decision.mandatory_shell_checks` as the minimum shell handoff set.
+11. For verification actions, use `decision.execution_sequence.verification_commands`, then refresh OPENDOG guidance after fresh evidence is recorded.
+12. For repo stabilization, use `decision.execution_sequence` to stabilize in shell first, then refresh guidance.
+13. For `start_monitor`, `take_snapshot`, and `generate_activity_then_stats`, follow `decision.execution_sequence.observation_steps`, then refresh guidance.
+14. Read the relevant layer in `layers` before broad edits.
+15. Treat this as the unified AI entry envelope, then descend into narrower MCP/CLI tools.
 
 Compatibility rule: `repo_truth_gaps` and `mandatory_shell_checks` are machine-readable boundary projections. Legacy `blind_spots`, `requires_shell_verification`, and `reason` remain available.
+
+Decision-consumption note: `decision.review_focus` mirrors only the projected top-project `review_focus`; it does not add file recommendations or new review vocabulary.
 
 ## `opendog report window --json`
 
@@ -296,7 +306,6 @@ Version marker:
 Version marker:
 
 - `schema_version = opendog.cli.cleanup-project-data.v1`
-- MCP equivalent: `schema_version = opendog.mcp.cleanup-project-data.v1`
 
 ### Primary decision fields
 

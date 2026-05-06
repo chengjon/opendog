@@ -66,7 +66,7 @@ pub(crate) fn workspace_data_risk_overview_payload(
             "rg \"mock|fixture|fake|stub|sample|demo|seed\" .",
             "rg \"customer|invoice|email|address|payment|tenant\" .",
         ],
-        &["get_data_risk_candidates", "get_agent_guidance", "list_projects"],
+        &["get_data_risk_candidates", "get_guidance", "list_projects"],
         Some("Use shell commands to inspect candidate files directly after OPENDOG identifies which projects deserve manual review."),
     );
     if projects_with_hardcoded > 0 {

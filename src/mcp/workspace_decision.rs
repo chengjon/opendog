@@ -240,6 +240,8 @@ pub(crate) fn decision_brief_payload(
                     "reason": top_candidate["reason"].clone(),
                     "repo_truth_gaps": top_candidate["repo_truth_gaps"].clone(),
                     "mandatory_shell_checks": top_candidate["mandatory_shell_checks"].clone(),
+                    "external_truth_boundary": layers["execution_strategy"]["external_truth_boundary"].clone(),
+                    "review_focus": layers["execution_strategy"]["review_focus_projection"]["review_focus"].clone(),
                     "execution_sequence": top_candidate["execution_sequence"].clone(),
                     "data_risk_focus": matched_overview["mock_data_summary"]["data_risk_focus"].clone(),
                     "target_project_id": target_project_id,

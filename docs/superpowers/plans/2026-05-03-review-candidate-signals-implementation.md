@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented in the current repo and re-verified during the Phase 6 audit. This checklist remains archival and was not retro-backfilled in the aggregated dirty `master` worktree.
+
 **Goal:** Add machine-readable review-candidate signals for cleanup and refactor review paths, then reuse the same candidate vocabulary in `stats` and `unused` guidance without changing the action enum or expanding `decision_brief` / `agent_guidance`.
 
 **Architecture:** Keep action selection recommendation-owned under `src/mcp/project_recommendation/`, add a small recommendation-level `review_focus`, and introduce a shared `src/mcp/review_candidates.rs` helper so `stats_guidance(...)` and `unused_guidance(...)` stop hand-assembling divergent candidate payloads. Reuse existing `detect_mock_data_report(...)` output instead of rescanning file content. Recommendation-level `review_focus` stays limited to reachable review-family metadata because stale snapshot/activity states are observation-first and preempt review actions in the current cascade.

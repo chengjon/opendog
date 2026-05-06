@@ -7,9 +7,10 @@ use crate::storage::queries::{StatsEntry, VerificationRun};
 
 use super::{
     agent_guidance_recommended_flow, base_guidance_layers, build_constraints_boundaries_layer,
-    default_shell_verification_commands, sort_project_recommendations, storage_maintenance_layer,
-    workspace_portfolio_layer, workspace_strategy_profile, workspace_toolchain_layer,
-    workspace_verification_evidence_layer,
+    default_shell_verification_commands, external_truth_boundary_for_top_project,
+    review_focus_projection_for_top_project, sort_project_recommendations,
+    storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
+    workspace_toolchain_layer, workspace_verification_evidence_layer,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -87,6 +88,73 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> V
         "projects_with_repo_truth_gaps": projects_with_repo_truth_gaps,
         "repo_truth_gap_distribution": repo_truth_gap_distribution,
         "mandatory_shell_check_examples": mandatory_shell_check_examples,
+    })
+}
+
+fn execution_strategy_repo_risk_coupling(
+    project_recommendations: &[Value],
+    project_overviews: &[Value],
+    workspace_strategy: &Value,
+) -> Value {
+    let recommended_next_action = project_recommendations
+        .first()
+        .map(|recommendation| recommendation["recommended_next_action"].clone())
+        .unwrap_or(Value::Null);
+    let strategy_mode = workspace_strategy["global_strategy_mode"].clone();
+    let preferred_primary_tool = workspace_strategy["preferred_primary_tool"].clone();
+
+    let no_signal = || {
+        json!({
+            "status": "no_repo_risk_signal",
+            "source": Value::Null,
+            "source_project_id": Value::Null,
+            "recommended_next_action": recommended_next_action.clone(),
+            "strategy_mode": strategy_mode.clone(),
+            "preferred_primary_tool": preferred_primary_tool.clone(),
+            "primary_repo_risk_finding": Value::Null,
+            "summary": Value::Null,
+        })
+    };
+
+    let Some(recommendation) = project_recommendations.first() else {
+        return no_signal();
+    };
+    let Some(project_id) = recommendation["project_id"].as_str() else {
+        return no_signal();
+    };
+    let Some(overview) = project_overviews
+        .iter()
+        .find(|overview| overview["project_id"].as_str() == Some(project_id))
+    else {
+        return no_signal();
+    };
+
+    let primary_repo_risk_finding =
+        overview["repo_status_risk"]["highest_priority_finding"].clone();
+    if primary_repo_risk_finding.is_null() {
+        return no_signal();
+    }
+
+    let strategy_mode_text = workspace_strategy["global_strategy_mode"]
+        .as_str()
+        .unwrap_or("current_strategy");
+    let preferred_primary_tool_text = workspace_strategy["preferred_primary_tool"]
+        .as_str()
+        .unwrap_or("current_tool");
+
+    json!({
+        "status": "coupled",
+        "source": "primary_repo_risk_finding",
+        "source_project_id": project_id,
+        "recommended_next_action": recommendation["recommended_next_action"].clone(),
+        "strategy_mode": workspace_strategy["global_strategy_mode"].clone(),
+        "preferred_primary_tool": workspace_strategy["preferred_primary_tool"].clone(),
+        "primary_repo_risk_finding": primary_repo_risk_finding,
+        "summary": format!(
+            "Top repository risk keeps the workspace in {} mode and {}-first handling.",
+            strategy_mode_text,
+            preferred_primary_tool_text
+        ),
     })
 }
 
@@ -321,11 +389,21 @@ pub(crate) fn agent_guidance_payload(
     let stabilization_summary =
         execution_strategy_stabilization_summary(&sorted_project_recommendations);
     let data_risk_focus_summary = execution_strategy_data_risk_focus_summary(project_overviews);
+    let risk_strategy_coupling = execution_strategy_repo_risk_coupling(
+        &sorted_project_recommendations,
+        project_overviews,
+        &workspace_strategy,
+    );
+    let external_truth_boundary =
+        external_truth_boundary_for_top_project(sorted_project_recommendations.first());
+    let review_focus_projection =
+        review_focus_projection_for_top_project(sorted_project_recommendations.first());
     let recommended_flow = agent_guidance_recommended_flow(
         project_count,
         monitoring_count,
         sorted_project_recommendations.first(),
         &workspace_strategy,
+        Some(&risk_strategy_coupling),
     );
 
     let mut value = json!({
@@ -398,6 +476,9 @@ pub(crate) fn agent_guidance_payload(
         "preferred_primary_tool": workspace_strategy["preferred_primary_tool"].clone(),
         "preferred_secondary_tool": workspace_strategy["preferred_secondary_tool"].clone(),
         "evidence_priority": workspace_strategy["evidence_priority"].clone(),
+        "risk_strategy_coupling": risk_strategy_coupling.clone(),
+        "external_truth_boundary": external_truth_boundary.clone(),
+        "review_focus_projection": review_focus_projection.clone(),
         "when_to_use_opendog": [
             "Choose OPENDOG when deciding which files are active, unused, or should be reviewed first.",
         ],

@@ -1,7 +1,7 @@
 # Runtime Weak-Token Data-Risk Design
 
 Date: 2026-05-04
-Status: proposed
+Status: implemented and verified (2026-05-05)
 Scope: Phase 6 selective deepening
 
 ## Goal

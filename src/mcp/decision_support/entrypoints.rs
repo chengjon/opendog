@@ -32,7 +32,7 @@ pub(in crate::mcp) fn decision_entrypoints_payload(
         ),
         "stabilize_repository_state" => (
             vec![
-                "get_agent_guidance".to_string(),
+                "get_guidance".to_string(),
                 "get_verification_status".to_string(),
             ],
             vec![
@@ -81,7 +81,7 @@ pub(in crate::mcp) fn decision_entrypoints_payload(
             ],
         ),
         "generate_activity_then_stats" => (
-            vec!["get_stats".to_string(), "get_agent_guidance".to_string()],
+            vec!["get_stats".to_string(), "get_guidance".to_string()],
             vec![
                 "git status".to_string(),
                 format!("opendog stats{}", project_flag),
@@ -147,7 +147,7 @@ pub(in crate::mcp) fn decision_entrypoints_payload(
         ),
         _ => (
             vec![
-                "get_agent_guidance".to_string(),
+                "get_guidance".to_string(),
                 "list_projects".to_string(),
                 "get_workspace_data_risk_overview".to_string(),
             ],
@@ -157,7 +157,7 @@ pub(in crate::mcp) fn decision_entrypoints_payload(
                 "opendog workspace-data-risk --json".to_string(),
             ],
             vec![
-                json!({"kind":"mcp_tool","target":"get_agent_guidance","why":"refresh project-level next-action advice"}),
+                json!({"kind":"mcp_tool","target":"get_guidance","why":"refresh project-level next-action advice"}),
                 json!({"kind":"mcp_tool","target":"list_projects","why":"reconfirm project availability and monitoring state"}),
                 json!({"kind":"mcp_tool","target":"get_workspace_data_risk_overview","why":"cross-project prioritization may still be unresolved"}),
             ],

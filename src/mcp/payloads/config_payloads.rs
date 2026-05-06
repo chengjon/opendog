@@ -5,7 +5,7 @@ use crate::config::{
     ProjectConfigView,
 };
 use crate::contracts::{versioned_payload, versioned_project_payload};
-use crate::core::stats::ProjectSummary;
+use crate::core::export::PortableProjectExport;
 
 use super::super::tool_guidance;
 
@@ -17,13 +17,13 @@ pub(crate) fn global_config_payload(schema_version: &str, config: &ProjectConfig
             (
                 "guidance",
                 tool_guidance(
-                    "Global defaults loaded. Use project config to inspect overrides or update defaults before reloading active monitors.",
+                    "Global defaults loaded. Use project config to inspect overrides, then switch to CLI config commands for mutations or runtime reload.",
                     &[
                         "opendog config show --id <project>",
                         "opendog config set-global --ignore-pattern <pattern>",
                         "opendog config reload --id <project>",
                     ],
-                    &["get_project_config", "update_global_config", "reload_project_config"],
+                    &["get_project_config"],
                     Some(
                         "Use shell edits only if you intentionally want to bypass OPENDOG-managed config persistence.",
                     ),
@@ -51,12 +51,12 @@ pub(crate) fn project_config_payload(schema_version: &str, view: &ProjectConfigV
             (
                 "guidance",
                 tool_guidance(
-                    "Project config loaded. Update overrides or reload a running monitor if runtime state must pick up persisted changes.",
+                    "Project config loaded. Use CLI config commands for override changes or monitor reload when runtime state must pick up persisted values.",
                     &[
                         "opendog config set-project --id <project> --ignore-pattern <pattern>",
                         "opendog config reload --id <project>",
                     ],
-                    &["update_project_config", "reload_project_config"],
+                    &["get_project_config"],
                     Some(
                         "Use OPENDOG config tools instead of manual registry edits so precedence and reload behavior stay explicit.",
                     ),
@@ -84,7 +84,7 @@ pub(crate) fn update_global_config_payload(
                         "opendog config reload --id <project>",
                         "opendog config show --id <project>",
                     ],
-                    &["reload_project_config", "get_project_config"],
+                    &["get_project_config"],
                     Some(
                         "Use shell verification after config changes if cleanup or monitoring scope is being narrowed materially.",
                     ),
@@ -115,7 +115,7 @@ pub(crate) fn project_config_update_payload(
                         "opendog config reload --id <project>",
                         "opendog start --id <project>",
                     ],
-                    &["reload_project_config", "start_monitor"],
+                    &["get_project_config", "start_monitor"],
                     Some(
                         "Do not assume a running monitor picked up changes unless the reload block reports runtime_reloaded=true.",
                     ),
@@ -158,26 +158,22 @@ pub(crate) fn project_config_reload_payload(
 
 pub(crate) fn export_project_evidence_payload(
     schema_version: &str,
-    id: &str,
-    format: &str,
-    view: &str,
+    artifact: &PortableProjectExport,
     output_path: &str,
     bytes_written: u64,
-    row_count: usize,
-    summary: &ProjectSummary,
     content: &str,
 ) -> Value {
     versioned_project_payload(
         schema_version,
-        id,
+        &artifact.project_id,
         [
             ("status", json!("exported")),
-            ("format", json!(format)),
-            ("view", json!(view)),
+            ("format", json!(artifact.format.as_str())),
+            ("view", json!(artifact.view.as_str())),
             ("output_path", json!(output_path)),
             ("bytes_written", json!(bytes_written)),
-            ("row_count", json!(row_count)),
-            ("summary", json!(summary)),
+            ("row_count", json!(artifact.row_count)),
+            ("summary", json!(&artifact.summary)),
             ("content", json!(content)),
             (
                 "guidance",

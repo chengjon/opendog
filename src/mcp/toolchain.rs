@@ -80,6 +80,12 @@ fn docs_only_marker_exists(root: &Path) -> bool {
     has_docs_config && has_docs_content
 }
 
+fn workspace_signal_present(root: &Path) -> bool {
+    cargo_toml_has_workspace(root)
+        || node_workspace_marker_exists(root)
+        || file_exists(root, "go.work")
+}
+
 fn detected_stack_markers(root: &Path) -> Vec<&'static str> {
     let mut markers = Vec::new();
     if file_exists(root, "Cargo.toml") {
@@ -99,6 +105,31 @@ fn detected_stack_markers(root: &Path) -> Vec<&'static str> {
         markers.push("go");
     }
     markers
+}
+
+fn manifest_backed_stack_markers(root: &Path) -> Vec<&'static str> {
+    let mut markers = Vec::new();
+    if file_exists(root, "Cargo.toml") {
+        markers.push("rust");
+    }
+    if file_exists(root, "package.json") {
+        markers.push("node");
+    }
+    if file_exists(root, "pyproject.toml")
+        || file_exists(root, "requirements.txt")
+        || file_exists(root, "pytest.ini")
+        || file_exists(root, "Pipfile")
+    {
+        markers.push("python");
+    }
+    if file_exists(root, "go.mod") || file_exists(root, "go.work") {
+        markers.push("go");
+    }
+    markers
+}
+
+fn node_workspace_has_manifest_context(root: &Path) -> bool {
+    file_exists(root, "package.json") && node_workspace_marker_exists(root)
 }
 
 fn single_stack_profile(stack: &str) -> Option<ProjectToolchainProfile> {
@@ -141,7 +172,18 @@ fn single_stack_profile(stack: &str) -> Option<ProjectToolchainProfile> {
     }
 }
 
-fn mixed_workspace_profile(stacks: &[&'static str]) -> ProjectToolchainProfile {
+fn mixed_workspace_confidence(root: &Path, stacks: &[&'static str]) -> &'static str {
+    if stacks.len() > 1
+        && workspace_signal_present(root)
+        && manifest_backed_stack_markers(root).len() > 1
+    {
+        "medium-high"
+    } else {
+        "medium"
+    }
+}
+
+fn mixed_workspace_profile(root: &Path, stacks: &[&'static str]) -> ProjectToolchainProfile {
     let mut test_commands = Vec::new();
     let mut lint_commands = Vec::new();
     let mut build_commands = Vec::new();
@@ -158,11 +200,19 @@ fn mixed_workspace_profile(stacks: &[&'static str]) -> ProjectToolchainProfile {
 
     ProjectToolchainProfile {
         project_type: "mixed_workspace".to_string(),
-        confidence: "medium",
+        confidence: mixed_workspace_confidence(root, stacks),
         test_commands,
         lint_commands,
         build_commands,
         search_commands,
+    }
+}
+
+fn generic_mono_repo_confidence(root: &Path) -> &'static str {
+    if manifest_backed_stack_markers(root).is_empty() {
+        "low"
+    } else {
+        "medium"
     }
 }
 
@@ -181,7 +231,7 @@ fn mono_repo_profile(root: &Path, stacks: &[&'static str]) -> ProjectToolchainPr
                 search_commands: vec!["rg \"<pattern>\" .".to_string()],
             };
         }
-        if stacks[0] == "node" && node_workspace_marker_exists(root) {
+        if stacks[0] == "node" && node_workspace_has_manifest_context(root) {
             return ProjectToolchainProfile {
                 project_type: "mono_repo".to_string(),
                 confidence: "high",
@@ -195,7 +245,7 @@ fn mono_repo_profile(root: &Path, stacks: &[&'static str]) -> ProjectToolchainPr
 
     ProjectToolchainProfile {
         project_type: "mono_repo".to_string(),
-        confidence: "medium",
+        confidence: generic_mono_repo_confidence(root),
         test_commands: vec![],
         lint_commands: vec![],
         build_commands: vec![],
@@ -222,26 +272,31 @@ fn unknown_profile() -> ProjectToolchainProfile {
     }
 }
 
+fn docs_only_profile() -> ProjectToolchainProfile {
+    ProjectToolchainProfile {
+        project_type: "docs_only".to_string(),
+        confidence: "medium-high",
+        test_commands: vec![],
+        lint_commands: vec![],
+        build_commands: vec![],
+        search_commands: vec!["rg \"<pattern>\" docs README.md".to_string()],
+    }
+}
+
+fn toolchain_confidence_is_trusted(confidence: &str) -> bool {
+    matches!(confidence, "high" | "medium-high")
+}
+
 fn detect_project_profile(root: &Path) -> ProjectToolchainProfile {
     let stacks = detected_stack_markers(root);
     if stacks.len() > 1 {
-        mixed_workspace_profile(&stacks)
-    } else if cargo_toml_has_workspace(root)
-        || node_workspace_marker_exists(root)
-        || file_exists(root, "go.work")
-    {
+        mixed_workspace_profile(root, &stacks)
+    } else if workspace_signal_present(root) {
         mono_repo_profile(root, &stacks)
     } else if stacks.len() == 1 {
         single_stack_profile(stacks[0]).unwrap_or_else(unknown_profile)
     } else if docs_only_marker_exists(root) {
-        ProjectToolchainProfile {
-            project_type: "docs_only".to_string(),
-            confidence: "medium",
-            test_commands: vec![],
-            lint_commands: vec![],
-            build_commands: vec![],
-            search_commands: vec!["rg \"<pattern>\" docs README.md".to_string()],
-        }
+        docs_only_profile()
     } else {
         unknown_profile()
     }
@@ -293,7 +348,7 @@ pub(super) fn workspace_toolchain_layer(project_overviews: &[Value]) -> Value {
         if project_type == "unknown" {
             projects_without_detected_toolchain += 1;
         }
-        if confidence != "high" || project_type == "unknown" {
+        if !toolchain_confidence_is_trusted(confidence) || project_type == "unknown" {
             low_confidence_projects.push(json!({
                 "project_id": project_id,
                 "project_type": project_type,

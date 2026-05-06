@@ -222,20 +222,18 @@ pub(super) fn workspace_verification_evidence_layer(
                 .as_str()
                 .unwrap_or("Refactor readiness is blocked.")
                 .to_string();
-            let primary_reason = if p["verification_evidence"]["failing_runs"]
+            let cleanup_blocked_by_verification = p["verification_evidence"]["failing_runs"]
                 .as_array()
                 .map(|runs| !runs.is_empty())
                 .unwrap_or(false)
-            {
-                cleanup_reason.clone()
-            } else if p["verification_evidence"]["status"] == "not_recorded" {
-                cleanup_reason.clone()
-            } else if matches!(
-                p["observation"]["freshness"]["verification"]["status"]
-                    .as_str()
-                    .unwrap_or(""),
-                "stale" | "unknown"
-            ) {
+                || p["verification_evidence"]["status"] == "not_recorded"
+                || matches!(
+                    p["observation"]["freshness"]["verification"]["status"]
+                        .as_str()
+                        .unwrap_or(""),
+                    "stale" | "unknown"
+                );
+            let primary_reason = if cleanup_blocked_by_verification {
                 cleanup_reason.clone()
             } else {
                 refactor_reason.clone()

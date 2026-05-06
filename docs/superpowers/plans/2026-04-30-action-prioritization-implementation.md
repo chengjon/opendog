@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented and re-verified. Checklist remains archival.
+
 **Goal:** Rework project-level action prioritization so OPENDOG keeps the current action enum but chooses safer next actions, lowers confidence under mixed evidence, and emits more stable reasons across `recommend_project_action(...)`, `agent_guidance`, and `decision_brief`.
 
 **Architecture:** Keep `recommend_project_action(...)` as the public facade, but split the ranking internals into three focused helpers: eligibility, scoring, and reasoning. Hard gating stays ahead of scoring, and consumer layers continue reading the same recommendation payload instead of inventing their own prioritization logic.

@@ -1,5 +1,7 @@
 # Verification Soft Gates Implementation Plan
 
+> **Status note (2026-05-06):** Implemented and re-verified. Checklist remains archival.
+
 Goal: add additive verification soft gates that distinguish `allow`, `caution`, and `blocked`, then route MCP guidance and decision outputs through that shared evidence model without hard-blocking any CLI or MCP command.
 
 ## Constraints

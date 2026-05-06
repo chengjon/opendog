@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented in the current repo and re-verified during the Phase 6 audit. This checklist remains archival and was not retro-backfilled in the aggregated dirty `master` worktree.
+
 **Goal:** Add machine-readable `data_risk_focus` for mock, hardcoded, and mixed-review findings, then project it through project payloads, workspace guidance, `agent_guidance`, and `decision_brief` without changing detection heuristics.
 
 **Architecture:** Keep `MockDataReport` as the canonical source by adding `data_risk_focus(&self) -> Value` in `src/mcp/data_risk/report.rs`. Project and workspace payloads render that object directly; `agent_guidance` and `decision_brief` only consume rendered focus data from `mock_data_summary` or workspace data-risk guidance.

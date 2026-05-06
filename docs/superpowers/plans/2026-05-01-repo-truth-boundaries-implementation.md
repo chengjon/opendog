@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** Implemented in the current repo and re-verified during the Phase 6 audit. This checklist remains archival and was not retro-backfilled in the aggregated dirty `master` worktree.
+
 **Goal:** Add machine-readable repository-truth boundary fields to project recommendations, decision briefs, and workspace execution-strategy summaries without changing action enums, CLI text output, or existing boundary fields.
 
 **Architecture:** Keep repo-truth gap derivation as a standalone helper under the existing `constraints` module, then let `recommend_project_action(...)` consume that helper and project the normalized fields outward. Decision and guidance layers should read the recommendation output instead of re-deriving gap logic, while legacy `blind_spots`, `requires_shell_verification`, and `reason` fields remain intact.

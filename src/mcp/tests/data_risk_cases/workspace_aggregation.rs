@@ -118,6 +118,10 @@ fn workspace_data_risk_overview_payload_prioritizes_hardcoded_projects() {
         })
     );
     assert_eq!(
+        payload["next_tools"],
+        json!(["get_data_risk_candidates", "get_guidance", "list_projects"])
+    );
+    assert_eq!(
         payload["recommended_flow"][0],
         json!("Start with the highest-priority project in the workspace queue.")
     );

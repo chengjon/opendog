@@ -51,4 +51,4 @@ Treat planning governance as an overlay:
 - Use [Capability Index](./capability-index.md) for the fastest capability-to-command map
 - Use [AI Playbook](./ai-playbook.md) when an AI needs execution order and shell handoff rules
 - Use [MCP Tool Reference](./mcp-tool-reference.md) for request/response usage
-- Use [.planning/FUNCTION_TREE.md](../.planning/FUNCTION_TREE.md) only when capability ownership, requirement mapping, or structural scope is changing
+- Use [FUNCTION_TREE.md](../FUNCTION_TREE.md) only when capability ownership, requirement mapping, or structural scope is changing
