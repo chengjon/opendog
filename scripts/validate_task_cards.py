@@ -10,7 +10,7 @@ import validate_requirement_mappings as requirement_mappings
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK_DIR = ROOT / ".planning" / "task-cards"
-TREE_FILE = ROOT / ".planning" / "FUNCTION_TREE.md"
+TREE_FILE = ROOT / "FUNCTION_TREE.md"
 REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
 ALLOWED_STATUSES = {
     "proposed",

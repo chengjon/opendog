@@ -28,23 +28,79 @@ pub(super) enum ConfigCommand {
     SetProject {
         #[arg(short, long)]
         id: String,
-        #[arg(long = "ignore-pattern")]
+        #[arg(
+            long = "ignore-pattern",
+            conflicts_with_all = [
+                "add_ignore_patterns",
+                "remove_ignore_patterns",
+                "inherit_ignore_patterns"
+            ]
+        )]
         ignore_patterns: Vec<String>,
-        #[arg(long = "process")]
+        #[arg(
+            long = "add-ignore-pattern",
+            conflicts_with = "inherit_ignore_patterns"
+        )]
+        add_ignore_patterns: Vec<String>,
+        #[arg(
+            long = "remove-ignore-pattern",
+            conflicts_with = "inherit_ignore_patterns"
+        )]
+        remove_ignore_patterns: Vec<String>,
+        #[arg(
+            long = "process",
+            conflicts_with_all = [
+                "add_process_whitelist",
+                "remove_process_whitelist",
+                "inherit_process_whitelist"
+            ]
+        )]
         process_whitelist: Vec<String>,
-        #[arg(long)]
+        #[arg(long = "add-process", conflicts_with = "inherit_process_whitelist")]
+        add_process_whitelist: Vec<String>,
+        #[arg(long = "remove-process", conflicts_with = "inherit_process_whitelist")]
+        remove_process_whitelist: Vec<String>,
+        #[arg(
+            long,
+            conflicts_with_all = [
+                "ignore_patterns",
+                "add_ignore_patterns",
+                "remove_ignore_patterns"
+            ]
+        )]
         inherit_ignore_patterns: bool,
-        #[arg(long)]
+        #[arg(
+            long,
+            conflicts_with_all = [
+                "process_whitelist",
+                "add_process_whitelist",
+                "remove_process_whitelist"
+            ]
+        )]
         inherit_process_whitelist: bool,
         #[arg(long)]
         json: bool,
     },
     /// Update global default configuration
     SetGlobal {
-        #[arg(long = "ignore-pattern")]
+        #[arg(
+            long = "ignore-pattern",
+            conflicts_with_all = ["add_ignore_patterns", "remove_ignore_patterns"]
+        )]
         ignore_patterns: Vec<String>,
-        #[arg(long = "process")]
+        #[arg(long = "add-ignore-pattern")]
+        add_ignore_patterns: Vec<String>,
+        #[arg(long = "remove-ignore-pattern")]
+        remove_ignore_patterns: Vec<String>,
+        #[arg(
+            long = "process",
+            conflicts_with_all = ["add_process_whitelist", "remove_process_whitelist"]
+        )]
         process_whitelist: Vec<String>,
+        #[arg(long = "add-process")]
+        add_process_whitelist: Vec<String>,
+        #[arg(long = "remove-process")]
+        remove_process_whitelist: Vec<String>,
         #[arg(long)]
         json: bool,
     },
@@ -63,7 +119,11 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
         ConfigCommand::SetProject {
             id,
             ignore_patterns,
+            add_ignore_patterns,
+            remove_ignore_patterns,
             process_whitelist,
+            add_process_whitelist,
+            remove_process_whitelist,
             inherit_ignore_patterns,
             inherit_process_whitelist,
             json,
@@ -76,11 +136,15 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
                 } else {
                     Some(ignore_patterns)
                 },
+                add_ignore_patterns,
+                remove_ignore_patterns,
                 process_whitelist: if process_whitelist.is_empty() {
                     None
                 } else {
                     Some(process_whitelist)
                 },
+                add_process_whitelist,
+                remove_process_whitelist,
                 inherit_ignore_patterns,
                 inherit_process_whitelist,
             },
@@ -88,7 +152,11 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
         ),
         ConfigCommand::SetGlobal {
             ignore_patterns,
+            add_ignore_patterns,
+            remove_ignore_patterns,
             process_whitelist,
+            add_process_whitelist,
+            remove_process_whitelist,
             json,
         } => cmd_config_set_global(
             pm,
@@ -98,11 +166,15 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
                 } else {
                     Some(ignore_patterns)
                 },
+                add_ignore_patterns,
+                remove_ignore_patterns,
                 process_whitelist: if process_whitelist.is_empty() {
                     None
                 } else {
                     Some(process_whitelist)
                 },
+                add_process_whitelist,
+                remove_process_whitelist,
             },
             json,
         ),

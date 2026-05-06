@@ -84,6 +84,11 @@ fn workspace_portfolio_prioritizes_attention_urgency_over_data_risk_volume() {
         json!("alpha")
     );
     assert_eq!(
+        value["guidance"]["layers"]["multi_project_portfolio"]["attention_batches"]["immediate"][0]
+            ["project_id"],
+        json!("alpha")
+    );
+    assert_eq!(
         value["guidance"]["layers"]["multi_project_portfolio"]["priority_candidates"][0]
             ["project_id"],
         json!("alpha")

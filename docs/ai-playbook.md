@@ -53,20 +53,22 @@ CLI and MCP are entry surfaces over the same core capabilities. When the OPENDOG
    MCP: `start_monitor`
    CLI: `opendog start --id <ID>`
 4. Ask OPENDOG what kind of action is appropriate.
-   MCP: `get_agent_guidance`
+   MCP: `get_guidance`
    CLI: `opendog agent-guidance`
+   MCP preferred modes:
+   `detail=summary` for the broader “what next” recommendation
+   `detail=decision` for the stable decision envelope
    MCP/CLI both support project scoping and queue trimming:
    `project_id` or `--project <ID>`
    `top` or `--top <N>`
    If `layers.storage_maintenance.priority_projects` is non-empty, review retained OPENDOG evidence before a long cleanup/refactor pass.
    If you want one stable AI entry envelope first:
-   MCP: `get_decision_brief`
+   MCP: `get_guidance(detail=decision)`
    CLI: `opendog decision-brief`
 5. If you need recent activity shape, snapshot deltas, or heating/cooling files, use reporting tools.
    MCP: `get_time_window_report`, `compare_snapshots`, `get_usage_trends`
    CLI: `opendog report window|compare|trend`
 6. If OPENDOG retained evidence itself has grown too large, use selective cleanup first.
-   MCP: `cleanup_project_data`
    CLI: `opendog cleanup-data`
    This is a retained-evidence lifecycle operation, not source cleanup.
    If the cleanup deletes a lot and `storage_before.approx_reclaimable_bytes` stays high, consider one explicit `vacuum` pass.
@@ -96,7 +98,7 @@ Why:
 
 Use:
 
-- MCP: `get_agent_guidance`
+- MCP: `get_guidance(detail=summary)`
 - CLI: `opendog agent-guidance`
 
 Why:
@@ -108,7 +110,7 @@ Why:
 
 Use:
 
-- MCP: `get_decision_brief`
+- MCP: `get_guidance(detail=decision)`
 - CLI: `opendog decision-brief`
 
 Why:
@@ -148,7 +150,7 @@ Use:
 - `get_time_window_report`
 - `compare_snapshots`
 - `get_usage_trends`
-- `cleanup_project_data` when retained OPENDOG evidence itself must be pruned
+- `opendog cleanup-data` when retained OPENDOG evidence itself must be pruned
 - `opendog stats --id <ID>`
 - `opendog unused --id <ID>`
 
@@ -219,20 +221,20 @@ Typical shell follow-ups:
 - Do not bypass daemon-owned project state with ad hoc parallel monitoring when CLI/MCP can reuse the local control plane.
 - Do not use OPENDOG as the sole basis for destructive edits.
 - Do not ignore verification evidence before broad changes.
-- Do not confuse `cleanup_project_data` with source-code cleanup; it only prunes OPENDOG-retained evidence and storage history.
+- Do not confuse `opendog cleanup-data` with source-code cleanup; it only prunes OPENDOG-retained evidence and storage history.
 
 ## High-Value Patterns
 
 ### Pattern: choose a project to work on
 
-1. Run `opendog agent-guidance` or `get_agent_guidance`.
+1. Run `opendog agent-guidance` or `get_guidance(detail=summary)`.
 2. If the question is still cross-project prioritization, run workspace data-risk overview.
 3. Pick the project with the strongest hardcoded-data or mixed-file review reason.
 4. Enter that project and run project-specific review commands.
 
 ### Pattern: prepare for cleanup
 
-1. Run `opendog agent-guidance` or `get_agent_guidance`.
+1. Run `opendog agent-guidance` or `get_guidance(detail=summary)`.
 2. Confirm snapshot exists.
 3. Confirm monitor has enough recent activity.
 4. Check verification status.

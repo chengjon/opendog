@@ -112,6 +112,29 @@ fn classify_path_kind(path_lower: &str) -> &'static str {
     }
 }
 
+fn is_strong_hardcoded_combo(
+    path_classification: &str,
+    business_hits: usize,
+    literal_hits: usize,
+) -> bool {
+    match path_classification {
+        "runtime_shared" => business_hits >= 2 && literal_hits >= 2,
+        "test_only" | "generated_artifact" => false,
+        _ => business_hits >= 3 && literal_hits >= 2,
+    }
+}
+
+fn allow_runtime_shared_hardcoded_amplification(
+    path_classification: &str,
+    combo_is_strong: bool,
+) -> bool {
+    path_classification == "runtime_shared" && combo_is_strong
+}
+
+fn discounted_weak_literal_hits(raw_weak_hits: usize) -> usize {
+    raw_weak_hits / 2
+}
+
 fn matched_keywords(haystack: &str, keywords: &[&str], limit: usize) -> Vec<String> {
     keywords
         .iter()
@@ -161,22 +184,17 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         "customer", "client", "tenant", "account", "order", "invoice", "payment", "amount",
         "price", "address", "phone", "email", "user", "member", "sku",
     ];
-    let literal_markers = [
+    let strong_literal_markers = [
         "@",
         "street",
         "road",
         "avenue",
-        "city",
-        "postal",
-        "zip",
-        "usd",
-        "cny",
         "$",
         "customer_id",
         "tenant_id",
         "invoice_no",
-        "phone",
     ];
+    let weak_literal_markers = ["city", "postal", "zip", "usd", "cny", "phone"];
     let mut report = MockDataReport::default();
 
     for entry in entries.iter().take(200) {
@@ -245,29 +263,32 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         }
 
         let business_hits = count_keyword_hits(&content_lower, &business_keywords);
-        let literal_hits = count_keyword_hits(&content_lower, &literal_markers);
+        let strong_literal_hits = count_keyword_hits(&content_lower, &strong_literal_markers);
+        let weak_literal_hits = count_keyword_hits(&content_lower, &weak_literal_markers);
+        let literal_hits = strong_literal_hits + discounted_weak_literal_hits(weak_literal_hits);
         let runtime_path = path_is_runtime_shared(&path_lower);
+        let strong_hardcoded_combo =
+            is_strong_hardcoded_combo(path_classification, business_hits, literal_hits);
         let mut hardcoded_reasons = Vec::new();
         let mut hardcoded_evidence = Vec::new();
         let mut hardcoded_rule_hits = Vec::new();
         let business_matches = matched_keywords(&content_lower, &business_keywords, 5);
-        let literal_matches = matched_keywords(&content_lower, &literal_markers, 5);
+        let mut literal_matches = matched_keywords(&content_lower, &strong_literal_markers, 5);
+        literal_matches.extend(matched_keywords(&content_lower, &weak_literal_markers, 5));
+        literal_matches.sort();
+        literal_matches.dedup();
         let mut hardcoded_keywords = business_matches.clone();
         hardcoded_keywords.extend(literal_matches.clone());
         hardcoded_keywords.sort();
         hardcoded_keywords.dedup();
-        if !is_test_only
-            && path_classification != "generated_artifact"
-            && business_hits >= 2
-            && literal_hits >= 1
-        {
+        if strong_hardcoded_combo {
             hardcoded_reasons.push(
                 "File contains business-like data keywords together with literal value markers."
                     .to_string(),
             );
             hardcoded_evidence.push(format!(
-                "business_keyword_hits={}, literal_marker_hits={}",
-                business_hits, literal_hits
+                "business_keyword_hits={}, literal_marker_hits={} (strong={}, weak_raw={})",
+                business_hits, literal_hits, strong_literal_hits, weak_literal_hits
             ));
             hardcoded_rule_hits.push("content.business_literal_combo".to_string());
             if !business_matches.is_empty() || !literal_matches.is_empty() {
@@ -278,7 +299,8 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
                 ));
             }
         }
-        if !is_test_only && runtime_path && business_hits >= 2 {
+        if allow_runtime_shared_hardcoded_amplification(path_classification, strong_hardcoded_combo)
+        {
             hardcoded_reasons.push(
                 "Candidate appears in a shared runtime path rather than a test-only path."
                     .to_string(),

@@ -67,6 +67,14 @@ pub struct ConfigPatch {
     pub ignore_patterns: Option<Vec<String>>,
     #[serde(default)]
     pub process_whitelist: Option<Vec<String>>,
+    #[serde(default)]
+    pub add_ignore_patterns: Vec<String>,
+    #[serde(default)]
+    pub remove_ignore_patterns: Vec<String>,
+    #[serde(default)]
+    pub add_process_whitelist: Vec<String>,
+    #[serde(default)]
+    pub remove_process_whitelist: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
@@ -75,6 +83,14 @@ pub struct ProjectConfigPatch {
     pub ignore_patterns: Option<Vec<String>>,
     #[serde(default)]
     pub process_whitelist: Option<Vec<String>>,
+    #[serde(default)]
+    pub add_ignore_patterns: Vec<String>,
+    #[serde(default)]
+    pub remove_ignore_patterns: Vec<String>,
+    #[serde(default)]
+    pub add_process_whitelist: Vec<String>,
+    #[serde(default)]
+    pub remove_process_whitelist: Vec<String>,
     #[serde(default)]
     pub inherit_ignore_patterns: bool,
     #[serde(default)]
@@ -152,9 +168,9 @@ fn default_process_whitelist() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        apply_project_config_patch, changed_config_fields, matches_ignore_pattern,
-        resolve_project_config, ConfigPatch, ProjectConfig, ProjectConfigOverrides,
-        ProjectConfigPatch,
+        apply_global_config_patch, apply_project_config_patch, changed_config_fields,
+        matches_ignore_pattern, resolve_project_config, ConfigPatch, ProjectConfig,
+        ProjectConfigOverrides, ProjectConfigPatch,
     };
 
     #[test]
@@ -166,11 +182,13 @@ mod tests {
 
         let updated = apply_project_config_patch(
             &current,
+            &ProjectConfig::default(),
             ProjectConfigPatch {
                 ignore_patterns: None,
                 process_whitelist: None,
                 inherit_ignore_patterns: true,
                 inherit_process_whitelist: false,
+                ..Default::default()
             },
         );
 
@@ -209,6 +227,173 @@ mod tests {
     fn config_patch_empty_detection_is_precise() {
         assert!(ConfigPatch::default().is_empty());
         assert!(ProjectConfigPatch::default().is_empty());
+    }
+
+    #[test]
+    fn config_patch_empty_detection_counts_incremental_fields() {
+        assert!(!ConfigPatch {
+            add_ignore_patterns: vec!["logs".to_string()],
+            ..Default::default()
+        }
+        .is_empty());
+        assert!(!ProjectConfigPatch {
+            remove_process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn config_patch_explicit_empty_replacement_is_not_empty() {
+        assert!(!ConfigPatch {
+            ignore_patterns: Some(vec![]),
+            ..Default::default()
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn apply_global_config_patch_preserves_explicit_empty_replacement() {
+        let current = ProjectConfig::default();
+
+        let updated = apply_global_config_patch(
+            &current,
+            ConfigPatch {
+                ignore_patterns: Some(vec![]),
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(updated.ignore_patterns, Vec::<String>::new());
+        assert_eq!(updated.process_whitelist, current.process_whitelist);
+    }
+
+    #[test]
+    fn project_config_patch_explicit_empty_replacement_is_not_empty() {
+        assert!(!ProjectConfigPatch {
+            process_whitelist: Some(vec![]),
+            ..Default::default()
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn apply_project_config_patch_preserves_explicit_empty_override() {
+        let global = ProjectConfig::default();
+        let current = ProjectConfigOverrides::default();
+
+        let updated = apply_project_config_patch(
+            &current,
+            &global,
+            ProjectConfigPatch {
+                process_whitelist: Some(vec![]),
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(updated.process_whitelist, Some(Vec::<String>::new()));
+        assert_eq!(updated.ignore_patterns, current.ignore_patterns);
+    }
+
+    #[test]
+    fn config_patch_whitespace_only_values_are_empty_after_normalization() {
+        assert!(ConfigPatch {
+            ignore_patterns: Some(vec!["   ".to_string()]),
+            add_ignore_patterns: vec!["   ".to_string()],
+            ..Default::default()
+        }
+        .is_empty());
+        assert!(ProjectConfigPatch {
+            process_whitelist: Some(vec!["   ".to_string()]),
+            remove_process_whitelist: vec!["   ".to_string()],
+            ..Default::default()
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn config_patch_supports_incremental_add_and_remove() {
+        let current = ProjectConfig {
+            ignore_patterns: vec!["dist".to_string(), "target".to_string()],
+            process_whitelist: vec!["claude".to_string(), "codex".to_string()],
+        };
+
+        let updated = apply_global_config_patch(
+            &current,
+            ConfigPatch {
+                add_ignore_patterns: vec!["logs".to_string()],
+                remove_ignore_patterns: vec!["dist".to_string()],
+                add_process_whitelist: vec!["roo".to_string()],
+                remove_process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(
+            updated.ignore_patterns,
+            vec!["target".to_string(), "logs".to_string()]
+        );
+        assert_eq!(
+            updated.process_whitelist,
+            vec!["codex".to_string(), "roo".to_string()]
+        );
+    }
+
+    #[test]
+    fn project_config_patch_supports_incremental_override_edits() {
+        let current = ProjectConfigOverrides {
+            ignore_patterns: Some(vec!["dist".to_string(), "target".to_string()]),
+            process_whitelist: Some(vec!["claude".to_string(), "codex".to_string()]),
+        };
+        let effective = ProjectConfig {
+            ignore_patterns: vec!["dist".to_string(), "target".to_string()],
+            process_whitelist: vec!["claude".to_string(), "codex".to_string()],
+        };
+
+        let updated = apply_project_config_patch(
+            &current,
+            &effective,
+            ProjectConfigPatch {
+                add_ignore_patterns: vec!["logs".to_string()],
+                remove_process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(
+            updated.ignore_patterns,
+            Some(vec![
+                "dist".to_string(),
+                "target".to_string(),
+                "logs".to_string()
+            ])
+        );
+        assert_eq!(updated.process_whitelist, Some(vec!["codex".to_string()]));
+    }
+
+    #[test]
+    fn project_config_patch_keeps_inherited_field_unset_when_incremental_edit_is_noop() {
+        let current = ProjectConfigOverrides {
+            ignore_patterns: None,
+            process_whitelist: None,
+        };
+        let effective = ProjectConfig {
+            ignore_patterns: vec!["dist".to_string(), "target".to_string()],
+            process_whitelist: vec!["claude".to_string(), "codex".to_string()],
+        };
+
+        let updated = apply_project_config_patch(
+            &current,
+            &effective,
+            ProjectConfigPatch {
+                add_process_whitelist: vec!["claude".to_string()],
+                remove_ignore_patterns: vec!["missing".to_string()],
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(updated.ignore_patterns, None);
+        assert_eq!(updated.process_whitelist, None);
     }
 
     #[test]

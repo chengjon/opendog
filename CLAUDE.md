@@ -108,7 +108,7 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 ## MCP Tools
 
-Current MCP surface: 25 tools total.
+Current MCP surface: 19 tools total.
 
 Baseline control tools:
 
@@ -127,23 +127,14 @@ Comparative reporting:
 - `compare_snapshots`
 - `get_usage_trends`
 
-Retention / storage hygiene:
-
-- `cleanup_project_data`
-
-Configuration and export:
+Configuration inspection:
 
 - `get_global_config`
 - `get_project_config`
-- `update_global_config`
-- `update_project_config`
-- `reload_project_config`
-- `export_project_evidence`
 
 AI-facing guidance, verification, and data-risk tools:
 
-- `get_agent_guidance`
-- `get_decision_brief`
+- `get_guidance`
 - `get_verification_status`
 - `record_verification_result`
 - `run_verification_command`
@@ -152,9 +143,11 @@ AI-facing guidance, verification, and data-risk tools:
 
 MCP parameter hints:
 
-- `get_agent_guidance` accepts optional `project_id` and `top`
-- `get_decision_brief` accepts optional `project_id` and `top`
-- both tools prefer daemon-backed state through the local control plane when the daemon is live
+- `get_guidance` accepts optional `project_id`, `top`, and `detail`
+- `detail = "summary"` returns the broader "what next?" guidance payload
+- `detail = "decision"` returns the stable decision-envelope payload
+- config mutation, export, and retained-evidence cleanup are CLI-only operator flows
+- daemon-backed state through the local control plane is preferred when the daemon is live
 
 ## CLI Commands
 
@@ -213,23 +206,23 @@ Use this default sequence unless the task clearly requires something else:
 1. Make sure the project is registered.
 2. Run `take_snapshot` or `opendog snapshot --id <ID>` if no fresh baseline exists.
 3. Run `start_monitor` or `opendog start --id <ID>` if no monitor is active.
-4. Before editing, check `get_agent_guidance`.
+4. Before editing, check `get_guidance`.
    CLI equivalent: `opendog agent-guidance`
-   Use `project_id` for single-project scope and `top` to shorten the recommendation queue.
-   If you want one stable AI entry envelope first, check `get_decision_brief`.
-   CLI equivalent: `opendog decision-brief`
-5. If storage maintenance is flagged, inspect `cleanup_project_data` or `opendog cleanup-data --dry-run` before long cleanup/refactor sessions.
+   Use `project_id` for single-project scope, `top` to shorten the recommendation queue, and `detail` to choose the payload shape.
+   If you want the broader recommendation view first, use `detail = "summary"`.
+   If you want one stable AI entry envelope first, use `detail = "decision"` or `opendog decision-brief`.
+5. If storage maintenance is flagged, inspect `opendog cleanup-data --dry-run` before long cleanup/refactor sessions.
 6. Before cleanup or refactor, check `get_verification_status` and then `get_data_risk_candidates`.
 7. If choosing among multiple projects, start with `get_workspace_data_risk_overview`.
 
 Practical tool-choice rules:
 
 - Use `get_workspace_data_risk_overview` when the question is "which project deserves attention first?"
-- Use `get_decision_brief` when the question is "give me one stable decision envelope first, then I will choose tools from it"
-- Use `get_agent_guidance` or `opendog agent-guidance` when the question is "what should I do next overall or in this project?"
+- Use `get_guidance` with `detail = "decision"` when the question is "give me one stable decision envelope first, then I will choose tools from it"
+- Use `get_guidance` with `detail = "summary"` or `opendog agent-guidance` when the question is "what should I do next overall or in this project?"
 - Use `get_verification_status` before claiming a project is safe for cleanup or broad edits
 - Use `get_data_risk_candidates` or `opendog data-risk` before touching suspicious mock/demo/seed/business-like literals
-- Use `cleanup_project_data` or `opendog cleanup-data` when OPENDOG-retained evidence itself should be pruned; this never deletes source files
+- Use `opendog cleanup-data` when OPENDOG-retained evidence itself should be pruned; this never deletes source files
 - If daemon is live, prefer daemon-backed state via the local control plane rather than starting a second independent monitor path
 
 See also: [docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)
@@ -238,15 +231,15 @@ For direct MCP request-shape examples, see [docs/mcp-tool-reference.md](/opt/cla
 
 ## Planning Artifacts
 
-All in `.planning/`:
-- `PROJECT.md` — project context, requirements, constraints, key decisions
+Primary planning and governance artifacts:
+- `.planning/PROJECT.md` — project context, requirements, constraints, key decisions
 - `FUNCTION_TREE.md` — canonical capability hierarchy and FT ownership
-- `REQUIREMENTS.md` — 114 mapped requirements across v1 baseline and Phase 6+ hardening
-- `ROADMAP.md` — current phased roadmap with success criteria and plan breakdown
-- `STATE.md` — current phase status
-- `config.json` — GSD workflow settings (YOLO mode, standard granularity, parallel)
-- `task-cards/` — concrete execution cards with `FT-*` leaf mappings
-- `research/` — STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md, SUMMARY.md
+- `.planning/REQUIREMENTS.md` — 114 mapped requirements across v1 baseline and Phase 6+ hardening
+- `.planning/ROADMAP.md` — current phased roadmap with success criteria and plan breakdown
+- `.planning/STATE.md` — current phase status
+- `.planning/config.json` — GSD workflow settings (YOLO mode, standard granularity, parallel)
+- `.planning/task-cards/` — concrete execution cards with `FT-*` leaf mappings
+- `.planning/research/` — STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md, SUMMARY.md
 
 Historical note:
 
@@ -275,4 +268,4 @@ Current next step: continue Phase 6 refinement and documentation alignment
 - **Single SQLite writer** — all writes through one tokio task via mpsc channel
 - **systemd must be enabled** in WSL (`/etc/wsl.conf` `[boot] systemd=true`)
 - **Daemon ownership matters** — if daemon is running, CLI/MCP should prefer the local control plane instead of silently diverging into separate monitor state
-- **Retained evidence is not source code** — `cleanup_project_data` / `cleanup-data` only prune OPENDOG history and storage overhead
+- **Retained evidence is not source code** — `opendog cleanup-data` only prunes OPENDOG history and storage overhead

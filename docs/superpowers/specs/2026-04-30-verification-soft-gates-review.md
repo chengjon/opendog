@@ -27,7 +27,7 @@ All 7 named functions exist with the expected signatures:
 
 ## 2. FT IDs and Requirement Families — Minor Discrepancy
 
-FT IDs match `.planning/FUNCTION_TREE.md`:
+FT IDs match `FUNCTION_TREE.md`:
 
 | Spec Reference | FUNCTION_TREE.md Mapping | Match |
 |---|---|---|

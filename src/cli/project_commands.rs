@@ -5,7 +5,7 @@ use crate::control::DaemonClient;
 use crate::core::export::{self, ExportFormat, ExportView};
 use crate::core::monitor;
 use crate::core::project::ProjectManager;
-use crate::core::retention::{self, CleanupScope, ProjectDataCleanupRequest};
+use crate::core::retention::{self, ProjectDataCleanupRequest};
 use crate::core::{snapshot, stats};
 use crate::error::OpenDogError;
 use crate::mcp::export_project_evidence_payload;
@@ -123,13 +123,9 @@ pub(super) fn cmd_export(
     let bytes_written = export::write_export_file(Path::new(output_path), &content)?;
     let payload = export_project_evidence_payload(
         CLI_EXPORT_PROJECT_EVIDENCE_V1,
-        id,
-        format.as_str(),
-        view.as_str(),
+        &artifact,
         output_path,
         bytes_written,
-        artifact.row_count,
-        &artifact.summary,
         &content,
     );
 
@@ -140,22 +136,9 @@ pub(super) fn cmd_export(
 pub(super) fn cmd_cleanup_data(
     pm: &ProjectManager,
     id: &str,
-    scope: &str,
-    older_than_days: Option<i64>,
-    keep_snapshot_runs: Option<usize>,
-    vacuum: bool,
-    dry_run: bool,
+    request: ProjectDataCleanupRequest,
     json_output: bool,
 ) -> Result<(), OpenDogError> {
-    let scope = CleanupScope::parse(scope)?;
-    let request = ProjectDataCleanupRequest {
-        scope,
-        older_than_days,
-        keep_snapshot_runs,
-        vacuum,
-        dry_run,
-    };
-
     let daemon = DaemonClient::new();
     let result = match daemon.cleanup_project_data(id, request.clone()) {
         Ok(result) => result,

@@ -18,7 +18,7 @@ fn test_cli_json_outputs_for_guidance_and_data_risk() {
     fs::create_dir_all(risky_project_dir.join("tests/fixtures")).unwrap();
     fs::write(
         risky_project_dir.join("src/customer_seed.json"),
-        r#"{"customer":"Demo User","email":"demo@example.com","invoice_id":"INV-001"}"#,
+        r#"{"customer":"Demo User","email":"demo@example.com","address":"1 Market Street","amount":"20 usd"}"#,
     )
     .unwrap();
     fs::write(

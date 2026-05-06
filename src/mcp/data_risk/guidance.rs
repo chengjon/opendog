@@ -27,7 +27,7 @@ pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> V
             "rg \"customer|invoice|email|address|payment|tenant\" .",
             "git diff",
         ],
-        &["get_stats", "get_unused_files", "get_agent_guidance"],
+        &["get_stats", "get_unused_files", "get_guidance"],
         Some("Use shell commands to confirm whether detected data candidates are test-only artifacts or real runtime liabilities."),
     );
     if report.hardcoded_candidates.is_empty() && report.mock_candidates.is_empty() {

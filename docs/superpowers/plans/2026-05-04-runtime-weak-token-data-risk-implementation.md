@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status note (2026-05-06):** The implementation in this repository is already landed. The checklist below is backfilled to match the current code/test state plus fresh verification rerun on 2026-05-06. Per-task commit checkpoints are left unchecked because the current dirty `master` aggregates multiple Phase 6 slices and does not preserve a clean, per-slice feature-commit trail in this worktree.
+
 **Goal:** Reduce false positives where runtime/shared source files are classified as mock or mixed-review risk only because their paths contain weak tokens such as `seed`, `demo`, or `sample`, while preserving current detection for real test/example mock assets.
 
 **Architecture:** Keep `src/mcp/mock_detection.rs` as the only owner of weak-vs-strong path-token handling. Tighten mock candidate admission at the detection layer, let `mixed_review_files` and `data_risk_focus` become cleaner through upstream input changes, and avoid any schema or contract updates.
@@ -16,7 +18,7 @@
 - Modify: `src/mcp/mock_detection.rs`
 - Modify: `src/mcp/tests/data_risk_cases/report_detection.rs`
 
-- [ ] **Step 1: Extend the detection tests with weak-token false-positive regressions**
+- [x] **Step 1: Extend the detection tests with weak-token false-positive regressions**
 
 ```rust
 // src/mcp/tests/data_risk_cases/report_detection.rs
@@ -172,7 +174,7 @@ fn detect_mock_data_report_rejects_unknown_weak_tokens_without_mock_content() {
 }
 ```
 
-- [ ] **Step 2: Update the broad regression to reflect the new runtime weak-token behavior**
+- [x] **Step 2: Update the broad regression to reflect the new runtime weak-token behavior**
 
 ```rust
 // src/mcp/tests/data_risk_cases/report_detection.rs
@@ -207,13 +209,13 @@ fn detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates() {
 }
 ```
 
-- [ ] **Step 3: Run the focused report-detection tests and confirm they fail**
+- [x] **Step 3: Run the focused report-detection tests and confirm they fail**
 
 Run: `cargo test detect_mock_data_report_ --lib`
 
 Expected: FAIL because the current implementation still treats weak runtime path tokens as direct mock signals.
 
-- [ ] **Step 4: Split strong and weak path tokens in `mock_detection.rs`**
+- [x] **Step 4: Split strong and weak path tokens in `mock_detection.rs`**
 
 ```rust
 // src/mcp/mock_detection.rs
@@ -299,7 +301,7 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
 }
 ```
 
-- [ ] **Step 5: Run the focused suite again and confirm the new behavior**
+- [x] **Step 5: Run the focused suite again and confirm the new behavior**
 
 Run: `cargo test detect_mock_data_report_ --lib`
 
@@ -328,7 +330,7 @@ git commit -m "feat: tighten weak runtime mock token detection"
 - Verify: `docs/json-contracts.md`
 - Verify: `docs/mcp-tool-reference.md`
 
-- [ ] **Step 1: Run the broader data-risk suite**
+- [x] **Step 1: Run the broader data-risk suite**
 
 Run: `cargo test data_risk_cases --lib`
 
@@ -337,7 +339,7 @@ Expected: PASS, including:
 - workspace aggregation tests
 - `data_risk_focus` regression tests
 
-- [ ] **Step 2: Run full formatting, compile, and full tests**
+- [x] **Step 2: Run full formatting, compile, and full tests**
 
 Run: `cargo fmt --check`
 Expected: PASS
@@ -348,13 +350,13 @@ Expected: PASS
 Run: `cargo test`
 Expected: PASS with all unit and integration tests green.
 
-- [ ] **Step 3: Prove the contract docs did not need schema updates**
+- [x] **Step 3: Prove the contract docs did not need schema updates**
 
 Run: `git diff --exit-code -- docs/json-contracts.md docs/mcp-tool-reference.md`
 
 Expected: exit code `0` because this batch changes only detection values, not payload shape.
 
-- [ ] **Step 4: Re-run planning governance validation**
+- [x] **Step 4: Re-run planning governance validation**
 
 Run: `python3 scripts/validate_planning_governance.py`
 

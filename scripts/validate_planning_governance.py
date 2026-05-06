@@ -10,7 +10,7 @@ import validate_task_cards as task_cards
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FUNCTION_TREE_FILE = ROOT / ".planning" / "FUNCTION_TREE.md"
+FUNCTION_TREE_FILE = ROOT / "FUNCTION_TREE.md"
 REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
 ROADMAP_FILE = ROOT / ".planning" / "ROADMAP.md"
 TASK_CARD_DIR = ROOT / ".planning" / "task-cards"

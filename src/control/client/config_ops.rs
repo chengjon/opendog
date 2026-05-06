@@ -44,6 +44,10 @@ impl DaemonClient {
         match self.send(ControlRequest::UpdateGlobalConfig {
             ignore_patterns: patch.ignore_patterns,
             process_whitelist: patch.process_whitelist,
+            add_ignore_patterns: patch.add_ignore_patterns,
+            remove_ignore_patterns: patch.remove_ignore_patterns,
+            add_process_whitelist: patch.add_process_whitelist,
+            remove_process_whitelist: patch.remove_process_whitelist,
         })? {
             ControlResponse::GlobalConfigUpdated { result } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
@@ -63,6 +67,10 @@ impl DaemonClient {
             id: id.to_string(),
             ignore_patterns: patch.ignore_patterns,
             process_whitelist: patch.process_whitelist,
+            add_ignore_patterns: patch.add_ignore_patterns,
+            remove_ignore_patterns: patch.remove_ignore_patterns,
+            add_process_whitelist: patch.add_process_whitelist,
+            remove_process_whitelist: patch.remove_process_whitelist,
             inherit_ignore_patterns: patch.inherit_ignore_patterns,
             inherit_process_whitelist: patch.inherit_process_whitelist,
         })? {

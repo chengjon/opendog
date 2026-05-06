@@ -1,9 +1,13 @@
 use serde_json::{json, Value};
 use std::path::Path;
 
+mod external_truth;
 mod repo_truth;
+mod review_focus;
 
+pub(crate) use self::external_truth::external_truth_boundary_for_top_project;
 pub(crate) use self::repo_truth::repo_truth_gap_projection;
+pub(crate) use self::review_focus::review_focus_projection_for_top_project;
 
 fn string_array_field(value: &Value, key: &str) -> Vec<String> {
     value[key]

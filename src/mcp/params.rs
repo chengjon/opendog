@@ -1,7 +1,6 @@
 use rmcp::schemars;
 use serde::Deserialize;
 
-use crate::config::{ConfigPatch, ProjectConfigPatch};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 
 #[derive(Deserialize, schemars::JsonSchema)]
@@ -20,44 +19,6 @@ pub struct ProjectIdParams {
 
 #[derive(Deserialize, schemars::JsonSchema)]
 pub struct GlobalConfigParams {}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-pub struct UpdateGlobalConfigParams {
-    pub ignore_patterns: Option<Vec<String>>,
-    pub process_whitelist: Option<Vec<String>>,
-}
-
-impl UpdateGlobalConfigParams {
-    pub(super) fn into_patch(self) -> ConfigPatch {
-        ConfigPatch {
-            ignore_patterns: self.ignore_patterns,
-            process_whitelist: self.process_whitelist,
-        }
-    }
-}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-pub struct UpdateProjectConfigParams {
-    pub id: String,
-    pub ignore_patterns: Option<Vec<String>>,
-    pub process_whitelist: Option<Vec<String>>,
-    pub inherit_ignore_patterns: Option<bool>,
-    pub inherit_process_whitelist: Option<bool>,
-}
-
-impl UpdateProjectConfigParams {
-    pub(super) fn into_parts(self) -> (String, ProjectConfigPatch) {
-        (
-            self.id,
-            ProjectConfigPatch {
-                ignore_patterns: self.ignore_patterns,
-                process_whitelist: self.process_whitelist,
-                inherit_ignore_patterns: self.inherit_ignore_patterns.unwrap_or(false),
-                inherit_process_whitelist: self.inherit_process_whitelist.unwrap_or(false),
-            },
-        )
-    }
-}
 
 #[derive(Deserialize, schemars::JsonSchema)]
 pub struct RecordVerificationParams {
@@ -110,15 +71,6 @@ impl ExecuteVerificationParams {
 }
 
 #[derive(Deserialize, schemars::JsonSchema)]
-pub struct ExportProjectEvidenceParams {
-    pub id: String,
-    pub format: String,
-    pub view: Option<String>,
-    pub output_path: String,
-    pub min_access_count: Option<i64>,
-}
-
-#[derive(Deserialize, schemars::JsonSchema)]
 pub struct TimeWindowReportParams {
     pub id: String,
     /// Optional window: "24h", "7d", or "30d". Defaults to "24h".
@@ -145,21 +97,6 @@ pub struct UsageTrendParams {
     pub window: Option<String>,
     /// Optional file limit, defaults to 10.
     pub limit: Option<usize>,
-}
-
-#[derive(Deserialize, schemars::JsonSchema)]
-pub struct CleanupProjectDataParams {
-    pub id: String,
-    /// Required cleanup scope: "activity", "snapshots", "verification", or "all"
-    pub scope: String,
-    /// Optional retention cutoff in days for activity/verification cleanup. `0` means everything older than now.
-    pub older_than_days: Option<i64>,
-    /// Optional snapshot-run count to retain for snapshot-history cleanup.
-    pub keep_snapshot_runs: Option<usize>,
-    /// Optional heavy compaction step. When true, rewrites the SQLite file with `VACUUM`; cannot be combined with `dry_run=true`.
-    pub vacuum: Option<bool>,
-    /// Optional dry-run mode, defaults to true when omitted.
-    pub dry_run: Option<bool>,
 }
 
 #[derive(Deserialize, schemars::JsonSchema)]
@@ -197,4 +134,14 @@ pub struct DecisionBriefParams {
     pub project_id: Option<String>,
     /// Optional priority list limit, defaults to 5
     pub top: Option<usize>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
+pub struct GuidanceParams {
+    /// Optional single-project scope
+    pub project_id: Option<String>,
+    /// Optional priority list limit, defaults to 5
+    pub top: Option<usize>,
+    /// Optional merged response mode: "summary" (default) or "decision"
+    pub detail: Option<String>,
 }

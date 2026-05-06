@@ -12,6 +12,10 @@ fn global_config_payload_has_versioned_contract() {
     assert_eq!(value["schema_version"], MCP_GLOBAL_CONFIG_V1);
     assert_eq!(value["global_defaults"]["ignore_patterns"][0], "dist");
     assert_eq!(value["guidance"]["schema_version"], MCP_GUIDANCE_V1);
+    assert_eq!(
+        value["guidance"]["next_tools"],
+        json!(["get_project_config"])
+    );
 }
 
 #[test]
@@ -38,6 +42,10 @@ fn project_config_payload_has_versioned_contract() {
     assert_eq!(value["project_id"], "demo");
     assert_eq!(value["effective"]["ignore_patterns"][0], "logs");
     assert_eq!(value["inherits"]["process_whitelist"], true);
+    assert_eq!(
+        value["guidance"]["next_tools"],
+        json!(["get_project_config"])
+    );
 }
 
 #[test]
@@ -92,6 +100,14 @@ fn config_update_payloads_include_reload_state() {
     );
     assert_eq!(global_value["schema_version"], MCP_UPDATE_GLOBAL_CONFIG_V1);
     assert_eq!(global_value["reloaded_projects"][0]["project_id"], "demo");
+    assert_eq!(
+        global_value["guidance"]["next_tools"],
+        json!(["get_project_config"])
+    );
+    assert_eq!(
+        project_value["guidance"]["next_tools"],
+        json!(["get_project_config", "start_monitor"])
+    );
 }
 
 #[test]

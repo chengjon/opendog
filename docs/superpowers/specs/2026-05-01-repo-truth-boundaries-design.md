@@ -1,7 +1,7 @@
 # Repo Truth Boundaries Design
 
 Date: 2026-05-01
-Status: proposed
+Status: implemented and verified (2026-05-06)
 Scope: Phase 6 selective deepening
 
 ## Goal

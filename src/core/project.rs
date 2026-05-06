@@ -151,7 +151,8 @@ impl ProjectManager {
             .get(id)?
             .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
         let global_defaults = self.global_config()?;
-        let updated_overrides = apply_project_config_patch(&info.config, patch);
+        let effective = resolve_project_config(&global_defaults, &info.config);
+        let updated_overrides = apply_project_config_patch(&info.config, &effective, patch);
         queries::update_project_config(&self.registry, id, &updated_overrides)?;
         let effective = resolve_project_config(&global_defaults, &updated_overrides);
 

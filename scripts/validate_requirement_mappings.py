@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TREE_FILE = ROOT / ".planning" / "FUNCTION_TREE.md"
+TREE_FILE = ROOT / "FUNCTION_TREE.md"
 REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
 
 

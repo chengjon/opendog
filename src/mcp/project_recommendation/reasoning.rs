@@ -62,18 +62,16 @@ pub(crate) fn derive_confidence(
     signals: &RecommendationSignals,
     repo_risk: &Value,
 ) -> &'static str {
-    if signals.verification_failing
-        || repo_risk["operation_states"]
-            .as_array()
-            .map(|states| !states.is_empty())
-            .unwrap_or(false)
-    {
-        "high"
-    } else if selected.total >= 100
+    let repo_is_mid_operation = repo_risk["operation_states"]
+        .as_array()
+        .map(|states| !states.is_empty())
+        .unwrap_or(false);
+    let is_strong_ready_signal = selected.total >= 100
         && signals.cleanup_gate_level == GateLevel::Allow
         && signals.refactor_gate_level == GateLevel::Allow
-        && repo_risk["risk_level"].as_str().unwrap_or("low") == "low"
-    {
+        && repo_risk["risk_level"].as_str().unwrap_or("low") == "low";
+
+    if signals.verification_failing || repo_is_mid_operation || is_strong_ready_signal {
         "high"
     } else {
         "medium"

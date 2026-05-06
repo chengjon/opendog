@@ -20,18 +20,19 @@ Primary role of this page:
 
 Current inventory note:
 
-- OPENDOG currently ships 25 MCP tools
+- OPENDOG currently ships 19 MCP tools
 - this file is the practical request/response registry for that current inventory
-- if an AI only needs one first entrypoint, prefer `get_decision_brief` or `get_agent_guidance`
+- if an AI only needs one first entrypoint, prefer `get_guidance`
+- operator mutations, export artifacts, and retained-evidence cleanup intentionally live on the CLI surface
 - versioned contract style and stability guidance are documented separately in `docs/json-contracts.md`
 
 Capability clusters covered here:
 
 - baseline control and observation: project creation, snapshotting, monitor lifecycle, stats, unused files, project listing, deletion
-- configuration and export: global/project config inspection and mutation, runtime reload, portable evidence export
+- configuration inspection: global/project config inspection and effective runtime visibility
 - observation and usage evidence: stats, unused files, time windows, snapshot comparison, usage trends
-- decision-support: agent guidance, decision brief, workspace and project review prioritization
-- retained-evidence lifecycle: cleanup and storage-maintenance signals
+- decision-support: merged guidance, workspace and project review prioritization
+- storage-maintenance signals: guidance may recommend CLI cleanup flows when retained evidence grows
 - verification and data-risk review: verification status/record/execute plus mock/hardcoded-data review
 - runtime coordination: daemon-backed state reuse through the local control plane when available
 
@@ -43,24 +44,23 @@ Start from the tool that matches the decision you need now, then drill into lowe
 
 | If you need... | Read this section first | Why |
 |---|---|---|
-| One stable AI-facing decision envelope | [`get_decision_brief`](#get_decision_brief) | Best first stop when the AI should choose narrower tools from one structured summary |
-| A broader "what should I do next?" recommendation | [`get_agent_guidance`](#get_agent_guidance) | Best first stop for workspace or project-level sequencing and evidence gaps |
+| One stable AI-facing decision envelope | [`get_guidance`](#get_guidance) with `detail = "decision"` | Best first stop when the AI should choose narrower tools from one structured summary |
+| A broader "what should I do next?" recommendation | [`get_guidance`](#get_guidance) with `detail = "summary"` | Best first stop for workspace or project-level sequencing and evidence gaps |
 | Cross-project prioritization | [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview) | Best first stop when the question is which project deserves attention first |
 | Safety before cleanup or refactor | [`get_verification_status`](#get_verification_status) | Best first stop before broad edits or deletion candidates |
 | Suspicious files to review | [`get_data_risk_candidates`](#get_data_risk_candidates) | Best first stop for mock / hardcoded / mixed-review candidate inspection |
 | Recent activity shape | [`get_time_window_report`](#get_time_window_report) | Best first stop for short-term concentration and active-file review |
 | Baseline or inventory change | [`compare_snapshots`](#compare_snapshots) | Best first stop for added / removed / modified file inventory changes |
 | Heating / cooling trends | [`get_usage_trends`](#get_usage_trends) | Best first stop for activity momentum over time |
-| Retained OPENDOG evidence cleanup | [`cleanup_project_data`](#cleanup_project_data) | Best first stop for storage maintenance without touching source files |
 | Project setup and monitor lifecycle | [`create_project`](#create_project), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor) | Use these when OPENDOG state does not exist yet or observation is not running |
 
 ## Reading By Cluster
 
-- Decision and prioritization: [`get_agent_guidance`](#get_agent_guidance), [`get_decision_brief`](#get_decision_brief), [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview)
-- Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates), [`cleanup_project_data`](#cleanup_project_data)
+- Decision and prioritization: [`get_guidance`](#get_guidance), [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview)
+- Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates)
 - Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
 - Setup and lifecycle: [`create_project`](#create_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
-- Configuration and export: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config), [`update_global_config`](#update_global_config), [`update_project_config`](#update_project_config), [`reload_project_config`](#reload_project_config), [`export_project_evidence`](#export_project_evidence)
+- Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
 
 ## `create_project`
 
@@ -308,170 +308,18 @@ Useful response fields:
 - `inherits`
 - `guidance`
 
-## `update_global_config`
+Operator note:
+
+- config mutation, config reload, evidence export, and retained-evidence cleanup are intentionally CLI-only flows
+- use `opendog config set-global`, `opendog config set-project`, `opendog config reload`, `opendog export`, and `opendog cleanup-data`
+
+## `get_guidance`
 
 Purpose:
 
-- change OPENDOG-wide default policy for ignore patterns or process whitelist
-- observe which running projects reloaded automatically
-
-Minimal request shape:
-
-```json
-{
-  "ignore_patterns": [
-    ".cache",
-    "dist"
-  ]
-}
-```
-
-Extended request shape:
-
-```json
-{
-  "ignore_patterns": [
-    ".cache",
-    "dist"
-  ],
-  "process_whitelist": [
-    "claude",
-    "codex",
-    "node",
-    "python"
-  ]
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `status`
-- `global_defaults`
-- `reloaded_projects`
-- `guidance`
-
-## `update_project_config`
-
-Purpose:
-
-- override ignore patterns or process whitelist for one project
-- control whether the project keeps inheriting global defaults
-
-Minimal request shape:
-
-```json
-{
-  "id": "demo",
-  "ignore_patterns": [
-    "generated"
-  ]
-}
-```
-
-Extended request shape:
-
-```json
-{
-  "id": "demo",
-  "ignore_patterns": [
-    "generated"
-  ],
-  "process_whitelist": [
-    "claude",
-    "codex"
-  ],
-  "inherit_ignore_patterns": false,
-  "inherit_process_whitelist": false
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `project_id`
-- `status`
-- `global_defaults`
-- `project_overrides`
-- `effective`
-- `reload`
-- `guidance`
-
-## `reload_project_config`
-
-Purpose:
-
-- re-apply persisted project config to a running monitor
-- confirm whether runtime state actually changed without restarting the daemon
-
-Request shape:
-
-```json
-{
-  "id": "demo"
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `project_id`
-- `status`
-- `reload`
-- `effective`
-- `guidance`
-
-## `export_project_evidence`
-
-Purpose:
-
-- write project evidence rows into a portable JSON or CSV artifact
-- support downstream automation, review handoff, or archival workflows
-
-Request shape:
-
-```json
-{
-  "id": "demo",
-  "format": "json",
-  "output_path": "/tmp/demo-evidence.json"
-}
-```
-
-Extended request shape:
-
-```json
-{
-  "id": "demo",
-  "format": "csv",
-  "view": "core",
-  "output_path": "/tmp/demo-core.csv",
-  "min_access_count": 5
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `project_id`
-- `status`
-- `format`
-- `view`
-- `output_path`
-- `bytes_written`
-- `row_count`
-- `summary`
-- `content`
-- `guidance`
-
-## `get_agent_guidance`
-
-Purpose:
-
-- answer "what should I do next overall?"
-- answer "what should I do next in this one project?"
-- return recommendation ordering, execution strategy, and safety context
-- expose the decision-support surface without forcing the AI to guess which narrower tool to call first
+- provide the single MCP guidance entry surface for workspace or project scope
+- support both the broader recommendation view and the stable decision-envelope view
+- return recommendation ordering, execution strategy, risk signals, and storage-maintenance hints without forcing the AI to guess between multiple MCP guidance tools
 
 Request shapes:
 
@@ -496,9 +344,29 @@ Single-project guidance with the default queue length.
 }
 ```
 
-Single-project guidance with a shorter recommendation queue.
+Single-project summary guidance with a shorter recommendation queue.
 
-Useful response fields:
+```json
+{
+  "project_id": "demo",
+  "detail": "decision",
+  "top": 1
+}
+```
+
+Single-project decision envelope with the shortest queue.
+
+Mode guide:
+
+- omit `detail` or set `detail = "summary"` for the broader "what should I do next?" guidance payload
+- set `detail = "decision"` for the stable decision envelope that returns the former decision-brief payload
+
+Schema-version note:
+
+- `detail = "summary"` returns `guidance.schema_version = opendog.mcp.guidance.v1`
+- `detail = "decision"` returns top-level `schema_version = opendog.mcp.decision-brief.v1`
+
+Useful response fields when `detail = "summary"`:
 
 - `guidance.schema_version`
 - `guidance.recommended_flow`
@@ -509,64 +377,47 @@ Useful response fields:
 - `guidance.project_recommendations[*].mandatory_shell_checks`
 - `guidance.project_recommendations[*].execution_sequence`
 - `guidance.layers.execution_strategy`
+- `guidance.layers.execution_strategy.review_focus_projection`
 - `guidance.layers.execution_strategy.{cleanup_gate_level,refactor_gate_level}`
 - `guidance.layers.execution_strategy.{projects_with_repo_truth_gaps,repo_truth_gap_distribution,mandatory_shell_check_examples}`
+- `guidance.layers.execution_strategy.risk_strategy_coupling`
+- `guidance.layers.execution_strategy.external_truth_boundary`
 - `guidance.layers.execution_strategy.{projects_requiring_verification_run,projects_requiring_failing_verification_repair}`
 - `guidance.layers.execution_strategy.{projects_requiring_repo_stabilization,repo_stabilization_priority_projects}`
 - `guidance.layers.execution_strategy.{projects_requiring_monitor_start,projects_requiring_snapshot_refresh,projects_requiring_activity_generation}`
 - `guidance.layers.execution_strategy.{data_risk_focus_distribution,projects_requiring_hardcoded_review,projects_requiring_mock_review,projects_requiring_mixed_file_review}`
 - `guidance.layers.multi_project_portfolio`
 - `guidance.layers.multi_project_portfolio.priority_candidates[*].{attention_score,attention_band,attention_reasons}`
+- `guidance.layers.multi_project_portfolio.attention_batches`
+- `guidance.layers.multi_project_portfolio.attention_batches.{batched_project_count,unbatched_project_count}`
+- `guidance.layers.multi_project_portfolio.attention_batches.{immediate,next,later}[*].{project_id,recommended_next_action,attention_score,attention_band}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].repo_status_risk.{risk_findings,highest_priority_finding}`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].verification_gate_levels`
 - `guidance.layers.multi_project_portfolio.project_overviews[*].mock_data_summary.data_risk_focus`
 - `guidance.layers.verification_evidence.{cleanup_gate_distribution,refactor_gate_distribution}`
 - `guidance.layers.cleanup_refactor_candidates.candidates[*].candidate_{basis,risk_hints,priority}`
-
-`review_focus` and candidate-level `candidate_*` fields are review aids only, not replacements for the parent cleanup/refactor gate fields.
 - `guidance.layers.storage_maintenance`
 
-## `get_decision_brief`
+`review_focus` and candidate-level `candidate_*` fields are review aids only, not replacements for the parent cleanup/refactor gate fields.
 
-Purpose:
+`guidance.layers.execution_strategy.risk_strategy_coupling` is a read-only explanation of how the top workspace repository-risk finding reinforces the current strategy mode and primary tool choice. It does not change the underlying project recommendation logic.
 
-- give the AI one stable decision envelope before it chooses tools
-- return the recommended next action, target project, risk profile, and execution templates
-- expose one AI-consumable entrypoint into OPENDOG's guidance, evidence, and storage-maintenance layers
+`guidance.layers.execution_strategy.external_truth_boundary` is a read-only top-project boundary projection. It summarizes whether OPENDOG guidance can continue or whether the AI must first switch to direct repository truth or project-native verification truth, using existing `repo_truth_gaps`, `mandatory_shell_checks`, and `execution_sequence.verification_commands`.
 
-Request shapes:
+`guidance.layers.execution_strategy.review_focus_projection` is a read-only top-project projection of the current review family intent. It does not expose file-level previews or widen the `candidate_*` surface.
 
-```json
-{}
-```
+`guidance.layers.multi_project_portfolio.attention_batches` is a read-only batching projection derived from `guidance.layers.multi_project_portfolio.attention_queue`; it groups the current queue into `immediate / next / later` handling buckets and is not a scheduling engine.
 
-Workspace-scoped decision brief with the default queue length.
-
-```json
-{
-  "project_id": "demo"
-}
-```
-
-Single-project decision brief with the default queue length.
-
-```json
-{
-  "project_id": "demo",
-  "top": 1
-}
-```
-
-Single-project decision brief with the shortest queue.
-
-Useful response fields:
+Useful response fields when `detail = "decision"`:
 
 - `schema_version`
 - `decision.recommended_next_action`
 - `decision.target_project_id`
 - `decision.action_profile`
+- `decision.review_focus`
 - `decision.repo_truth_gaps`
 - `decision.mandatory_shell_checks`
+- `decision.external_truth_boundary`
 - `decision.execution_sequence`
 - `decision.data_risk_focus`
 - `decision.risk_profile`
@@ -583,6 +434,8 @@ Useful response fields:
 - `entrypoints.next_mcp_tools`
 - `entrypoints.execution_templates`
 - `layers`
+
+Read `decision.external_truth_boundary` before broad edits. If `mode = must_switch_to_external_truth`, use `minimum_external_checks` as the minimum repo or project-native verification handoff before treating OPENDOG guidance as sufficient.
 
 Read `repo_truth_gaps` before broad edits when repository truth is uncertain. Use `mandatory_shell_checks` as the minimum shell handoff set before treating OPENDOG guidance as sufficient.
 
@@ -700,62 +553,6 @@ Useful response fields:
 - `summary.bucket_size`
 - `summary.bucket_count`
 - `files`
-
-## `cleanup_project_data`
-
-Purpose:
-
-- answer "what retained OPENDOG evidence can I prune safely?"
-- let the user or AI selectively delete old activity, verification, or historical snapshot data
-- expose retained-evidence lifecycle and storage-hygiene operations without touching source files
-
-Dry-run request shape:
-
-```json
-{
-  "id": "demo",
-  "scope": "activity",
-  "older_than_days": 30,
-  "dry_run": true
-}
-```
-
-Snapshot-retention request shape:
-
-```json
-{
-  "id": "demo",
-  "scope": "snapshots",
-  "keep_snapshot_runs": 5,
-  "dry_run": false
-}
-```
-
-Compaction request shape:
-
-```json
-{
-  "id": "demo",
-  "scope": "all",
-  "older_than_days": 30,
-  "keep_snapshot_runs": 5,
-  "vacuum": true,
-  "dry_run": false
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `project_id`
-- `scope`
-- `dry_run`
-- `vacuum`
-- `deleted`
-- `storage_before`
-- `storage_after`
-- `maintenance`
-- `notes`
 
 ## `get_verification_status`
 
@@ -933,12 +730,12 @@ Useful response fields:
 ## Runtime behavior
 
 - MCP tools should be understood as the AI-facing entry surface over shared OPENDOG capabilities, not as a separate ownership layer.
-- `get_agent_guidance` and `get_decision_brief` prefer daemon-backed state through the local control plane when the OPENDOG daemon is live.
+- `get_guidance` prefers daemon-backed state through the local control plane when the OPENDOG daemon is live, regardless of `detail`.
 - `get_time_window_report`, `compare_snapshots`, and `get_usage_trends` also prefer daemon-backed state through the local control plane when the daemon is live.
-- `cleanup_project_data` uses the same daemon-first local control path so retained-evidence cleanup applies to daemon-owned project state consistently.
+- CLI-only operator flows such as config mutation, evidence export, and retained-evidence cleanup still reuse the same daemon-first local control path where available.
 - Other MCP tools use the same daemon-first pattern where remote control support already exists.
 - If the daemon is unavailable, MCP falls back to local in-process computation.
-- If `project_id` does not exist, the scoped guidance tools return a versioned error payload rather than silently widening to workspace scope.
+- If `project_id` does not exist, `get_guidance` returns a versioned error payload rather than silently widening to workspace scope.
 
 ## Related Docs
 

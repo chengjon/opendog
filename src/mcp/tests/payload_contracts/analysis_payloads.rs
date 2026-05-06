@@ -7,15 +7,21 @@ fn export_project_evidence_payload_has_versioned_contract() {
         accessed_files: 1,
         unused_files: 1,
     };
+    let artifact = crate::core::export::PortableProjectExport {
+        schema_version: "portable".to_string(),
+        project_id: "demo".to_string(),
+        format: "json".to_string(),
+        view: "stats".to_string(),
+        generated_at: "1".to_string(),
+        summary: summary.clone(),
+        row_count: 2,
+        rows: vec![],
+    };
     let value = export_project_evidence_payload(
         MCP_EXPORT_PROJECT_EVIDENCE_V1,
-        "demo",
-        "json",
-        "stats",
+        &artifact,
         "/tmp/demo.json",
         128,
-        2,
-        &summary,
         "{\"project_id\":\"demo\"}",
     );
     assert_eq!(value["schema_version"], MCP_EXPORT_PROJECT_EVIDENCE_V1);

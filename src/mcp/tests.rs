@@ -5,10 +5,10 @@ use super::repo_risk::{
 use super::{
     agent_guidance_payload, build_constraints_boundaries_layer, cleanup_project_data_payload,
     collect_workspace_data_risk_summaries, create_project_guidance, create_project_payload,
-    data_risk_guidance, decision_brief_payload, delete_project_payload, detect_mock_data_report,
-    detect_project_commands, error_json_for, export_project_evidence_payload,
-    global_config_payload, list_projects_payload, normalize_candidate_type,
-    normalize_min_review_priority, now_unix_secs, project_config_payload,
+    data_risk_guidance, decision_brief_payload, decision_entrypoints_payload,
+    delete_project_payload, detect_mock_data_report, detect_project_commands, error_json_for,
+    export_project_evidence_payload, global_config_payload, list_projects_payload,
+    normalize_candidate_type, normalize_min_review_priority, now_unix_secs, project_config_payload,
     project_config_reload_payload, project_config_update_payload, project_overview,
     project_toolchain_layer, recommend_project_action, record_verification_payload,
     repo_status_risk_layer, review_priority_score, run_verification_payload,
@@ -17,7 +17,7 @@ use super::{
     unused_guidance, update_global_config_payload, validation_error_json,
     verification_status_layer, verification_status_payload, workspace_data_risk_overview_payload,
     workspace_portfolio_layer, workspace_strategy_profile, AgentGuidanceParams, DataCandidate,
-    MockDataReport, ProjectGuidanceState,
+    GuidanceParams, MockDataReport, ProjectGuidanceState,
 };
 use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigOverrides, ProjectConfigReload,
@@ -53,6 +53,8 @@ mod payload_contracts;
 mod portfolio_commands;
 #[path = "tests/repo_and_readiness.rs"]
 mod repo_and_readiness;
+#[path = "tests/tool_surface.rs"]
+mod tool_surface;
 
 fn fresh_ts() -> String {
     now_unix_secs().to_string()

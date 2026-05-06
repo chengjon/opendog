@@ -12,6 +12,7 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 - 想理解当前能力分层：看 [当前能力结构](#当前能力结构)
 - 想直接调用工具：看 [当前 MCP 工具](#当前-mcp-工具) 与 [当前 CLI 命令](#当前-cli-命令)
 - 想知道 AI 建议的使用顺序：看 [推荐的 AI 使用顺序](#推荐的-ai-使用顺序) 与 [Quick Start for AI](#quick-start-for-ai)
+- 想追溯 overdesign 收口评审链：看 [docs/superpowers/reviews/README.md](/opt/claude/opendog/docs/superpowers/reviews/README.md)
 - 想追溯最初设想和早期方案：看 [docs/historical-original-plan.md](/opt/claude/opendog/docs/historical-original-plan.md)
 
 ## 当前实现概览
@@ -21,11 +22,11 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 - 已实现 MCP stdio 服务，当前不仅提供基础控制工具，也提供 AI 决策辅助工具
 - 已实现验证结果记录与执行：测试、lint、build 可以作为 evidence 持久化
 - 已实现 MOCK / hardcoded pseudo-data 检测，并可在项目级与 workspace 级汇总
-- 已实现留存证据生命周期与存储维护信号：`cleanup-data`、`cleanup_project_data`、`agent-guidance` / `decision-brief` 会暴露存储维护 / `VACUUM` 候选
-- 已建立 `.planning/FUNCTION_TREE.md` + `.planning/task-cards/` 的能力治理入口，后续任务卡需要先声明 `FT-*` 影响再执行
+- 已实现留存证据生命周期与存储维护信号：`cleanup-data`、`agent-guidance` / `decision-brief` 会暴露存储维护 / `VACUUM` 候选
+- 已建立 `FUNCTION_TREE.md` + `.planning/task-cards/` 的能力治理入口，后续任务卡需要先声明 `FT-*` 影响再执行
 - 已为 `.planning/REQUIREMENTS.md` 建立逐段 `Maps to FT:` 映射与校验入口，避免 requirement 漂移或失去能力归属
 - 已提供统一治理入口 `python3 scripts/validate_planning_governance.py`，可一次性检查 task card、requirement 映射、函数树覆盖、roadmap 统计一致性，以及关键源码/文档的结构性大小门禁
-- 已交付 `CONF` 配置管理能力：支持全局默认、项目覆写、CLI/MCP 查询与修改、daemon 运行中安全 reload
+- 已交付 `CONF` 配置管理能力：支持全局默认、项目覆写、CLI/MCP 查询，以及 CLI 侧修改与 daemon 运行中安全 reload
 - 已交付 `EXPORT` 可移植导出能力：项目统计证据可导出为稳定 JSON/CSV 工件
 - 已交付 `RPT` 比较性报告能力：支持时间窗统计、快照对比、使用趋势，并覆盖 daemon 协调、CLI、MCP 三个入口
 
@@ -49,24 +50,30 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 
 另有一个治理覆盖层，用于约束能力归属、需求映射和任务执行边界，但它不属于运行时主链路。
 
-能力治理锚点见 [.planning/FUNCTION_TREE.md](/opt/claude/opendog/.planning/FUNCTION_TREE.md)。
+能力治理锚点见 [FUNCTION_TREE.md](/opt/claude/opendog/FUNCTION_TREE.md)。
 
 ## 当前 MCP 工具
 
-- 当前 MCP surface 共 `25` 个工具，下面按能力簇分组列出
+- 当前 MCP surface 共 `19` 个工具，下面按能力簇分组列出
 - 基础控制：`create_project`、`take_snapshot`、`start_monitor`、`stop_monitor`、`get_stats`、`get_unused_files`、`list_projects`、`delete_project`
 - 比较报告：`get_time_window_report`、`compare_snapshots`、`get_usage_trends`
-- 数据清理：`cleanup_project_data`
-- 配置管理：`get_global_config`、`get_project_config`、`update_global_config`、`update_project_config`、`reload_project_config`
-- 导出：`export_project_evidence`
-- AI 辅助：`get_agent_guidance`、`get_decision_brief`、`get_verification_status`、`record_verification_result`、`run_verification_command`
+- 配置查询：`get_global_config`、`get_project_config`
+- AI 辅助：`get_guidance`、`get_verification_status`、`record_verification_result`、`run_verification_command`
 - 数据风险：`get_data_risk_candidates`、`get_workspace_data_risk_overview`
+
+收口说明：
+
+- 配置变更 / reload、证据导出、留存证据清理已下沉到 CLI operator surface，不再作为 MCP 工具暴露
+- MCP guidance 已收口为单入口：`get_guidance`
+- `detail=summary` 对应原 guidance 视图
+- `detail=decision` 对应原 decision brief 视图
 
 MCP 作用域提示：
 
-- `get_agent_guidance` 支持可选 `project_id` 与 `top`
-- `get_decision_brief` 支持可选 `project_id` 与 `top`
-- 如果 daemon 已经运行，这两个 MCP 工具会优先复用 daemon 的本地控制面状态
+- `get_guidance` 支持可选 `project_id`、`top`、`detail`
+- `detail=summary` 返回原 guidance 负载
+- `detail=decision` 返回原 decision brief 负载
+- 如果 daemon 已经运行，这个 MCP 工具会优先复用 daemon 的本地控制面状态
 
 ## 当前 CLI 命令
 
@@ -84,11 +91,11 @@ MCP 作用域提示：
 
 - 如果还没有基线：先 `take_snapshot`
 - 如果没有持续观测：先 `start_monitor`
-- 如果要先拿一份统一的 AI 决策骨架：先看 `get_decision_brief`
-- 如果要判断项目当前是否适合修改：先看 `get_agent_guidance`
+- 如果要先拿一份统一的 AI 决策骨架：先看 `get_guidance(detail=decision)`
+- 如果要判断项目当前是否适合修改：先看 `get_guidance(detail=summary)`
 - 如果要判断最近哪些文件真的变热、变冷、或发生结构变化：先看 `get_time_window_report`、`compare_snapshots`、`get_usage_trends`
-- 如果要控制多项目长期沉淀下来的 OPENDOG 观测数据：用 `cleanup_project_data` 或 `opendog cleanup-data` 先 dry-run 再清；只有在大批量清理后才考虑 `vacuum`
-- 如果 `agent-guidance` / `decision-brief` 已经把某个项目标成存储维护候选，优先看它注入的 `cleanup_project_data` / `cleanup-data` 入口模板
+- 如果要控制多项目长期沉淀下来的 OPENDOG 观测数据：用 `opendog cleanup-data` 先 dry-run 再清；只有在大批量清理后才考虑 `vacuum`
+- 如果 `get_guidance` 已经把某个项目标成存储维护候选，优先看它注入的 `cleanup-data` CLI 入口模板
 - 如果要判断是否能安全清理或重构：先看 `get_verification_status`，再看 `get_data_risk_candidates`
 - 如果你同时维护多个项目：先看 `get_workspace_data_risk_overview`，再决定先进入哪个项目
 - 更完整的行动顺序、shell 切换时机和安全边界，见 [docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)
@@ -100,14 +107,14 @@ MCP 作用域提示：
 1. 建项目或确认项目存在：`create_project` / `opendog create`
 2. 建立基线：`take_snapshot` / `opendog snapshot`
 3. 开启持续观测：`start_monitor` / `opendog start`
-4. 先拿统一判断入口：`get_decision_brief` 或 `get_agent_guidance` / `opendog decision-brief` 或 `opendog agent-guidance`
+4. 先拿统一判断入口：`get_guidance` / `opendog decision-brief` 或 `opendog agent-guidance`
 5. 再按需要进入 report、verification、data-risk、workspace-data-risk 等具体路径
 
 常用判断入口：
 
 - 想知道“先看哪个项目”：`get_workspace_data_risk_overview` / `opendog workspace-data-risk`
-- 想先拿统一决策骨架：`get_decision_brief` / `opendog decision-brief`
-- 想知道“现在适不适合改”：`get_agent_guidance` / `opendog agent-guidance`
+- 想先拿统一决策骨架：`get_guidance(detail=decision)` / `opendog decision-brief`
+- 想知道“现在适不适合改”：`get_guidance(detail=summary)` / `opendog agent-guidance`
 - 想知道“最近变了什么”：`compare_snapshots`、`get_time_window_report`、`get_usage_trends`
 - 想知道“能不能安全清理/重构”：先 `get_verification_status`，再 `get_data_risk_candidates`
 
@@ -131,4 +138,4 @@ MCP 请求参数与返回重点见 [docs/mcp-tool-reference.md](/opt/claude/open
 - [docs/json-contracts.md](/opt/claude/opendog/docs/json-contracts.md)
 - [docs/mcp-tool-reference.md](/opt/claude/opendog/docs/mcp-tool-reference.md)
 - [.planning/PROJECT.md](/opt/claude/opendog/.planning/PROJECT.md)
-- [.planning/FUNCTION_TREE.md](/opt/claude/opendog/.planning/FUNCTION_TREE.md)
+- [FUNCTION_TREE.md](/opt/claude/opendog/FUNCTION_TREE.md)
