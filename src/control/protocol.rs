@@ -33,11 +33,27 @@ pub enum ControlRequest {
     UpdateGlobalConfig {
         ignore_patterns: Option<Vec<String>>,
         process_whitelist: Option<Vec<String>>,
+        #[serde(default)]
+        add_ignore_patterns: Vec<String>,
+        #[serde(default)]
+        remove_ignore_patterns: Vec<String>,
+        #[serde(default)]
+        add_process_whitelist: Vec<String>,
+        #[serde(default)]
+        remove_process_whitelist: Vec<String>,
     },
     UpdateProjectConfig {
         id: String,
         ignore_patterns: Option<Vec<String>>,
         process_whitelist: Option<Vec<String>>,
+        #[serde(default)]
+        add_ignore_patterns: Vec<String>,
+        #[serde(default)]
+        remove_ignore_patterns: Vec<String>,
+        #[serde(default)]
+        add_process_whitelist: Vec<String>,
+        #[serde(default)]
+        remove_process_whitelist: Vec<String>,
         inherit_ignore_patterns: bool,
         inherit_process_whitelist: bool,
     },

@@ -42,9 +42,17 @@ impl MonitorController {
             ControlRequest::UpdateGlobalConfig {
                 ignore_patterns,
                 process_whitelist,
+                add_ignore_patterns,
+                remove_ignore_patterns,
+                add_process_whitelist,
+                remove_process_whitelist,
             } => match self.update_global_config(ConfigPatch {
                 ignore_patterns,
                 process_whitelist,
+                add_ignore_patterns,
+                remove_ignore_patterns,
+                add_process_whitelist,
+                remove_process_whitelist,
             }) {
                 Ok(result) => ControlResponse::GlobalConfigUpdated { result },
                 Err(e) => ControlResponse::Error {
@@ -55,6 +63,10 @@ impl MonitorController {
                 id,
                 ignore_patterns,
                 process_whitelist,
+                add_ignore_patterns,
+                remove_ignore_patterns,
+                add_process_whitelist,
+                remove_process_whitelist,
                 inherit_ignore_patterns,
                 inherit_process_whitelist,
             } => match self.update_project_config(
@@ -62,6 +74,10 @@ impl MonitorController {
                 ProjectConfigPatch {
                     ignore_patterns,
                     process_whitelist,
+                    add_ignore_patterns,
+                    remove_ignore_patterns,
+                    add_process_whitelist,
+                    remove_process_whitelist,
                     inherit_ignore_patterns,
                     inherit_process_whitelist,
                 },

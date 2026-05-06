@@ -363,6 +363,7 @@ mod tests {
     use super::format_error_lines;
     use crate::error::OpenDogError;
     use crate::guidance::trim_agent_guidance_payload;
+    use clap::{error::ErrorKind, CommandFactory, Parser};
     use serde_json::json;
 
     #[test]
@@ -417,5 +418,67 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn config_cli_rejects_mixed_overwrite_and_incremental_ignore_flags() {
+        let result = super::Cli::try_parse_from([
+            "opendog",
+            "config",
+            "set-project",
+            "--id",
+            "demo",
+            "--ignore-pattern",
+            "logs",
+            "--add-ignore-pattern",
+            "tmp",
+        ]);
+        let error = match result {
+            Ok(_) => panic!("expected clap to reject mixed overwrite and incremental ignore flags"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn config_cli_rejects_inherit_and_incremental_process_flags() {
+        let result = super::Cli::try_parse_from([
+            "opendog",
+            "config",
+            "set-project",
+            "--id",
+            "demo",
+            "--inherit-process-whitelist",
+            "--remove-process",
+            "claude",
+        ]);
+        let error = match result {
+            Ok(_) => panic!("expected clap to reject inherit and incremental process flags"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn config_cli_help_lists_incremental_flags() {
+        let mut command = super::Cli::command();
+        command.build();
+        let config = command
+            .find_subcommand_mut("config")
+            .expect("config subcommand should exist");
+        config.build();
+        let set_project = config
+            .find_subcommand_mut("set-project")
+            .expect("config set-project subcommand should exist");
+        let mut help = Vec::new();
+        set_project.write_long_help(&mut help).unwrap();
+        let help = String::from_utf8(help).unwrap();
+
+        assert!(help.contains("--add-ignore-pattern"));
+        assert!(help.contains("--remove-ignore-pattern"));
+        assert!(help.contains("--add-process"));
+        assert!(help.contains("--remove-process"));
     }
 }

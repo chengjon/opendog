@@ -180,6 +180,7 @@ fn test_daemon_control_roundtrip() {
                 process_whitelist: Some(vec!["codex".to_string()]),
                 inherit_ignore_patterns: false,
                 inherit_process_whitelist: false,
+                ..Default::default()
             },
         )
         .unwrap();

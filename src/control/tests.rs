@@ -1,6 +1,7 @@
 use super::transport::map_connect_error_with_liveness;
 use super::*;
-use crate::config::ProjectConfigPatch;
+use crate::config::{ConfigPatch, ProjectConfigPatch};
+use serde_json::json;
 use tempfile::TempDir;
 
 fn test_controller() -> (TempDir, MonitorController) {
@@ -152,6 +153,7 @@ fn update_project_config_reloads_running_monitor_state() {
                 process_whitelist: Some(vec!["codex".to_string()]),
                 inherit_ignore_patterns: false,
                 inherit_process_whitelist: false,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -185,6 +187,7 @@ fn reload_project_config_picks_up_latest_global_defaults() {
         .update_global_config(crate::config::ConfigPatch {
             ignore_patterns: Some(vec!["generated".to_string()]),
             process_whitelist: Some(vec!["claude".to_string()]),
+            ..Default::default()
         })
         .unwrap();
 
@@ -204,6 +207,108 @@ fn reload_project_config_picks_up_latest_global_defaults() {
     assert_eq!(live.ignore_patterns, vec!["generated".to_string()]);
     assert_eq!(live.process_whitelist, vec!["claude".to_string()]);
     controller.stop_all();
+}
+
+#[test]
+fn handle_request_applies_incremental_global_config_updates() {
+    let (_dir, mut controller) = test_controller();
+
+    controller
+        .project_manager()
+        .update_global_config(ConfigPatch {
+            ignore_patterns: Some(vec!["node_modules".to_string()]),
+            ..Default::default()
+        })
+        .unwrap();
+
+    let response = controller.handle_request(ControlRequest::UpdateGlobalConfig {
+        ignore_patterns: None,
+        process_whitelist: Some(vec!["claude".to_string(), "codex".to_string()]),
+        add_ignore_patterns: vec!["logs".to_string()],
+        remove_ignore_patterns: vec!["node_modules".to_string()],
+        add_process_whitelist: vec!["roo".to_string()],
+        remove_process_whitelist: vec!["claude".to_string()],
+    });
+
+    match response {
+        ControlResponse::GlobalConfigUpdated { result } => {
+            assert_eq!(
+                result.global_defaults.ignore_patterns,
+                vec!["logs".to_string()]
+            );
+            assert_eq!(
+                result.global_defaults.process_whitelist,
+                vec!["codex".to_string(), "roo".to_string()]
+            );
+        }
+        other => panic!("unexpected response: {:?}", other),
+    }
+}
+
+#[test]
+fn control_request_deserialization_defaults_omitted_incremental_patch_vectors() {
+    let global_request = serde_json::from_value::<ControlRequest>(json!({
+        "UpdateGlobalConfig": {
+            "ignore_patterns": null,
+            "process_whitelist": ["claude"]
+        }
+    }))
+    .unwrap();
+
+    match global_request {
+        ControlRequest::UpdateGlobalConfig {
+            ignore_patterns,
+            process_whitelist,
+            add_ignore_patterns,
+            remove_ignore_patterns,
+            add_process_whitelist,
+            remove_process_whitelist,
+        } => {
+            assert_eq!(ignore_patterns, None);
+            assert_eq!(process_whitelist, Some(vec!["claude".to_string()]));
+            assert!(add_ignore_patterns.is_empty());
+            assert!(remove_ignore_patterns.is_empty());
+            assert!(add_process_whitelist.is_empty());
+            assert!(remove_process_whitelist.is_empty());
+        }
+        other => panic!("unexpected response: {:?}", other),
+    }
+
+    let project_request = serde_json::from_value::<ControlRequest>(json!({
+        "UpdateProjectConfig": {
+            "id": "demo",
+            "ignore_patterns": null,
+            "process_whitelist": ["codex"],
+            "inherit_ignore_patterns": false,
+            "inherit_process_whitelist": true
+        }
+    }))
+    .unwrap();
+
+    match project_request {
+        ControlRequest::UpdateProjectConfig {
+            id,
+            ignore_patterns,
+            process_whitelist,
+            add_ignore_patterns,
+            remove_ignore_patterns,
+            add_process_whitelist,
+            remove_process_whitelist,
+            inherit_ignore_patterns,
+            inherit_process_whitelist,
+        } => {
+            assert_eq!(id, "demo");
+            assert_eq!(ignore_patterns, None);
+            assert_eq!(process_whitelist, Some(vec!["codex".to_string()]));
+            assert!(add_ignore_patterns.is_empty());
+            assert!(remove_ignore_patterns.is_empty());
+            assert!(add_process_whitelist.is_empty());
+            assert!(remove_process_whitelist.is_empty());
+            assert!(!inherit_ignore_patterns);
+            assert!(inherit_process_whitelist);
+        }
+        other => panic!("unexpected response: {:?}", other),
+    }
 }
 
 #[test]

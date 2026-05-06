@@ -271,6 +271,40 @@ fn test_daemon_process_cli_smoke() {
     assert_eq!(project_config_json["project_id"], "demo");
     assert!(project_config_json["effective"]["process_whitelist"].is_array());
 
+    let overwrite_global_config = run_cli(
+        home,
+        &[
+            "config",
+            "set-global",
+            "--process",
+            "claude",
+            "--process",
+            "codex",
+            "--ignore-pattern",
+            "dist",
+            "--json",
+        ],
+    );
+    assert!(
+        overwrite_global_config.status.success(),
+        "{:?}",
+        overwrite_global_config
+    );
+    let overwrite_global_config_json: Value =
+        serde_json::from_slice(&overwrite_global_config.stdout).unwrap();
+    assert_eq!(
+        overwrite_global_config_json["schema_version"].as_str(),
+        Some(CLI_UPDATE_GLOBAL_CONFIG_V1)
+    );
+    assert_eq!(
+        overwrite_global_config_json["global_defaults"]["process_whitelist"],
+        serde_json::json!(["claude", "codex"])
+    );
+    assert_eq!(
+        overwrite_global_config_json["global_defaults"]["ignore_patterns"],
+        serde_json::json!(["dist"])
+    );
+
     let update_project_config = run_cli(
         home,
         &[
@@ -278,17 +312,19 @@ fn test_daemon_process_cli_smoke() {
             "set-project",
             "--id",
             "demo",
-            "--ignore-pattern",
+            "--remove-process",
+            "claude",
+            "--add-process",
+            "roo",
+            "--add-ignore-pattern",
             "logs",
-            "--process",
-            "codex",
             "--json",
         ],
     );
     assert!(
         update_project_config.status.success(),
-        "{:?}",
-        update_project_config
+        "daemon incremental project update failed: {}",
+        String::from_utf8_lossy(&update_project_config.stderr)
     );
     let update_project_config_json: Value =
         serde_json::from_slice(&update_project_config.stdout).unwrap();
@@ -297,8 +333,12 @@ fn test_daemon_process_cli_smoke() {
         Some(CLI_UPDATE_PROJECT_CONFIG_V1)
     );
     assert_eq!(
-        update_project_config_json["effective"]["ignore_patterns"][0].as_str(),
-        Some("logs")
+        update_project_config_json["project_overrides"]["process_whitelist"],
+        serde_json::json!(["codex", "roo"])
+    );
+    assert_eq!(
+        update_project_config_json["effective"]["ignore_patterns"],
+        serde_json::json!(["dist", "logs"])
     );
     assert_eq!(
         update_project_config_json["reload"]["runtime_reloaded"].as_bool(),

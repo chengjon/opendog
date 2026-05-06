@@ -19,35 +19,54 @@ impl Default for ProjectConfig {
 
 impl ConfigPatch {
     pub fn is_empty(&self) -> bool {
-        self.ignore_patterns.is_none() && self.process_whitelist.is_none()
+        let normalized = self.clone().normalized();
+        normalized.ignore_patterns.is_none()
+            && normalized.process_whitelist.is_none()
+            && normalized.add_ignore_patterns.is_empty()
+            && normalized.remove_ignore_patterns.is_empty()
+            && normalized.add_process_whitelist.is_empty()
+            && normalized.remove_process_whitelist.is_empty()
     }
 
     pub fn normalized(mut self) -> Self {
         if let Some(ignore_patterns) = self.ignore_patterns.take() {
-            self.ignore_patterns = Some(normalize_string_list(ignore_patterns));
+            self.ignore_patterns = normalize_optional_replacement_list(ignore_patterns);
         }
         if let Some(process_whitelist) = self.process_whitelist.take() {
-            self.process_whitelist = Some(normalize_string_list(process_whitelist));
+            self.process_whitelist = normalize_optional_replacement_list(process_whitelist);
         }
+        self.add_ignore_patterns = normalize_string_list(self.add_ignore_patterns);
+        self.remove_ignore_patterns = normalize_string_list(self.remove_ignore_patterns);
+        self.add_process_whitelist = normalize_string_list(self.add_process_whitelist);
+        self.remove_process_whitelist = normalize_string_list(self.remove_process_whitelist);
         self
     }
 }
 
 impl ProjectConfigPatch {
     pub fn is_empty(&self) -> bool {
-        self.ignore_patterns.is_none()
-            && self.process_whitelist.is_none()
-            && !self.inherit_ignore_patterns
-            && !self.inherit_process_whitelist
+        let normalized = self.clone().normalized();
+        normalized.ignore_patterns.is_none()
+            && normalized.process_whitelist.is_none()
+            && normalized.add_ignore_patterns.is_empty()
+            && normalized.remove_ignore_patterns.is_empty()
+            && normalized.add_process_whitelist.is_empty()
+            && normalized.remove_process_whitelist.is_empty()
+            && !normalized.inherit_ignore_patterns
+            && !normalized.inherit_process_whitelist
     }
 
     pub fn normalized(mut self) -> Self {
         if let Some(ignore_patterns) = self.ignore_patterns.take() {
-            self.ignore_patterns = Some(normalize_string_list(ignore_patterns));
+            self.ignore_patterns = normalize_optional_replacement_list(ignore_patterns);
         }
         if let Some(process_whitelist) = self.process_whitelist.take() {
-            self.process_whitelist = Some(normalize_string_list(process_whitelist));
+            self.process_whitelist = normalize_optional_replacement_list(process_whitelist);
         }
+        self.add_ignore_patterns = normalize_string_list(self.add_ignore_patterns);
+        self.remove_ignore_patterns = normalize_string_list(self.remove_ignore_patterns);
+        self.add_process_whitelist = normalize_string_list(self.add_process_whitelist);
+        self.remove_process_whitelist = normalize_string_list(self.remove_process_whitelist);
         self
     }
 }
@@ -71,38 +90,44 @@ pub fn resolve_project_config(
 pub fn apply_global_config_patch(current: &ProjectConfig, patch: ConfigPatch) -> ProjectConfig {
     let patch = patch.normalized();
     ProjectConfig {
-        ignore_patterns: patch
-            .ignore_patterns
-            .unwrap_or_else(|| current.ignore_patterns.clone()),
-        process_whitelist: patch
-            .process_whitelist
-            .unwrap_or_else(|| current.process_whitelist.clone()),
+        ignore_patterns: apply_list_patch(
+            &current.ignore_patterns,
+            patch.ignore_patterns,
+            patch.add_ignore_patterns,
+            patch.remove_ignore_patterns,
+        ),
+        process_whitelist: apply_list_patch(
+            &current.process_whitelist,
+            patch.process_whitelist,
+            patch.add_process_whitelist,
+            patch.remove_process_whitelist,
+        ),
     }
 }
 
 pub fn apply_project_config_patch(
     current: &ProjectConfigOverrides,
+    effective: &ProjectConfig,
     patch: ProjectConfigPatch,
 ) -> ProjectConfigOverrides {
     let patch = patch.normalized();
-    let ignore_patterns = if patch.inherit_ignore_patterns {
-        None
-    } else {
-        patch
-            .ignore_patterns
-            .or_else(|| current.ignore_patterns.clone())
-    };
-    let process_whitelist = if patch.inherit_process_whitelist {
-        None
-    } else {
-        patch
-            .process_whitelist
-            .or_else(|| current.process_whitelist.clone())
-    };
-
     ProjectConfigOverrides {
-        ignore_patterns,
-        process_whitelist,
+        ignore_patterns: apply_project_list_patch(
+            &current.ignore_patterns,
+            &effective.ignore_patterns,
+            patch.ignore_patterns,
+            patch.add_ignore_patterns,
+            patch.remove_ignore_patterns,
+            patch.inherit_ignore_patterns,
+        ),
+        process_whitelist: apply_project_list_patch(
+            &current.process_whitelist,
+            &effective.process_whitelist,
+            patch.process_whitelist,
+            patch.add_process_whitelist,
+            patch.remove_process_whitelist,
+            patch.inherit_process_whitelist,
+        ),
     }
 }
 
@@ -146,4 +171,72 @@ pub fn normalize_string_list(values: Vec<String>) -> Vec<String> {
     }
 
     normalized
+}
+
+fn normalize_optional_replacement_list(values: Vec<String>) -> Option<Vec<String>> {
+    if values.is_empty() {
+        return Some(Vec::new());
+    }
+
+    let normalized = normalize_string_list(values);
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
+}
+
+fn apply_project_list_patch(
+    current_override: &Option<Vec<String>>,
+    effective: &[String],
+    replacement: Option<Vec<String>>,
+    add: Vec<String>,
+    remove: Vec<String>,
+    inherit: bool,
+) -> Option<Vec<String>> {
+    if inherit {
+        return None;
+    }
+
+    if let Some(replacement) = replacement {
+        return Some(replacement);
+    }
+
+    if add.is_empty() && remove.is_empty() {
+        return current_override.clone();
+    }
+
+    let base = current_override.as_deref().unwrap_or(effective);
+    let patched = apply_list_patch(base, None, add, remove);
+    if current_override.is_none() && patched == effective {
+        None
+    } else {
+        Some(patched)
+    }
+}
+
+fn apply_list_patch(
+    current: &[String],
+    replacement: Option<Vec<String>>,
+    add: Vec<String>,
+    remove: Vec<String>,
+) -> Vec<String> {
+    let mut values = replacement.unwrap_or_else(|| current.to_vec());
+    values = normalize_string_list(values);
+
+    if !remove.is_empty() {
+        let remove: HashSet<_> = remove.into_iter().collect();
+        values.retain(|value| !remove.contains(value));
+    }
+
+    if !add.is_empty() {
+        let mut seen: HashSet<_> = values.iter().cloned().collect();
+        for value in add {
+            if seen.insert(value.clone()) {
+                values.push(value);
+            }
+        }
+    }
+
+    values
 }
