@@ -1,7 +1,7 @@
 # Config Incremental Editing Design
 
 Date: 2026-05-06
-Status: proposed
+Status: implemented and verified (2026-05-06)
 Scope: config UX hardening
 
 ## Goal
