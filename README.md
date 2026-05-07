@@ -6,6 +6,7 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 
 ## 阅读导航
 
+- 想直接按书面指南上手：看 [QUICK_START.md](/opt/claude/opendog/QUICK_START.md)
 - 想先用一页看懂项目当前定位：看 [docs/positioning.md](/opt/claude/opendog/docs/positioning.md)
 - 想快速了解当前实现：看 [当前实现概览](#当前实现概览)
 - 想按能力/入口快速查表：看 [docs/capability-index.md](/opt/claude/opendog/docs/capability-index.md)
