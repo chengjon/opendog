@@ -30,4 +30,5 @@ codegen-units = 1
 panic = "abort"
 
 [dev-dependencies]
+rmcp = { version = "1.5", features = ["client", "transport-child-process"] }
 tempfile = "3"

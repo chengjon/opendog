@@ -3,9 +3,11 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 use crate::config;
-use crate::control::{spawn_control_server, MonitorController};
+use crate::control::{spawn_control_server, DaemonClient, MonitorController};
+use crate::error::OpenDogError;
 
 const PID_FILE: &str = "daemon.pid";
+const DAEMON_READY_TIMEOUT_SECS: u64 = 5;
 
 pub fn run() {
     init_logging();
@@ -22,6 +24,19 @@ pub fn run() {
             std::process::exit(1);
         }
     });
+}
+
+pub fn ensure_running_for_mcp() -> crate::error::Result<()> {
+    match daemon_startup_state()? {
+        DaemonStartupState::Ready => Ok(()),
+        DaemonStartupState::Starting => {
+            wait_for_daemon_ready(std::time::Duration::from_secs(DAEMON_READY_TIMEOUT_SECS))
+        }
+        DaemonStartupState::Unavailable => {
+            spawn_background_daemon()?;
+            wait_for_daemon_ready(std::time::Duration::from_secs(DAEMON_READY_TIMEOUT_SECS))
+        }
+    }
 }
 
 async fn run_daemon() -> crate::error::Result<()> {
@@ -177,6 +192,47 @@ fn write_pid_file() -> crate::error::Result<()> {
 
 fn remove_pid_file() {
     let _ = std::fs::remove_file(pid_file_path());
+}
+
+enum DaemonStartupState {
+    Ready,
+    Starting,
+    Unavailable,
+}
+
+fn daemon_startup_state() -> crate::error::Result<DaemonStartupState> {
+    match DaemonClient::new().ping() {
+        Ok(()) => Ok(DaemonStartupState::Ready),
+        Err(OpenDogError::DaemonControlUnavailable) => Ok(DaemonStartupState::Starting),
+        Err(OpenDogError::DaemonUnavailable) => Ok(DaemonStartupState::Unavailable),
+        Err(e) => Err(e),
+    }
+}
+
+fn spawn_background_daemon() -> crate::error::Result<()> {
+    let current_exe = std::env::current_exe()?;
+    std::process::Command::new(current_exe)
+        .arg("daemon")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
+    Ok(())
+}
+
+fn wait_for_daemon_ready(timeout: std::time::Duration) -> crate::error::Result<()> {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match DaemonClient::new().ping() {
+            Ok(()) => return Ok(()),
+            Err(OpenDogError::DaemonUnavailable | OpenDogError::DaemonControlUnavailable)
+                if std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 fn process_exists(pid: &str) -> bool {

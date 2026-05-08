@@ -1,4 +1,5 @@
 use rmcp::handler::server::wrapper::{Json, Parameters};
+use rmcp::model::CallToolResult;
 use rmcp::{tool, tool_router};
 use serde_json::Value;
 
@@ -133,22 +134,28 @@ pub(crate) use self::workspace_decision::{
     collect_workspace_data_risk_summaries, decision_brief_payload, workspace_data_risk_payload,
 };
 
+type ToolResult = Result<CallToolResult, rmcp::ErrorData>;
+
+fn structured_tool_output(payload: Json<Value>) -> ToolResult {
+    Ok(CallToolResult::structured(payload.0))
+}
+
 #[tool_router(server_handler)]
 impl OpenDogServer {
     #[tool(
         name = "get_guidance",
         description = "Return the preferred MCP guidance surface for the workspace or a single project. Optional params: project_id to scope one project, top to limit priority queue length, detail (summary|decision, default summary). Example intent: {\"project_id\":\"demo\",\"detail\":\"decision\",\"top\":1}."
     )]
-    fn get_guidance(&self, Parameters(params): Parameters<GuidanceParams>) -> Json<Value> {
-        handle_get_guidance(self, params)
+    fn get_guidance(&self, Parameters(params): Parameters<GuidanceParams>) -> ToolResult {
+        structured_tool_output(handle_get_guidance(self, params))
     }
 
     #[tool(
         name = "get_global_config",
         description = "Return OPENDOG global default configuration such as ignore patterns and process whitelist."
     )]
-    fn get_global_config(&self) -> Json<Value> {
-        handle_get_global_config(self)
+    fn get_global_config(&self) -> ToolResult {
+        structured_tool_output(handle_get_global_config(self))
     }
 
     #[tool(
@@ -158,8 +165,8 @@ impl OpenDogServer {
     fn get_project_config(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_get_project_config(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_project_config(self, &id))
     }
 
     #[tool(
@@ -169,8 +176,8 @@ impl OpenDogServer {
     fn create_project(
         &self,
         Parameters(CreateProjectParams { id, path }): Parameters<CreateProjectParams>,
-    ) -> Json<Value> {
-        handle_create_project(self, &id, &path)
+    ) -> ToolResult {
+        structured_tool_output(handle_create_project(self, &id, &path))
     }
 
     #[tool(
@@ -180,8 +187,8 @@ impl OpenDogServer {
     fn take_snapshot(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_take_snapshot(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_take_snapshot(self, &id))
     }
 
     #[tool(
@@ -191,8 +198,8 @@ impl OpenDogServer {
     fn start_monitor(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_start_monitor(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_start_monitor(self, &id))
     }
 
     #[tool(
@@ -202,8 +209,8 @@ impl OpenDogServer {
     fn stop_monitor(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_stop_monitor(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_stop_monitor(self, &id))
     }
 
     #[tool(
@@ -213,8 +220,8 @@ impl OpenDogServer {
     fn get_stats(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_get_stats(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_stats(self, &id))
     }
 
     #[tool(
@@ -224,8 +231,8 @@ impl OpenDogServer {
     fn get_unused_files(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_get_unused_files(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_unused_files(self, &id))
     }
 
     #[tool(
@@ -237,8 +244,8 @@ impl OpenDogServer {
         Parameters(TimeWindowReportParams { id, window, limit }): Parameters<
             TimeWindowReportParams,
         >,
-    ) -> Json<Value> {
-        handle_get_time_window_report(self, &id, window, limit)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_time_window_report(self, &id, window, limit))
     }
 
     #[tool(
@@ -253,8 +260,14 @@ impl OpenDogServer {
             head_run_id,
             limit,
         }): Parameters<CompareSnapshotsParams>,
-    ) -> Json<Value> {
-        handle_compare_snapshots(self, &id, base_run_id, head_run_id, limit)
+    ) -> ToolResult {
+        structured_tool_output(handle_compare_snapshots(
+            self,
+            &id,
+            base_run_id,
+            head_run_id,
+            limit,
+        ))
     }
 
     #[tool(
@@ -264,8 +277,8 @@ impl OpenDogServer {
     fn get_usage_trends(
         &self,
         Parameters(UsageTrendParams { id, window, limit }): Parameters<UsageTrendParams>,
-    ) -> Json<Value> {
-        handle_get_usage_trends(self, &id, window, limit)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_usage_trends(self, &id, window, limit))
     }
 
     #[tool(
@@ -275,8 +288,8 @@ impl OpenDogServer {
     fn get_verification_status(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_get_verification_status(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_verification_status(self, &id))
     }
 
     #[tool(
@@ -286,9 +299,9 @@ impl OpenDogServer {
     fn record_verification_result(
         &self,
         Parameters(params): Parameters<RecordVerificationParams>,
-    ) -> Json<Value> {
+    ) -> ToolResult {
         let (id, input) = params.into_parts();
-        handle_record_verification_result(self, &id, input)
+        structured_tool_output(handle_record_verification_result(self, &id, input))
     }
 
     #[tool(
@@ -298,9 +311,9 @@ impl OpenDogServer {
     fn run_verification_command(
         &self,
         Parameters(params): Parameters<ExecuteVerificationParams>,
-    ) -> Json<Value> {
+    ) -> ToolResult {
         let (id, input) = params.into_parts();
-        handle_run_verification_command(self, &id, input)
+        structured_tool_output(handle_run_verification_command(self, &id, input))
     }
 
     #[tool(
@@ -310,8 +323,8 @@ impl OpenDogServer {
     fn get_data_risk_candidates(
         &self,
         Parameters(params): Parameters<DataRiskParams>,
-    ) -> Json<Value> {
-        handle_get_data_risk_candidates(self, params)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_data_risk_candidates(self, params))
     }
 
     #[tool(
@@ -321,16 +334,16 @@ impl OpenDogServer {
     fn get_workspace_data_risk_overview(
         &self,
         Parameters(params): Parameters<WorkspaceDataRiskParams>,
-    ) -> Json<Value> {
-        handle_get_workspace_data_risk_overview(self, params)
+    ) -> ToolResult {
+        structured_tool_output(handle_get_workspace_data_risk_overview(self, params))
     }
 
     #[tool(
         name = "list_projects",
         description = "List all registered projects with their status, root path, and database location"
     )]
-    fn list_projects(&self) -> Json<Value> {
-        handle_list_projects(self)
+    fn list_projects(&self) -> ToolResult {
+        structured_tool_output(handle_list_projects(self))
     }
 
     #[tool(
@@ -340,8 +353,8 @@ impl OpenDogServer {
     fn delete_project(
         &self,
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
-    ) -> Json<Value> {
-        handle_delete_project(self, &id)
+    ) -> ToolResult {
+        structured_tool_output(handle_delete_project(self, &id))
     }
 }
 

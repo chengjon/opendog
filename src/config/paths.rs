@@ -5,7 +5,7 @@ pub fn data_dir() -> PathBuf {
 }
 
 pub fn registry_path() -> PathBuf {
-    dirs().join("registry.db")
+    data_dir().join("registry.db")
 }
 
 pub fn global_config_path() -> PathBuf {
@@ -21,12 +21,30 @@ pub fn daemon_pid_path() -> PathBuf {
 }
 
 pub fn project_db_path(project_id: &str) -> PathBuf {
-    dirs().join("projects").join(format!("{}.db", project_id))
+    data_dir()
+        .join("projects")
+        .join(format!("{}.db", project_id))
 }
 
 fn dirs() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".opendog")
+    resolve_dirs(
+        std::env::var_os("OPENDOG_HOME").map(PathBuf::from),
+        std::env::var_os("HOME").map(PathBuf::from),
+    )
+}
+
+fn resolve_dirs(opendog_home: Option<PathBuf>, home: Option<PathBuf>) -> PathBuf {
+    if let Some(opendog_home) = non_empty_path(opendog_home) {
+        return opendog_home;
+    }
+
+    non_empty_path(home)
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join(".opendog")
+}
+
+fn non_empty_path(path: Option<PathBuf>) -> Option<PathBuf> {
+    path.filter(|value| !value.as_os_str().is_empty())
 }
 
 pub fn daemon_pid_is_live() -> bool {
@@ -48,5 +66,42 @@ pub fn daemon_pid_is_live() -> bool {
     {
         let _ = pid;
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_dirs;
+    use std::path::PathBuf;
+
+    #[test]
+    fn opendog_home_overrides_home_derived_default() {
+        let root = resolve_dirs(
+            Some(PathBuf::from("/tmp/shared-opendog")),
+            Some(PathBuf::from("/home/tester")),
+        );
+        assert_eq!(root, PathBuf::from("/tmp/shared-opendog"));
+    }
+
+    #[test]
+    fn home_falls_back_to_dot_opendog_when_override_is_missing() {
+        let root = resolve_dirs(None, Some(PathBuf::from("/home/tester")));
+        assert_eq!(root, PathBuf::from("/home/tester/.opendog"));
+    }
+
+    #[test]
+    fn registry_path_lives_under_data_dir() {
+        assert_eq!(
+            super::registry_path(),
+            super::data_dir().join("registry.db"),
+        );
+    }
+
+    #[test]
+    fn project_db_path_lives_under_data_projects_dir() {
+        assert_eq!(
+            super::project_db_path("demo"),
+            super::data_dir().join("projects/demo.db"),
+        );
     }
 }

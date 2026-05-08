@@ -44,18 +44,18 @@ src/
     schema.rs          # CREATE TABLE + indexes for registry and project databases
     queries.rs         # All SQL operations — project CRUD, snapshot, stats queries
   mcp/
-    mod.rs             # OpenDogServer — 8 MCP tools via rmcp #[tool_router(server_handler)]
+    mod.rs             # OpenDogServer tool surface and MCP contract wrappers
   cli/
-    mod.rs             # clap Parser with 8 subcommands + daemon subcommand
+    mod.rs             # clap Parser with project, report, config, verification, daemon, and MCP entrypoints
     output.rs          # Terminal table formatting (aligned columns, truncation)
 ```
 
 ## Database Schema
 
-**Registry DB** (`~/.opendog/registry.db`):
+**Registry DB** (`~/.opendog/data/registry.db`, or `$OPENDOG_HOME/data/registry.db` when overridden):
 - `projects` — id, root_path, db_path, config (JSON), created_at, status
 
-**Per-project DB** (`~/.opendog/data/projects/<id>.db`):
+**Per-project DB** (`~/.opendog/data/projects/<id>.db`, or `$OPENDOG_HOME/data/projects/<id>.db` when overridden):
 - `snapshot` — path (PK), size, mtime, file_type, scan_timestamp
 - `file_stats` — file_path (PK), access_count, estimated_duration_ms, modification_count, last_access_time, first_seen_time, last_updated
 - `file_sightings` — id, file_path, process_name, pid, seen_at
@@ -84,9 +84,10 @@ src/
 - **Review for:** SQL correctness, join semantics, NULL handling
 
 ### 4. MCP Server (`mcp/mod.rs`)
-- `OpenDogServer` wraps `Mutex<ServerInner>` containing `ProjectManager` and `HashMap<String, MonitorHandle>`
+- `OpenDogServer` wraps `Mutex<MonitorController>` and exposes the current MCP tool surface through rmcp
 - Uses `#[tool_router(server_handler)]` macro from rmcp 1.5
-- Each tool handler locks mutex, delegates to core, formats JSON response
+- `opendog mcp` auto-ensures daemon availability before serving, then keeps the running service alive for the host session
+- Each tool handler returns structured `CallToolResult` payloads so MCP hosts receive object-root schemas
 - `get_project()` helper opens project DB + fetches ProjectInfo, drops mutex lock before long operations
 - **Review for:** mutex contention, error propagation, JSON response consistency
 
@@ -112,21 +113,22 @@ src/
 
 ## Test Coverage
 
-- **25 integration tests** across 4 test suites
+- Full suite currently includes unit tests plus **27 integration tests** across 5 integration areas
 - Phase 1: project CRUD, snapshot scanning, ignore patterns, incremental updates
 - Phase 3: stats queries (empty DB, with data, unused files, core files, detail, summary)
+- MCP session-reuse coverage verifies daemon-backed monitor state survives MCP reconnects, including explicit `OPENDOG_HOME` reuse
 - Tests use `tempfile` for isolated database instances
 
-**Not tested (requires live /proc):** Monitor threads, /proc scanning, inotify events, MCP server lifecycle.
+**Partially covered via live integration tests:** daemon lifecycle, daemon control roundtrip, MCP server lifecycle, MCP session reuse.
+**Still not exhaustively covered:** low-level `/proc` edge cases, inotify race conditions, and pathological wedged-daemon recovery.
 
 ## Known Limitations
 
 1. **WSL2 required** — WSL1 has poor inotify; `/mnt/` paths don't support inotify
 2. **Approximate attribution only** — 2-5s sampling interval may miss brief file accesses
-3. **No cross-process state** — CLI commands are one-shot; monitor handles are per-process (MCP server tracks them in-memory)
-4. **No config persistence** — ProjectConfig is stored as JSON in registry but never modified after creation (v2: CONF-01..03)
+3. **Daemon-backed runtime is the stable path** — CLI commands are still one-shot, but CLI and MCP reuse daemon-owned monitor state through the local control plane when available.
+4. **MCP startup depends on daemon readiness** — `opendog mcp` now auto-ensures the daemon is running, but startup will still fail fast if an existing daemon is wedged and its control socket never becomes reachable.
 5. **CLI `start` blocks** — The `start` command runs until Ctrl+C by design; background supervision lives in `opendog daemon`
-6. **Single-process MCP monitor state** — `start_monitor` / `stop_monitor` only manage monitors created inside the current `opendog mcp` process
 
 ## Requirements Traceability
 
@@ -143,7 +145,7 @@ All 43 v1 requirements mapped and verified:
 ## Build & Verify
 
 ```bash
-cargo test          # 25 tests, 0 failures
+cargo test
 cargo build --release  # 3.2MB stripped binary
 ```
 

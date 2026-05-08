@@ -15,3 +15,6 @@ mod daemon_control;
 #[cfg(unix)]
 #[path = "integration_test/daemon_process_cli.rs"]
 mod daemon_process_cli;
+#[cfg(unix)]
+#[path = "integration_test/mcp_session_reuse.rs"]
+mod mcp_session_reuse;

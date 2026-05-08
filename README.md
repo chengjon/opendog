@@ -20,6 +20,8 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 - 已实现多项目隔离、SQLite 持久化、全量快照、`/proc` + `inotify` 混合监控、统计分析
 - 已实现本地控制面，CLI / MCP 优先通过本地控制通道复用 daemon 持有的项目操作状态
 - 已实现 MCP stdio 服务，当前不仅提供基础控制工具，也提供 AI 决策辅助工具
+- `opendog mcp` 现已自动确保 daemon-backed 运行路径可用，监控状态可跨 MCP 会话稳定复用
+- 其他 MCP Host 接入时，建议显式设置固定的 `OPENDOG_HOME`，这样即使宿主用不同 `HOME` 启动子进程，也会复用同一份 daemon / registry / project DB
 - 已实现验证结果记录与执行：测试、lint、build 可以作为 evidence 持久化
 - 已实现 MOCK / hardcoded pseudo-data 检测，并可在项目级与 workspace 级汇总
 - 已实现留存证据生命周期与存储维护信号：`cleanup-data`、`agent-guidance` / `decision-brief` 会暴露存储维护 / `VACUUM` 候选
@@ -73,7 +75,8 @@ MCP 作用域提示：
 - `get_guidance` 支持可选 `project_id`、`top`、`detail`
 - `detail=summary` 返回原 guidance 负载
 - `detail=decision` 返回原 decision brief 负载
-- 如果 daemon 已经运行，这个 MCP 工具会优先复用 daemon 的本地控制面状态
+- `opendog mcp` 会自动确保并复用 daemon 的本地控制面状态，因此监控状态不会因为 MCP 会话断开而丢失
+- 若希望跨宿主 / 跨会话稳定复用同一份状态，优先给 MCP 配置固定的 `OPENDOG_HOME=/absolute/path/to/opendog-state`
 
 ## 当前 CLI 命令
 

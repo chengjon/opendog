@@ -138,7 +138,7 @@ Useful response fields:
 
 Purpose:
 
-- begin daemon-backed or local monitoring for one project
+- begin daemon-backed monitoring for one project
 - ensure OPENDOG starts recording activity and change evidence
 
 Request shape:
@@ -730,6 +730,8 @@ Useful response fields:
 ## Runtime behavior
 
 - MCP tools should be understood as the AI-facing entry surface over shared OPENDOG capabilities, not as a separate ownership layer.
+- `opendog mcp` now auto-ensures the OPENDOG daemon is available before serving requests, so normal MCP sessions reuse daemon-backed monitor state across reconnects.
+- For stable reuse across different MCP hosts or launcher environments, set `OPENDOG_HOME` to a fixed absolute state directory. If unset, OPENDOG falls back to `HOME/.opendog`.
 - `get_guidance` prefers daemon-backed state through the local control plane when the OPENDOG daemon is live, regardless of `detail`.
 - `get_time_window_report`, `compare_snapshots`, and `get_usage_trends` also prefer daemon-backed state through the local control plane when the daemon is live.
 - CLI-only operator flows such as config mutation, evidence export, and retained-evidence cleanup still reuse the same daemon-first local control path where available.

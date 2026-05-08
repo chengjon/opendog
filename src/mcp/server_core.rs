@@ -10,6 +10,8 @@ pub struct OpenDogServer {
 }
 
 pub fn run_stdio() {
+    crate::daemon::ensure_running_for_mcp().expect("Failed to ensure OPENDOG daemon is running");
+
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -20,10 +22,14 @@ pub fn run_stdio() {
 
         let server = OpenDogServer::new().expect("Failed to create OpenDogServer");
         let transport = (tokio::io::stdin(), tokio::io::stdout());
-        server
+        let running = server
             .serve(transport)
             .await
             .expect("MCP server exited with error");
+        running
+            .waiting()
+            .await
+            .expect("MCP server task join failed");
     });
 }
 
