@@ -32,7 +32,7 @@ systemctl --user daemon-reload
 
 ```bash
 # Register a project
-opendog create --id myapp --path /home/user/projects/myapp
+opendog register --id myapp --path /home/user/projects/myapp
 
 # Scan all files in the project
 opendog snapshot --id myapp
@@ -116,13 +116,109 @@ For stable cross-session reuse, prefer setting `OPENDOG_HOME` to a fixed absolut
 
 OPENDOG currently exposes 19 MCP tools:
 
-- `create_project`, `take_snapshot`, `start_monitor`, `stop_monitor`, `get_stats`, `get_unused_files`, `list_projects`, `delete_project`
+- `register_project`, `take_snapshot`, `start_monitor`, `stop_monitor`, `get_stats`, `get_unused_files`, `list_projects`, `delete_project`
 - `get_time_window_report`, `compare_snapshots`, `get_usage_trends`
 - `get_global_config`, `get_project_config`
 - `get_guidance`, `get_verification_status`, `record_verification_result`, `run_verification_command`
 - `get_data_risk_candidates`, `get_workspace_data_risk_overview`
 
 Detailed request and response shapes live in [docs/mcp-tool-reference.md](/opt/claude/opendog/docs/mcp-tool-reference.md).
+
+### Using OPENDOG from External Projects
+
+Treat OPENDOG as an external tool with two supported integration surfaces:
+
+- `MCP stdio` for MCP-capable hosts, IDEs, agents, and orchestration runtimes
+- `CLI` for scripts, CI jobs, cron tasks, and operator workflows
+
+Do **not** treat these as stable external interfaces:
+
+- files under `~/.opendog/` or `$OPENDOG_HOME`
+- SQLite databases
+- `daemon.sock`
+- internal Rust modules or crate APIs
+
+#### Recommended Integration Pattern
+
+- If your external project supports MCP, use `opendog mcp`
+- If your external project does not support MCP, invoke the `opendog` CLI directly
+- For stable cross-session reuse, always set a fixed `OPENDOG_HOME`
+
+Recommended generic MCP host config:
+
+```json
+{
+  "mcpServers": {
+    "opendog": {
+      "command": "/absolute/path/to/opendog",
+      "args": ["mcp"],
+      "env": {
+        "OPENDOG_HOME": "/absolute/path/to/opendog-state"
+      }
+    }
+  }
+}
+```
+
+#### Minimal MCP Call Sequence
+
+`register_project` is a one-time registration step for a new external project, not a command you should call on every MCP session.
+
+For a project that has not been registered into OPENDOG yet, the safe default sequence is:
+
+1. `register_project`
+2. `take_snapshot`
+3. `start_monitor`
+4. `get_guidance`
+
+Typical request examples:
+
+`register_project`
+```json
+{
+  "id": "demo",
+  "path": "/absolute/path/to/project"
+}
+```
+
+`take_snapshot`
+```json
+{
+  "id": "demo"
+}
+```
+
+`start_monitor`
+```json
+{
+  "id": "demo"
+}
+```
+
+After a project has already been registered, later MCP sessions usually skip `register_project` and go straight to one of these read or runtime surfaces:
+
+- `get_guidance` for the recommended next action
+- `get_stats` for hot files
+- `get_unused_files` for cleanup candidates
+- `get_time_window_report`, `compare_snapshots`, `get_usage_trends` for report-style observation
+- `get_verification_status` and `get_data_risk_candidates` for readiness and data-risk checks
+
+#### CLI Usage for Scripts and CI
+
+If your external project cannot speak MCP, call the CLI instead:
+
+```bash
+opendog register --id demo --path /absolute/path/to/project
+opendog snapshot --id demo
+opendog stats --id demo
+opendog list
+```
+
+Important behavior notes:
+
+- `opendog start --id <ID>` is a blocking foreground command
+- `opendog mcp` is the preferred long-lived integration surface for external hosts
+- config mutation, evidence export, and retained-data cleanup are currently CLI-only operator flows
 
 ### Daemon Mode (systemd)
 

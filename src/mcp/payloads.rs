@@ -11,6 +11,6 @@ pub(crate) use self::config_payloads::{
     project_config_reload_payload, project_config_update_payload, update_global_config_payload,
 };
 pub(crate) use self::project_payloads::{
-    create_project_payload, delete_project_payload, list_projects_payload, snapshot_payload,
+    delete_project_payload, list_projects_payload, register_project_payload, snapshot_payload,
     start_monitor_payload, stop_monitor_payload,
 };

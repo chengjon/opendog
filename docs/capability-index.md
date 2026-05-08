@@ -55,7 +55,7 @@ Use these docs by intent:
 
 | Capability area | FT ownership | Typical question | Preferred MCP first step | Preferred CLI first step | Contract / doc anchor |
 |---|---|---|---|---|---|
-| Project registry and isolation | `FT-01.01.01`, `FT-01.01.02` | Which projects exist and how are they isolated? | `list_projects`, `create_project`, `delete_project` | `opendog list`, `opendog create`, `opendog delete` | [MCP Tool Reference](./mcp-tool-reference.md), [FUNCTION_TREE](../FUNCTION_TREE.md) |
+| Project registry and isolation | `FT-01.01.01`, `FT-01.01.02` | Which projects exist and how are they isolated? | `list_projects`, `register_project`, `delete_project` | `opendog list`, `opendog register`, `opendog delete` | [MCP Tool Reference](./mcp-tool-reference.md), [FUNCTION_TREE](../FUNCTION_TREE.md) |
 | Configuration policy and live reload | `FT-01.01.03` | What config is effective, and did runtime pick it up? | `get_global_config`, `get_project_config` | `opendog config ...` | [JSON Contracts](./json-contracts.md), [MCP Tool Reference](./mcp-tool-reference.md) |
 | Snapshot baseline management | `FT-01.02.01`, `FT-01.02.02` | Do I have a baseline, and what changed in the inventory? | `take_snapshot`, `compare_snapshots` | `opendog snapshot`, `opendog report compare` | [MCP Tool Reference](./mcp-tool-reference.md), [AI Playbook](./ai-playbook.md) |
 | Monitoring and attribution | `FT-01.03.01`, `FT-01.03.02`, `FT-02.03.02` | Is monitoring running, and should I reuse daemon-owned state? | `start_monitor`, `stop_monitor` | `opendog start`, `opendog stop` | [README](../README.md), [CLAUDE.md](../CLAUDE.md) |
@@ -103,7 +103,7 @@ Use this when you want the shortest practical route from question to action.
 
 | Situation | First command | Second step | When to switch to shell |
 |---|---|---|---|
-| New project, no OPENDOG state yet | `create_project` / `opendog create` | `take_snapshot` / `opendog snapshot` | The project path, repo root, or registration target is still ambiguous |
+| New project, no OPENDOG state yet | `register_project` / `opendog register` | `take_snapshot` / `opendog snapshot` | The project path, repo root, or registration target is still ambiguous |
 | Project exists but no baseline | `take_snapshot` / `opendog snapshot` | `get_guidance` | You need to inspect ignore patterns, repo layout, or tracked file classes directly |
 | Baseline exists but no monitoring | `start_monitor` / `opendog start` | `get_time_window_report` or `get_stats` after some activity | You need direct repo truth instead of observation-state setup |
 | Need one stable AI-facing decision envelope first | `get_guidance(detail=decision)` / `opendog decision-brief` | Follow `entrypoints.next_mcp_tools` or `entrypoints.next_cli_commands` | The brief points to external truth that OPENDOG has not captured yet |

@@ -4,7 +4,7 @@ pub const PORTABLE_PROJECT_EXPORT_V1: &str = "opendog.export.project-evidence.v1
 
 pub const MCP_GUIDANCE_V1: &str = "opendog.mcp.guidance.v1";
 pub const MCP_DECISION_BRIEF_V1: &str = "opendog.mcp.decision-brief.v1";
-pub const MCP_CREATE_PROJECT_V1: &str = "opendog.mcp.create-project.v1";
+pub const MCP_REGISTER_PROJECT_V1: &str = "opendog.mcp.register-project.v1";
 pub const MCP_START_MONITOR_V1: &str = "opendog.mcp.start-monitor.v1";
 pub const MCP_STOP_MONITOR_V1: &str = "opendog.mcp.stop-monitor.v1";
 pub const MCP_LIST_PROJECTS_V1: &str = "opendog.mcp.list-projects.v1";

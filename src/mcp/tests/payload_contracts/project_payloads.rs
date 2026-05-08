@@ -1,11 +1,11 @@
 use super::*;
 
 #[test]
-fn create_project_payload_has_versioned_contract() {
-    let value = create_project_payload("demo", std::path::Path::new("/tmp/demo"));
-    assert_eq!(value["schema_version"], MCP_CREATE_PROJECT_V1);
+fn register_project_payload_has_versioned_contract() {
+    let value = register_project_payload("demo", std::path::Path::new("/tmp/demo"));
+    assert_eq!(value["schema_version"], MCP_REGISTER_PROJECT_V1);
     assert_eq!(value["id"], "demo");
-    assert_eq!(value["status"], "created");
+    assert_eq!(value["status"], "registered");
     assert_eq!(value["guidance"]["schema_version"], MCP_GUIDANCE_V1);
 }
 

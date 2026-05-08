@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 
 #[derive(Deserialize, schemars::JsonSchema)]
-pub struct CreateProjectParams {
+pub struct RegisterProjectParams {
     /// Unique project identifier (alphanumeric, dash, underscore, max 64 chars)
     pub id: String,
     /// Absolute path to the project root directory

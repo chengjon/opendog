@@ -5,9 +5,9 @@ use serde_json::Value;
 
 use crate::contracts::{
     versioned_error_payload, versioned_project_error_payload, versioned_project_payload,
-    MCP_CREATE_PROJECT_V1, MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
-    MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_PROJECT_CONFIG_V1,
-    MCP_RECORD_VERIFICATION_V1, MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1,
+    MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1, MCP_GLOBAL_CONFIG_V1,
+    MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1,
+    MCP_REGISTER_PROJECT_V1, MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1,
     MCP_START_MONITOR_V1, MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1,
     MCP_UNUSED_FILES_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
     MCP_WORKSPACE_DATA_RISK_V1,
@@ -79,25 +79,25 @@ use self::observation::{
     project_observation_layer, snapshot_is_stale, verification_is_stale,
 };
 pub use self::params::{
-    AgentGuidanceParams, CompareSnapshotsParams, CreateProjectParams, DataRiskParams,
-    DecisionBriefParams, ExecuteVerificationParams, GlobalConfigParams, GuidanceParams,
-    ProjectIdParams, RecordVerificationParams, TimeWindowReportParams, UsageTrendParams,
+    AgentGuidanceParams, CompareSnapshotsParams, DataRiskParams, DecisionBriefParams,
+    ExecuteVerificationParams, GlobalConfigParams, GuidanceParams, ProjectIdParams,
+    RecordVerificationParams, RegisterProjectParams, TimeWindowReportParams, UsageTrendParams,
     WorkspaceDataRiskParams,
 };
 pub(crate) use self::payloads::{
-    cleanup_project_data_payload, create_project_payload, delete_project_payload,
-    export_project_evidence_payload, global_config_payload, list_projects_payload,
-    project_config_payload, project_config_reload_payload, project_config_update_payload,
+    cleanup_project_data_payload, delete_project_payload, export_project_evidence_payload,
+    global_config_payload, list_projects_payload, project_config_payload,
+    project_config_reload_payload, project_config_update_payload, register_project_payload,
     snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload,
     stop_monitor_payload, time_window_report_payload, unused_files_payload,
     update_global_config_payload, usage_trends_payload,
 };
 use self::project_guidance::{
-    create_project_guidance, snapshot_guidance, start_monitor_guidance, stats_guidance,
+    register_project_guidance, snapshot_guidance, start_monitor_guidance, stats_guidance,
     unused_guidance,
 };
 use self::project_handlers::{
-    handle_create_project, handle_delete_project, handle_list_projects, handle_start_monitor,
+    handle_delete_project, handle_list_projects, handle_register_project, handle_start_monitor,
     handle_stop_monitor, handle_take_snapshot,
 };
 pub(crate) use self::project_recommendation::collect_project_guidance_context;
@@ -170,14 +170,14 @@ impl OpenDogServer {
     }
 
     #[tool(
-        name = "create_project",
-        description = "Register a new project with a unique ID and root directory path for file monitoring"
+        name = "register_project",
+        description = "Register an existing project root with a unique ID so OPENDOG can snapshot and monitor it"
     )]
-    fn create_project(
+    fn register_project(
         &self,
-        Parameters(CreateProjectParams { id, path }): Parameters<CreateProjectParams>,
+        Parameters(RegisterProjectParams { id, path }): Parameters<RegisterProjectParams>,
     ) -> ToolResult {
-        structured_tool_output(handle_create_project(self, &id, &path))
+        structured_tool_output(handle_register_project(self, &id, &path))
     }
 
     #[tool(

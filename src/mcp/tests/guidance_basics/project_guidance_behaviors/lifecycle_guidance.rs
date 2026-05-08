@@ -33,8 +33,8 @@ fn tool_guidance_wraps_payload_with_next_steps() {
 }
 
 #[test]
-fn create_project_guidance_uses_multi_step_flow() {
-    let value = create_project_guidance();
+fn register_project_guidance_uses_multi_step_flow() {
+    let value = register_project_guidance();
     assert_eq!(
         value["recommended_flow"][0],
         json!("Project is now registered in OPENDOG.")

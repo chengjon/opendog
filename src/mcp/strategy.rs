@@ -64,7 +64,7 @@ pub(super) fn workspace_strategy_profile(
                 "opendog",
                 "shell",
                 vec![
-                    "Register a project first with `create_project` or `opendog create --id <project> --path <root>`.".to_string(),
+                    "Register a project first with `register_project` or `opendog register --id <project> --path <root>`.".to_string(),
                     "Start monitoring immediately after creation so opendog can build activity data.".to_string(),
                     "Use shell commands such as `rg` only after you know which project root you want to inspect.".to_string(),
                 ],

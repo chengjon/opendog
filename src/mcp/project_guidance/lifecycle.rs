@@ -2,9 +2,9 @@ use serde_json::Value;
 
 use super::super::{set_recommended_flow, tool_guidance};
 
-pub(in crate::mcp) fn create_project_guidance() -> Value {
+pub(in crate::mcp) fn register_project_guidance() -> Value {
     let mut guidance = tool_guidance(
-        "Project created. Start monitoring before relying on activity-based stats.",
+        "Project registered. Start monitoring before relying on activity-based stats.",
         &[
             "opendog start --id <project>",
             "opendog snapshot --id <project>",

@@ -3,12 +3,12 @@ use std::path::Path;
 
 use crate::config::ProjectInfo;
 use crate::contracts::{
-    versioned_payload, versioned_project_payload, MCP_CREATE_PROJECT_V1, MCP_DELETE_PROJECT_V1,
-    MCP_LIST_PROJECTS_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
+    versioned_payload, versioned_project_payload, MCP_DELETE_PROJECT_V1, MCP_LIST_PROJECTS_V1,
+    MCP_REGISTER_PROJECT_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
 };
 
 use super::super::{
-    create_project_guidance, snapshot_guidance, start_monitor_guidance, tool_guidance,
+    register_project_guidance, snapshot_guidance, start_monitor_guidance, tool_guidance,
 };
 
 pub(crate) fn snapshot_payload(
@@ -29,14 +29,14 @@ pub(crate) fn snapshot_payload(
     )
 }
 
-pub(crate) fn create_project_payload(id: &str, root_path: &Path) -> Value {
+pub(crate) fn register_project_payload(id: &str, root_path: &Path) -> Value {
     versioned_payload(
-        MCP_CREATE_PROJECT_V1,
+        MCP_REGISTER_PROJECT_V1,
         [
             ("id", json!(id)),
             ("root_path", json!(root_path.display().to_string())),
-            ("status", json!("created")),
-            ("guidance", create_project_guidance()),
+            ("status", json!("registered")),
+            ("guidance", register_project_guidance()),
         ],
     )
 }

@@ -19,7 +19,7 @@ Authority rule: `git`, tests, lint, and build are the external truth sources.
 
 CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
 
-Related MCP entry points use the same versioned-contract pattern: `get_guidance`, `create_project`, config inspection, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, verification, and data-risk tools.
+Related MCP entry points use the same versioned-contract pattern: `get_guidance`, `register_project`, config inspection, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, verification, and data-risk tools.
 
 When the daemon is live, CLI and MCP may reuse daemon-owned state through the local control plane.
 

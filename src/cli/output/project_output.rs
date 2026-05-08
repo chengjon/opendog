@@ -6,8 +6,8 @@ use crate::storage::queries::StatsEntry;
 
 use super::truncate;
 
-pub(super) fn print_created(info: &ProjectInfo) {
-    println!("Project '{}' created.", info.id);
+pub(super) fn print_registered(info: &ProjectInfo) {
+    println!("Project '{}' registered.", info.id);
     println!("  Root: {}", info.root_path.display());
     println!("  DB:   {}", info.db_path.display());
 }

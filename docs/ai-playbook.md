@@ -44,8 +44,8 @@ CLI and MCP are entry surfaces over the same core capabilities. When the OPENDOG
 ## Default Workflow
 
 1. Make sure the project exists in OPENDOG.
-   MCP: `create_project`
-   CLI: `opendog create --id <ID> --path <DIR>`
+   MCP: `register_project`
+   CLI: `opendog register --id <ID> --path <DIR>`
 2. Make sure a snapshot exists.
    MCP: `take_snapshot`
    CLI: `opendog snapshot --id <ID>`

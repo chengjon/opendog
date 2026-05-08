@@ -22,8 +22,9 @@ use self::report_commands::{cmd_report, ReportCommand};
     about = "Multi-project file monitor for AI workflows"
 )]
 enum Cli {
-    /// Register a new project
-    Create {
+    /// Register an existing project root with OPENDOG
+    #[command(alias = "create")]
+    Register {
         /// Unique project identifier
         #[arg(short, long)]
         id: String,
@@ -206,7 +207,7 @@ pub fn run() {
     });
 
     let result = match cli {
-        Cli::Create { id, path } => project_commands::cmd_create(&pm, &id, &path),
+        Cli::Register { id, path } => project_commands::cmd_register(&pm, &id, &path),
         Cli::Snapshot { id } => project_commands::cmd_snapshot(&pm, &id),
         Cli::Start { id } => project_commands::cmd_start(&pm, &id),
         Cli::Stop { id } => project_commands::cmd_stop(&id),

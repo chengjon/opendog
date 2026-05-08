@@ -57,7 +57,7 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 ## 当前 MCP 工具
 
 - 当前 MCP surface 共 `19` 个工具，下面按能力簇分组列出
-- 基础控制：`create_project`、`take_snapshot`、`start_monitor`、`stop_monitor`、`get_stats`、`get_unused_files`、`list_projects`、`delete_project`
+- 基础控制：`register_project`、`take_snapshot`、`start_monitor`、`stop_monitor`、`get_stats`、`get_unused_files`、`list_projects`、`delete_project`
 - 比较报告：`get_time_window_report`、`compare_snapshots`、`get_usage_trends`
 - 配置查询：`get_global_config`、`get_project_config`
 - AI 辅助：`get_guidance`、`get_verification_status`、`record_verification_result`、`run_verification_command`
@@ -81,7 +81,7 @@ MCP 作用域提示：
 ## 当前 CLI 命令
 
 - 当前 CLI 顶层入口共 `21` 个命令，下面按能力簇分组列出
-- 基础：`opendog create|snapshot|start|stop|stats|unused|list|delete|daemon|mcp|export`
+- 基础：`opendog register|snapshot|start|stop|stats|unused|list|delete|daemon|mcp|export`
 - 比较报告：`opendog report window|compare|trend [--json]`
 - 数据清理：`opendog cleanup-data --id <ID> --scope <activity|snapshots|verification|all> [--dry-run] [--vacuum] [--json]`
 - 配置：`opendog config show|set-project|set-global|reload [--json]`
@@ -107,7 +107,7 @@ MCP 作用域提示：
 
 按下面顺序调用，通常不会错：
 
-1. 建项目或确认项目存在：`create_project` / `opendog create`
+1. 建项目或确认项目存在：`register_project` / `opendog register`
 2. 建立基线：`take_snapshot` / `opendog snapshot`
 3. 开启持续观测：`start_monitor` / `opendog start`
 4. 先拿统一判断入口：`get_guidance` / `opendog decision-brief` 或 `opendog agent-guidance`

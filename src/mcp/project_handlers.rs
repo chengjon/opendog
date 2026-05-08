@@ -7,21 +7,21 @@ use crate::core::snapshot;
 use crate::error::OpenDogError;
 
 use super::{
-    create_project_payload, delete_project_payload, error_json_for, list_projects_payload,
-    open_dog_error_code, snapshot_payload, start_monitor_payload, stop_monitor_payload,
-    versioned_error_payload, OpenDogServer, MCP_CREATE_PROJECT_V1, MCP_DELETE_PROJECT_V1,
-    MCP_LIST_PROJECTS_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
+    delete_project_payload, error_json_for, list_projects_payload, open_dog_error_code,
+    register_project_payload, snapshot_payload, start_monitor_payload, stop_monitor_payload,
+    versioned_error_payload, OpenDogServer, MCP_DELETE_PROJECT_V1, MCP_LIST_PROJECTS_V1,
+    MCP_REGISTER_PROJECT_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
 };
 
-pub(super) fn handle_create_project(server: &OpenDogServer, id: &str, path: &str) -> Json<Value> {
+pub(super) fn handle_register_project(server: &OpenDogServer, id: &str, path: &str) -> Json<Value> {
     match DaemonClient::new().create_project(id, path) {
         Ok(info) => {
-            return Json(create_project_payload(&info.id, &info.root_path));
+            return Json(register_project_payload(&info.id, &info.root_path));
         }
         Err(OpenDogError::DaemonUnavailable) => {}
         Err(e) => {
             return Json(versioned_error_payload(
-                MCP_CREATE_PROJECT_V1,
+                MCP_REGISTER_PROJECT_V1,
                 open_dog_error_code(&e),
                 &e.to_string(),
                 [("id", json!(id)), ("requested_path", json!(path))],
@@ -31,9 +31,9 @@ pub(super) fn handle_create_project(server: &OpenDogServer, id: &str, path: &str
 
     let inner = server.inner.lock().unwrap();
     match inner.project_manager().create(id, Path::new(path)) {
-        Ok(info) => Json(create_project_payload(&info.id, &info.root_path)),
+        Ok(info) => Json(register_project_payload(&info.id, &info.root_path)),
         Err(e) => Json(versioned_error_payload(
-            MCP_CREATE_PROJECT_V1,
+            MCP_REGISTER_PROJECT_V1,
             open_dog_error_code(&e),
             &e.to_string(),
             [("id", json!(id)), ("requested_path", json!(path))],

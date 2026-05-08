@@ -12,14 +12,14 @@ use crate::mcp::export_project_evidence_payload;
 
 use super::output;
 
-pub(super) fn cmd_create(pm: &ProjectManager, id: &str, path: &str) -> Result<(), OpenDogError> {
+pub(super) fn cmd_register(pm: &ProjectManager, id: &str, path: &str) -> Result<(), OpenDogError> {
     let daemon = DaemonClient::new();
     let info = match daemon.create_project(id, path) {
         Ok(info) => info,
         Err(OpenDogError::DaemonUnavailable) => pm.create(id, Path::new(path))?,
         Err(e) => return Err(e),
     };
-    output::print_created(&info);
+    output::print_registered(&info);
     Ok(())
 }
 

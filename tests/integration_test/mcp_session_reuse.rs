@@ -88,7 +88,7 @@ async fn mcp_sessions_reuse_daemon_backed_monitor_state_without_manual_daemon_st
     let _ = structured_payload(
         first_client
             .call_tool(
-                CallToolRequestParams::new("create_project").with_arguments(
+                CallToolRequestParams::new("register_project").with_arguments(
                     json!({
                         "id": "demo",
                         "path": project_dir.display().to_string()
@@ -156,7 +156,7 @@ async fn mcp_sessions_reuse_shared_state_when_opendog_home_is_explicit(
     let _ = structured_payload(
         first_client
             .call_tool(
-                CallToolRequestParams::new("create_project").with_arguments(
+                CallToolRequestParams::new("register_project").with_arguments(
                     json!({
                         "id": "demo",
                         "path": project_dir.display().to_string()

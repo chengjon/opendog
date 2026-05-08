@@ -52,17 +52,17 @@ Start from the tool that matches the decision you need now, then drill into lowe
 | Recent activity shape | [`get_time_window_report`](#get_time_window_report) | Best first stop for short-term concentration and active-file review |
 | Baseline or inventory change | [`compare_snapshots`](#compare_snapshots) | Best first stop for added / removed / modified file inventory changes |
 | Heating / cooling trends | [`get_usage_trends`](#get_usage_trends) | Best first stop for activity momentum over time |
-| Project setup and monitor lifecycle | [`create_project`](#create_project), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor) | Use these when OPENDOG state does not exist yet or observation is not running |
+| Project setup and monitor lifecycle | [`register_project`](#register_project), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor) | Use these when OPENDOG state does not exist yet or observation is not running |
 
 ## Reading By Cluster
 
 - Decision and prioritization: [`get_guidance`](#get_guidance), [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview)
 - Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates)
 - Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
-- Setup and lifecycle: [`create_project`](#create_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
+- Setup and lifecycle: [`register_project`](#register_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
 - Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
 
-## `create_project`
+## `register_project`
 
 Purpose:
 

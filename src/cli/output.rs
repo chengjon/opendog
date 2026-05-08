@@ -16,8 +16,8 @@ use crate::core::verification::ExecutedVerificationResult;
 use crate::storage::queries::{StatsEntry, VerificationRun};
 use serde_json::Value;
 
-pub fn print_created(info: &ProjectInfo) {
-    project_output::print_created(info);
+pub fn print_registered(info: &ProjectInfo) {
+    project_output::print_registered(info);
 }
 
 pub fn print_snapshot_result(id: &str, result: &SnapshotResult) {

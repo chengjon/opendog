@@ -69,7 +69,7 @@ fn test_daemon_process_cli_smoke() {
     let create = run_cli(
         home,
         &[
-            "create",
+            "register",
             "--id",
             "demo",
             "--path",
