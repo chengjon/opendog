@@ -15,7 +15,7 @@ Current scope at a glance:
 
 - 3 capability layers
 - 19 MCP tools
-- 21 CLI top-level commands
+- 22 CLI top-level commands
 - 26 `FT-*` leaf capabilities
 
 Primary role of this page:
@@ -55,7 +55,7 @@ Use these docs by intent:
 
 | Capability area | FT ownership | Typical question | Preferred MCP first step | Preferred CLI first step | Contract / doc anchor |
 |---|---|---|---|---|---|
-| Project registry and isolation | `FT-01.01.01`, `FT-01.01.02` | Which projects exist and how are they isolated? | `list_projects`, `register_project`, `delete_project` | `opendog list`, `opendog register`, `opendog delete` | [MCP Tool Reference](./mcp-tool-reference.md), [FUNCTION_TREE](../FUNCTION_TREE.md) |
+| Project registry and isolation | `FT-01.01.01`, `FT-01.01.02` | Which projects exist and how are they isolated? | `opendog://projects`, `list_projects`, `register_project`, `delete_project` | `opendog list`, `opendog register`, `opendog delete` | [MCP Tool Reference](./mcp-tool-reference.md), [FUNCTION_TREE](../FUNCTION_TREE.md) |
 | Configuration policy and live reload | `FT-01.01.03` | What config is effective, and did runtime pick it up? | `get_global_config`, `get_project_config` | `opendog config ...` | [JSON Contracts](./json-contracts.md), [MCP Tool Reference](./mcp-tool-reference.md) |
 | Snapshot baseline management | `FT-01.02.01`, `FT-01.02.02` | Do I have a baseline, and what changed in the inventory? | `take_snapshot`, `compare_snapshots` | `opendog snapshot`, `opendog report compare` | [MCP Tool Reference](./mcp-tool-reference.md), [AI Playbook](./ai-playbook.md) |
 | Monitoring and attribution | `FT-01.03.01`, `FT-01.03.02`, `FT-02.03.02` | Is monitoring running, and should I reuse daemon-owned state? | `start_monitor`, `stop_monitor` | `opendog start`, `opendog stop` | [README](../README.md), [CLAUDE.md](../CLAUDE.md) |
@@ -63,8 +63,9 @@ Use these docs by intent:
 | Export and portable evidence | `FT-01.04.03` | How do I hand evidence to another tool or archive it? | `CLI-only` | `opendog export` | [MCP Tool Reference](./mcp-tool-reference.md), [JSON Contracts](./json-contracts.md) |
 | Comparative and time-window analytics | `FT-01.04.04` | What changed recently, and which files are heating or cooling? | `get_time_window_report`, `compare_snapshots`, `get_usage_trends` | `opendog report window|compare|trend` | [AI Playbook](./ai-playbook.md), [MCP Tool Reference](./mcp-tool-reference.md) |
 | Retained-evidence lifecycle | `FT-01.04.05` | Which OPENDOG-retained evidence should I prune, and is `VACUUM` worth it? | `CLI-only` | `opendog cleanup-data` | [JSON Contracts](./json-contracts.md), [README](../README.md) |
+| OpenDog binary maintenance | `FT-02.01.01`, `FT-03.07.01` | Is the configured OpenDog MCP binary up to date, and how do I rebuild it manually? | `CLI-only` | `opendog self-update status --source /opt/claude/opendog`, `opendog self-update build --source /opt/claude/opendog` | [QUICKSTART](../QUICKSTART.md), [FUNCTION_TREE](../FUNCTION_TREE.md) |
 | AI guidance and decision entry | `FT-03.01.01`, `FT-03.02.01`, `FT-03.02.02` | What should I do next overall or for one project? | `get_guidance` | `opendog agent-guidance`, `opendog decision-brief` | [AI Playbook](./ai-playbook.md), [MCP Tool Reference](./mcp-tool-reference.md) |
-| Verification evidence | `FT-03.03.01` | Do I already have test/lint/build evidence, or should I write some? | `get_verification_status`, `record_verification_result`, `run_verification_command` | `opendog verification`, `opendog record-verification`, `opendog run-verification` | [JSON Contracts](./json-contracts.md), [MCP Tool Reference](./mcp-tool-reference.md) |
+| Verification evidence | `FT-03.03.01` | Do I already have test/lint/build evidence, or should I write some? | `opendog://project/{id}/verification`, `get_verification_status`, `record_verification_result`, `run_verification_command` | `opendog verification`, `opendog record-verification`, `opendog run-verification` | [JSON Contracts](./json-contracts.md), [MCP Tool Reference](./mcp-tool-reference.md) |
 | Multi-project prioritization | `FT-03.04.01` | Which project deserves attention first across the workspace, and why? | `get_workspace_data_risk_overview`, `get_guidance` | `opendog workspace-data-risk`, `opendog agent-guidance` | [AI Playbook](./ai-playbook.md), [JSON Contracts](./json-contracts.md) |
 | Cleanup/refactor review and data-risk | `FT-03.05.01`, `FT-03.08.01`, `FT-03.08.02` | Which files need review for unused, mixed, mock, or hardcoded-data reasons? | `get_data_risk_candidates` | `opendog data-risk` | [MCP Tool Reference](./mcp-tool-reference.md), [AI Playbook](./ai-playbook.md) |
 | Toolchain guidance and authority boundaries | `FT-03.06.01`, `FT-03.07.01` | When should I trust OPENDOG, and when should I switch to shell or tests? | `get_guidance` | `opendog agent-guidance`, `opendog decision-brief` | [AI Playbook](./ai-playbook.md), [JSON Contracts](./json-contracts.md) |
@@ -76,6 +77,7 @@ Use this when you know the surface first and need to know what it is good at.
 | Surface | Best for | Not the best first tool when |
 |---|---|---|
 | MCP | AI-driven structured workflows, guidance, reporting, config inspection, evidence recording | You only need a quick human-readable terminal summary |
+| MCP Resources | Read-only project-list or verification state without running an operation | You need to register, monitor, snapshot, execute verification, delete, export, or cleanup |
 | CLI | Human/operator usage, spot checks, JSON piping, shell-centric workflows | Another AI already consumes MCP directly |
 | Local control plane | Reusing daemon-owned project state consistently | The daemon is not running and simple local fallback is enough |
 | Shell | Git truth, semantic diff, project-native tests, direct inspection after OPENDOG narrows scope | You still do not know which project or file deserves attention |

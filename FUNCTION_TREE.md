@@ -1,6 +1,6 @@
 ---
-function_tree_version: 1.3
-last_updated: "2026-05-03"
+function_tree_version: 1.4
+last_updated: "2026-05-11"
 canonical_role: business_capability_anchor
 level_model:
   L1: domain_capability
@@ -68,8 +68,16 @@ Current design posture:
 
 - no product-direction drift: the tree still describes the original multi-project observation plus AI decision-support mission
 - broad but bounded surface: the tree is wider than a simple monitoring backend, but each branch remains constrained by evidence, authority, and non-destructive advisory boundaries
-- current priority is selective deepening: future work should mainly improve the trustworthiness and clarity of existing `FT-03` leaves before opening unrelated new capability families
-- current hardening baseline: `FT-03.01.01`, `FT-03.02.02`, `FT-03.03.01`, `FT-03.06.01`, and `FT-03.07.01` now cover soft verification gates, repository-truth boundary projection, and machine-readable resume sequencing for repository stabilization, verification, and observation workflows
+- current priority is selective deepening: future work should mainly improve the trustworthiness and clarity of existing observation and decision-support leaves before opening unrelated new capability families
+- current hardening baseline: `FT-01.03.01`, `FT-02.02.01`, `FT-03.01.01`, `FT-03.02.02`, `FT-03.03.01`, `FT-03.04.01`, `FT-03.06.01`, `FT-03.07.01`, and `FT-03.08.02` now cover fd-attribution credibility, soft verification gates, repository-truth boundary projection, bounded MCP observation payloads, read-only MCP Resources, data-risk noise reduction, and machine-readable resume sequencing
+
+Current capability investment priority:
+
+- high: keep validating and hardening attribution, stats, unused-file review, and guidance credibility. These are OpenDog's core evidence foundation; attribution mistakes or misleading observation summaries contaminate every downstream recommendation.
+- high: use `docs/project-exchange/` reports and the shared issue index to collect A/B/C project feedback before opening new task cards. Do not expand the capability surface from speculation.
+- medium: deepen `FT-03.01`, `FT-03.03`, and `FT-03.04` so observation freshness, verification gates, and multi-project prioritization make it easier for AI to answer "which project now?" and "is it safe to change?".
+- medium-low: continue tuning data-risk, toolchain guidance, and boundary messaging, but let real project reports drive the exact work.
+- avoid: broad horizontal expansion. Keep engineering effort tied to validated pain points and shared issues.
 
 ## Structural Rules
 
@@ -185,7 +193,7 @@ nodes:
     lifecycle: shipped
     requirement_ranges: [MON-03, PROC-01..04, PROC-06]
     roadmap_phases: [2]
-    summary: Sample whitelisted AI processes and detect which project files they currently hold open.
+    summary: Sample whitelisted AI processes, distinguish file-level descriptors from directory descriptors, and detect which project files they currently hold open without fan-out attribution.
 
   - id: FT-01.03.02
     title: Detect file changes and correlate attribution evidence
@@ -219,7 +227,7 @@ nodes:
     lifecycle: shipped
     requirement_ranges: [STAT-06..08]
     roadmap_phases: [3]
-    summary: Expose project-level statistical queries such as unused files and core-file candidates.
+    summary: Expose project-level statistical queries such as unused files, hotspot candidates, and source/infrastructure/backup/project filtered observation views.
 
   - id: FT-01.04.03
     title: Export usage evidence in portable formats
@@ -269,7 +277,7 @@ nodes:
     lifecycle: shipped
     requirement_ranges: [CLI-01..09]
     roadmap_phases: [4]
-    summary: Let operators access OPENDOG through the `opendog` command surface.
+    summary: Let operators access OPENDOG through the `opendog` command surface, including explicit local maintenance workflows such as manual release-binary rebuild checks.
 
   - id: FT-02.02
     title: AI Workflow Surface
@@ -285,7 +293,7 @@ nodes:
     lifecycle: shipped
     requirement_ranges: [MCP-01..09]
     roadmap_phases: [4]
-    summary: Let AI clients discover and invoke OPENDOG capabilities through MCP.
+    summary: Let AI clients discover and invoke OPENDOG capabilities through MCP tools and read stable state through read-only MCP Resources.
 
   - id: FT-02.03
     title: Daemon Runtime and Coordination
@@ -333,7 +341,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [OBS-01..04]
     roadmap_phases: [6]
-    summary: Show whether OPENDOG has enough observation quality to support downstream conclusions and which observation bootstrap step is still missing.
+    summary: Show whether OPENDOG has enough observation quality to support downstream conclusions, expose bounded and classification-filtered observation payload windows, and identify which bootstrap step is still missing.
 
   - id: FT-03.02
     title: Repository Risk and Execution Strategy
@@ -374,7 +382,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [EVID-01..04]
     roadmap_phases: [6]
-    summary: Attach recorded validation evidence, freshness, gate judgments, and verification-first sequencing context to recommendations and safety decisions.
+    summary: Attach recorded validation evidence, explicit freshness TTL policy, gate judgments, and verification-first sequencing context to recommendations and safety decisions.
 
   - id: FT-03.04
     title: Multi-Project Portfolio Prioritization
@@ -438,7 +446,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [BOUND-01..04]
     roadmap_phases: [6]
-    summary: Clarify what was observed, what was inferred, where repository truth is missing, and when shell or project-native verification remains mandatory.
+    summary: Clarify what was observed, what was inferred, where transient reads or filtered views can hide evidence, where repository truth is missing, and when shell or project-native verification remains mandatory.
 
   - id: FT-03.08
     title: Mock and Hardcoded Data Review
@@ -463,7 +471,7 @@ nodes:
     lifecycle: in_progress
     requirement_ranges: [MOCK-02, MOCK-04, MOCK-05, MOCK-08, MOCK-09, MOCK-10]
     roadmap_phases: [6]
-    summary: Flag risky business-like literals and mixed logic-plus-data files for review.
+    summary: Flag risky business-like literals and mixed logic-plus-data files for review while down-ranking documentation and template-placeholder noise.
 ```
 
 ## Human Tree
@@ -549,7 +557,7 @@ Interpretation:
 
 Current CLI top-level commands:
 
-- `create`
+- `register` (`create` remains a CLI alias)
 - `snapshot`
 - `start`
 - `stop`
@@ -557,6 +565,7 @@ Current CLI top-level commands:
 - `export`
 - `cleanup-data`
 - `report`
+- `self-update`
 - `mcp`
 - `stats`
 - `unused`
@@ -585,27 +594,27 @@ Current CLI subcommands:
 
 Re-grouped by intent, the CLI currently covers:
 
-- project lifecycle: `create`, `list`, `delete`
+- project lifecycle: `register` / `create` alias, `list`, `delete`
 - observation: `snapshot`, `start`, `stop`, `stats`, `unused`
 - reporting: `report window`, `report compare`, `report trend`, `export`
 - AI guidance: `agent-guidance`, `decision-brief`, `data-risk`, `workspace-data-risk`
 - verification: `verification`, `record-verification`, `run-verification`
-- operations/runtime: `config *`, `cleanup-data`, `daemon`, `mcp`
+- operations/runtime: `config *`, `cleanup-data`, `self-update`, `daemon`, `mcp`
 
 ### MCP Tool Distribution
 
 Current MCP tool set:
 
 - project and monitoring
-  - `create_project`
+  - `register_project`
   - `list_projects`
   - `delete_project`
   - `take_snapshot`
   - `start_monitor`
   - `stop_monitor`
 - observation and reporting
-  - `get_stats`
-  - `get_unused_files`
+  - `get_stats` (`path_classification`: `all`, `source`, `infrastructure`, `backup`, `project`)
+  - `get_unused_files` (`path_classification`: `all`, `source`, `infrastructure`, `backup`, `project`)
   - `get_time_window_report`
   - `compare_snapshots`
   - `get_usage_trends`
@@ -621,6 +630,13 @@ Current MCP tool set:
 - data risk and workspace prioritization
   - `get_data_risk_candidates`
   - `get_workspace_data_risk_overview`
+
+Current MCP read-only resources:
+
+- static resources
+  - `opendog://projects`
+- resource templates
+  - `opendog://project/{id}/verification`
 
 ### Interface Relationship Notes
 
@@ -656,6 +672,9 @@ From a capability perspective, several public entrypoints are close variants of 
   - `export`
   - `daemon`
   - `mcp`
+- read-only state family
+  - `opendog://projects`
+  - `opendog://project/{id}/verification`
 
 Operator-only downscope now applied:
 

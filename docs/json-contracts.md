@@ -25,6 +25,11 @@ When the daemon is live, CLI and MCP may reuse daemon-owned state through the lo
 
 MCP utility outputs use the same versioned pattern, including `opendog.mcp.guidance.v1` and `opendog.mcp.decision-brief.v1`.
 
+Read-only MCP Resources expose stable state without running operations:
+
+- `opendog://projects`
+- `opendog://project/{id}/verification`
+
 ## Contract Style
 
 Always check `schema_version` first.
@@ -240,6 +245,53 @@ Version marker:
 2. Compare the same project across `24h`, `7d`, and `30d`.
 3. Use `files` to identify the hottest recent targets.
 4. Before cleanup or broad edits, pair this with snapshot comparison or verification evidence.
+
+## MCP `get_stats` / `get_unused_files`
+
+Version markers:
+
+- `schema_version = opendog.mcp.stats.v1`
+- `schema_version = opendog.mcp.unused-files.v1`
+
+### Primary decision fields
+
+- `summary.total_files`
+- `summary.accessed`
+- `summary.unused`
+- `unused_count`
+- `filtered_unused_count`
+- `result_window.total_count`
+- `result_window.returned_count`
+- `result_window.limit`
+- `result_window.truncated`
+- `result_window.path_classification`
+- `files`
+
+### Explanatory fields
+
+- `classification_summary`
+- `files[*].path`
+- `files[*].access_count`
+- `files[*].estimated_duration_ms`
+- `files[*].modification_count`
+- `files[*].path_classification`
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Read `result_window` before iterating `files`.
+3. Treat `files` as a bounded and optionally filtered result window, not the full project list.
+4. Use `summary` or `unused_count` for full counts.
+5. Use `filtered_unused_count` only when `path_classification` is not `all`.
+6. Pass explicit `limit` when the host needs a smaller response.
+
+Filtering semantics:
+
+- Request `path_classification` may be `all`, `source`, `infrastructure`, `backup`, or `project`; omitted means `all`.
+- `result_window.total_count` is the filtered count after applying `path_classification`.
+- `classification_summary` remains calculated from the full unfiltered input set.
+- Empty filtered results return `files=[]`, `returned_count=0`, `total_count=0`, `truncated=false`, and the requested `result_window.path_classification`.
 
 ## `opendog report compare --json`
 
@@ -584,6 +636,20 @@ Compatibility rule: `verification.safe_for_*` stays compatible with required-gat
 5. If a gate is blocked, read blocker and reason fields before editing.
 6. Use `missing_kinds`, `failing_kinds`, `stale_kinds`, and `next_steps` under `verification.gate_assessment.*` to decide what evidence to refresh next.
 
+## MCP Resources
+
+Version markers:
+
+- Resources return JSON content with the same schema families as their tool equivalents.
+- `opendog://projects` mirrors project-list state.
+- `opendog://project/{id}/verification` mirrors verification-status state for one project.
+
+### Recommended consumption pattern
+
+1. Use resources only for read-only state.
+2. Use tools for registration, snapshot, monitoring, verification execution, deletion, export, or cleanup.
+3. If resources are not visible after a rebuild, reconnect the MCP host and follow QUICKSTART retest steps.
+
 ## `opendog record-verification --json`
 
 Version marker:
@@ -659,6 +725,8 @@ Some tools may include extra diagnostic fields such as:
 
 - `remediation`
 - request echo fields such as `id` or `requested_path`
+
+Daemon-backed MCP calls may return `daemon_response_integrity_error` when the socket returns empty or incomplete JSON. Treat it as transport failure: retry once, compare with CLI, then restart the daemon if repeated.
 
 Recommended consumption pattern:
 

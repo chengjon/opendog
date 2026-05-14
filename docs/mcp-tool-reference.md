@@ -21,6 +21,7 @@ Primary role of this page:
 Current inventory note:
 
 - OPENDOG currently ships 19 MCP tools
+- OPENDOG also exposes read-only MCP Resources for stable low-parameter state reads
 - this file is the practical request/response registry for that current inventory
 - if an AI only needs one first entrypoint, prefer `get_guidance`
 - operator mutations, export artifacts, and retained-evidence cleanup intentionally live on the CLI surface
@@ -61,6 +62,19 @@ Start from the tool that matches the decision you need now, then drill into lowe
 - Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
 - Setup and lifecycle: [`register_project`](#register_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
 - Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
+
+## Read-Only Resources
+
+Use resources when the client only needs stable state and no operation needs to run.
+
+| URI | Kind | Notes |
+|---|---|---|
+| `opendog://projects` | static resource | Equivalent project-list state as JSON; tools remain preferred when the client needs normal tool-call flow. |
+| `opendog://project/{id}/verification` | resource template | Latest verification status JSON for one project. |
+
+Resources are read-only. Registration, monitoring, snapshots, verification execution, deletion, export, and cleanup remain tool or CLI operations.
+
+If resources are missing, reconnect host; follow `QUICKSTART.md`.
 
 ## `register_project`
 
@@ -223,9 +237,13 @@ Request shape:
 
 ```json
 {
-  "id": "demo"
+  "id": "demo",
+  "limit": 50,
+  "path_classification": "source"
 }
 ```
+
+`limit` is optional. MCP defaults to 50 returned file rows so large repositories do not produce unbounded JSON payloads. `path_classification` is optional and defaults to `all`; accepted values are `all`, `source`, `infrastructure`, `backup`, and `project`. Summary fields still describe the full project.
 
 Useful response fields:
 
@@ -234,8 +252,18 @@ Useful response fields:
 - `summary.total_files`
 - `summary.accessed`
 - `summary.unused`
-- `files`
+- `classification_summary.{source_files,infrastructure_files,backup_files,project_files}`
+- `result_window.total_count`
+- `result_window.returned_count`
+- `result_window.limit`
+- `result_window.truncated`
+- `result_window.path_classification`
+- `files[*].path_classification`
 - `guidance`
+
+`path_classification` separates source files from AI/tool infrastructure such as `.claude/`, `.amazonq/`, `.cursor/`, `.agents/`, `.zread/`, and backup-file patterns. This is soft classification: files remain visible unless project ignore patterns explicitly exclude them.
+
+When a filter is active, `result_window.total_count` and `returned_count` describe the filtered row set. `classification_summary` still describes the full unfiltered stats input. If a filter matches no rows, `files` is empty and `truncated=false`; this means the selected view is empty, not that the project has no files.
 
 Review-candidate aids: `guidance.file_recommendations[*].candidate_{basis,risk_hints,priority}` plus matching cleanup/refactor candidates. Use parent cleanup/refactor gate state for safety decisions.
 
@@ -250,17 +278,32 @@ Request shape:
 
 ```json
 {
-  "id": "demo"
+  "id": "demo",
+  "limit": 50,
+  "path_classification": "source"
 }
 ```
+
+`limit` is optional. MCP defaults to 50 returned file rows. `path_classification` is optional and defaults to `all`; accepted values are `all`, `source`, `infrastructure`, `backup`, and `project`. `unused_count` still reports the full number of unused candidates even when `files` is truncated or filtered.
 
 Useful response fields:
 
 - `schema_version`
 - `project_id`
 - `unused_count`
-- `files`
+- `filtered_unused_count`
+- `classification_summary.{source_files,infrastructure_files,backup_files,project_files}`
+- `result_window.total_count`
+- `result_window.returned_count`
+- `result_window.limit`
+- `result_window.truncated`
+- `result_window.path_classification`
+- `files[*].path_classification`
 - `guidance`
+
+Unused recommendations prefer source-classified candidates before infrastructure noise, but infrastructure entries remain visible and counted.
+
+When a non-`all` filter is active, `filtered_unused_count` reports the filtered candidate count while `unused_count` remains the full unfiltered unused count. Infrastructure entries remain available with `path_classification=infrastructure`; OpenDog does not hide them globally.
 
 Review-candidate aids: `guidance.file_recommendations[*].candidate_{basis,risk_hints,priority}` plus matching cleanup/refactor candidates. Use parent cleanup/refactor gate state for safety decisions.
 
@@ -577,6 +620,8 @@ Useful response fields:
 - `verification.gate_assessment.cleanup`
 - `verification.gate_assessment.refactor`
 - `verification.missing_kinds`
+- `verification.freshness.policy`
+- `verification.gate_assessment.*.freshness_policy`
 - `verification.safe_for_cleanup`
 - `verification.safe_for_refactor`
 
@@ -586,6 +631,7 @@ Interpretation notes:
 - `allow` means required evidence is present and fresh enough for that review mode.
 - `caution` means required evidence passed, but advisory evidence is missing or stale.
 - `blocked` means required evidence is missing, stale, or failing.
+- Default TTL policy is machine-readable: fresh <= 24h, aging <= 7d, stale > 7d.
 - `verification.safe_for_cleanup` and `verification.safe_for_refactor` keep the legacy pass/fail contract, so they can still be `true` while the matching gate level is `caution`.
 - `verification.cleanup_blockers` and `verification.refactor_blockers` stay blocker-only; advisory-only guidance lives under `verification.gate_assessment.*.reasons` and `verification.gate_assessment.*.next_steps`.
 
@@ -693,6 +739,8 @@ Useful response fields:
 - `mock_data_candidates`, `hardcoded_data_candidates`
 - `guidance`
 - `data_risk_focus` uses `primary_focus` (`none | mock | hardcoded | mixed`), `priority_order`, and stable `basis` keys such as `hardcoded_candidates_present` or `mixed_review_files_present`
+
+Documentation and template-placeholder findings are down-ranked instead of hidden; inspect `path_classification`, `review_priority`, `confidence`, and `rule_hits` before treating a candidate as runtime risk.
 
 ## `get_workspace_data_risk_overview`
 

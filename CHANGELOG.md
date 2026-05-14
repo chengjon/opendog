@@ -2,6 +2,83 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-05-11
+
+### Added
+
+- Synced mystocks 2026-05-11 source-signal calibration results back into OpenDog project-exchange evidence.
+- Added `TASK-20260511-source-first-observation-views` as the governed follow-up for source-first stats/unused views and transient-read guidance boundaries.
+- Added an approval-ready implementation plan for source-first MCP/CLI observation filters without scanner changes.
+- Revised the source-first observation implementation plan after review to cover empty filtered results, filter-aware guidance, conditional payload fields, and replacement-only boundary wording.
+- Added `path_classification` filters for MCP and CLI stats/unused views with `all`, `source`, `infrastructure`, `backup`, and `project` modes.
+- Added mystocks retest handoff for source-first observation filters and rebuilt the release MCP binary for validation.
+- QUICKSTART now documents that MCP hosts use the configured binary path and require `cargo build --release` plus host reconnect to pick up OpenDog code updates.
+- QUICKSTART now clarifies that OpenDog update commands are WSL/Linux shell maintenance operations run against the OpenDog source tree, not automatic MCP actions or business-project commands.
+- Added governance task card and implementation plan for a CLI-only manual self-update workflow.
+- Added CLI-only `opendog self-update status/build --source <opendog-source>` for explicit local release-binary maintenance.
+- README, capability index, requirements, roadmap, and governance docs now consistently reference the root `FUNCTION_TREE.md`, `register_project`, 22 CLI top-level commands, and the CLI-only `self-update` maintenance entrypoint.
+
+### Changed
+
+- `ODX-20260511-source-signal-observation-calibration` is now classified as expected fd-sampling behavior plus filtering/presentation debt, not a scanner-attribution regression.
+- Field notes now record the 2026-05-11 mystocks calibration decision and route follow-up work to source-first views rather than scanner changes.
+- Stats/unused guidance now clarifies transient-read blind spots and `access_count=0` open-descriptor boundaries while keeping infrastructure evidence visible on request.
+- `ODX-20260511-source-signal-observation-calibration` is now fixed as a product issue by source-first filters and guidance boundaries; transient Claude Code reads remain an explicit sampling limitation rather than a scanner-attribution regression.
+
+## 2026-05-10
+
+### Added
+
+- Central project-exchange directory under `docs/project-exchange/` for OpenDog usage reports, tuning feedback, and cross-project communication.
+- Reusable OpenDog usage feedback template at `docs/project-exchange/templates/OPENDOG_USAGE_FEEDBACK_TEMPLATE.md`.
+- Shared project-exchange issue index for cross-project OpenDog feedback and resolution tracking.
+- Shared issue entries for mystocks MCP regression results: fixed A/G cases and accepted H/I follow-ups.
+- Imported project reports for `mystocks` and `quantix-rust` so OpenDog operating evidence is collected in this repository.
+- Added a mystocks-specific 2026-05-11 MCP retest handoff for Case H and Case I validation.
+- Added a mystocks-specific 2026-05-11 OpenDog change summary for retest handoff context.
+- Imported mystocks 2026-05-11 MCP retest results confirming Case H and Case I are fixed.
+- Opened `ODX-20260511-source-signal-observation-calibration` and a proposed task card for the remaining mystocks `.claude/` dominance / source-signal visibility issue.
+- Added a mystocks source-signal calibration sampling plan for distinguishing scanner, filtering, workflow, and expected-tool-behavior causes.
+- Copied the mystocks source-signal calibration plan into `mystocks_spec` for direct execution from the target project.
+- QUICKSTART now indexes the mystocks retest handoff alongside archived project reports.
+- mystocks feedback now references the 2026-05-11 retest handoff as the execution checklist for Case H and Case I.
+- mystocks feedback now also references the 2026-05-11 OpenDog change summary before retest.
+- `.gitignore` now excludes local `.claude/` integration files to avoid accidental product commits.
+- Governed follow-up task cards for data-risk false-positive reduction, MCP regression coverage, verification evidence TTL policy, and read-only MCP Resources.
+- OpenSpec governance artifacts for `fix-fd-attribution`, including acceptance evidence, review plan, and future scanner attribution change gate.
+- Data-risk rule metadata for documentation paths and template-placeholder content.
+- Source/infrastructure/backup file classification plumbing for stats, unused-file review, CLI output, MCP payloads, and guidance.
+- Regression coverage for daemon-backed explicit snapshot comparison and verification command execution paths used by MCP when the daemon is live.
+- Machine-readable verification freshness TTL policy fields in verification status and gate assessment payloads.
+- Read-only MCP Resources for stable project-list and per-project verification state reads.
+- Dedicated governance task cards for UTF-8 guidance panic handling, daemon IPC response integrity, MCP observation payload bounds, infrastructure file classification, data-risk noise reduction, regression coverage, TTL transparency, and read-only MCP Resources.
+
+### Changed
+
+- `/proc/<pid>/fd` attribution now distinguishes file descriptors from directory descriptors and deduplicates `(pid, fd)` sightings within one scan cycle, preventing directory-fd fan-out from inflating per-file access counts.
+- Project feedback and report templates are now managed from the OpenDog repository instead of being scattered across target project directories.
+- Project-exchange reports now distinguish one-to-one project response routing from cross-project shared issue visibility.
+- Structural hygiene now treats project-exchange reports as evidence artifacts with a larger size budget than reference docs.
+- Structural hygiene now treats `QUICKSTART.md` as the canonical detailed usage guide with a 1000-line budget, while `README.md`, `CLAUDE.md`, and `REVIEW.md` have a 600-line root-doc budget.
+- Structural hygiene now gives `docs/mcp-tool-reference.md` a dedicated MCP contract-reference budget instead of forcing it under the default docs-reference byte cap.
+- Structural hygiene now gives `docs/json-contracts.md` a dedicated machine-contract budget.
+- Governance docs now state the root-document and QUICKSTART line-budget policy explicitly.
+- Root `CHANGELOG.md` updates are now required for substantial project changes before closure.
+- Data-risk hardcoded candidates in documentation or template-heavy files are now down-ranked instead of being treated like runtime-shared source literals.
+- MCP `get_stats` and `get_unused_files` now default to bounded file rows while preserving full project counts and result-window metadata.
+- QUICKSTART now documents the required large-payload MCP retest contract for default and explicit `limit` calls.
+- QUICKSTART now documents MCP resource-discovery retest evidence after OpenDog rebuilds.
+- QUICKSTART project-exchange guidance is now expanded into readable report-routing, hygiene, and retest checklists.
+- MCP tool reference now includes resource-discovery troubleshooting for host reconnect and raw capability checks.
+- Capability index now lists read-only MCP Resources as the preferred no-operation read path for project-list and verification state.
+- JSON contracts now document bounded MCP stats/unused result windows and read-only MCP Resource consumption.
+- Daemon empty or truncated socket responses now surface as transport-integrity errors with remediation guidance.
+- Agent guidance and mock-data preview generation now tolerate non-ASCII/UTF-8 content without panicking.
+- Verification freshness now exposes the default policy thresholds: fresh within 24h, aging through 7d, stale after 7d.
+- MCP server capabilities now advertise read-only resources in addition to tools; mutations remain on tools or CLI.
+- Rebuilt and protocol-verified the release MCP binary for read-only resource capability discovery.
+- `README.md`, `QUICKSTART.md`, `FUNCTION_TREE.md`, and MCP documentation now point readers to the current governance, MCP, and cross-project exchange surfaces.
+
 ## 2026-05-02
 
 ### Added

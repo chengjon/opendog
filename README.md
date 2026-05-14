@@ -22,9 +22,15 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 - 已实现 MCP stdio 服务，当前不仅提供基础控制工具，也提供 AI 决策辅助工具
 - `opendog mcp` 现已自动确保 daemon-backed 运行路径可用，监控状态可跨 MCP 会话稳定复用
 - 其他 MCP Host 接入时，建议显式设置固定的 `OPENDOG_HOME`，这样即使宿主用不同 `HOME` 启动子进程，也会复用同一份 daemon / registry / project DB
+- MCP 现同时提供 19 个工具和只读 Resources：`opendog://projects`、`opendog://project/{id}/verification`
 - 已实现验证结果记录与执行：测试、lint、build 可以作为 evidence 持久化
 - 已实现 MOCK / hardcoded pseudo-data 检测，并可在项目级与 workspace 级汇总
+- 已修复目录 fd 误归因问题：`/proc/<pid>/fd` 扫描只把文件级 fd 归因到快照文件，并在单次扫描周期内按 `(pid, fd)` 去重
+- 已增加源码/AI 基础设施/备份文件软分类，避免 `.claude/`、`.agents/`、`.zread/` 等工具目录噪声直接淹没源文件判断
+- 已为 `stats` / `unused` 提供 `path_classification` 过滤，AI 可以先看 source 视图，同时保留 infrastructure / backup / project 证据
 - 已实现留存证据生命周期与存储维护信号：`cleanup-data`、`agent-guidance` / `decision-brief` 会暴露存储维护 / `VACUUM` 候选
+- 已实现 CLI-only 手动更新工作流：`opendog self-update status|build --source /opt/claude/opendog` 用于检查和重建 MCP 使用的 release binary
+- 已建立 `docs/project-exchange/` 作为跨项目 OPENDOG 使用报告、反馈和模板的集中交流目录
 - 已建立 `FUNCTION_TREE.md` + `.planning/task-cards/` 的能力治理入口，后续任务卡需要先声明 `FT-*` 影响再执行
 - 已为 `.planning/REQUIREMENTS.md` 建立逐段 `Maps to FT:` 映射与校验入口，避免 requirement 漂移或失去能力归属
 - 已提供统一治理入口 `python3 scripts/validate_planning_governance.py`，可一次性检查 task card、requirement 映射、函数树覆盖、roadmap 统计一致性，以及关键源码/文档的结构性大小门禁
@@ -62,6 +68,7 @@ OPENDOG 项目概览（当前实现 + 历史方案导航）
 - 配置查询：`get_global_config`、`get_project_config`
 - AI 辅助：`get_guidance`、`get_verification_status`、`record_verification_result`、`run_verification_command`
 - 数据风险：`get_data_risk_candidates`、`get_workspace_data_risk_overview`
+- 只读 Resources：`opendog://projects`、`opendog://project/{id}/verification`
 
 收口说明：
 
@@ -80,11 +87,12 @@ MCP 作用域提示：
 
 ## 当前 CLI 命令
 
-- 当前 CLI 顶层入口共 `21` 个命令，下面按能力簇分组列出
+- 当前 CLI 顶层入口共 `22` 个命令，下面按能力簇分组列出
 - 基础：`opendog register|snapshot|start|stop|stats|unused|list|delete|daemon|mcp|export`
 - 比较报告：`opendog report window|compare|trend [--json]`
 - 数据清理：`opendog cleanup-data --id <ID> --scope <activity|snapshots|verification|all> [--dry-run] [--vacuum] [--json]`
 - 配置：`opendog config show|set-project|set-global|reload [--json]`
+- 维护：`opendog self-update status|build --source /opt/claude/opendog [--json]`
 - 指导：`opendog agent-guidance [--project <ID>] [--top <N>] [--json]`
 - 决策骨架：`opendog decision-brief [--project <ID>] [--top <N>] [--json]`
 - 验证：`opendog record-verification|verification|run-verification [--json]`
@@ -105,26 +113,8 @@ MCP 作用域提示：
 
 ## Quick Start for AI
 
-按下面顺序调用，通常不会错：
-
-1. 建项目或确认项目存在：`register_project` / `opendog register`
-2. 建立基线：`take_snapshot` / `opendog snapshot`
-3. 开启持续观测：`start_monitor` / `opendog start`
-4. 先拿统一判断入口：`get_guidance` / `opendog decision-brief` 或 `opendog agent-guidance`
-5. 再按需要进入 report、verification、data-risk、workspace-data-risk 等具体路径
-
-常用判断入口：
-
-- 想知道“先看哪个项目”：`get_workspace_data_risk_overview` / `opendog workspace-data-risk`
-- 想先拿统一决策骨架：`get_guidance(detail=decision)` / `opendog decision-brief`
-- 想知道“现在适不适合改”：`get_guidance(detail=summary)` / `opendog agent-guidance`
-- 想知道“最近变了什么”：`compare_snapshots`、`get_time_window_report`、`get_usage_trends`
-- 想知道“能不能安全清理/重构”：先 `get_verification_status`，再 `get_data_risk_candidates`
-
-详细调用顺序见 [docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)。
-能力到 MCP / CLI / JSON contract 的单页映射见 [docs/capability-index.md](/opt/claude/opendog/docs/capability-index.md)。
-CLI JSON 契约见 [docs/json-contracts.md](/opt/claude/opendog/docs/json-contracts.md)。
-MCP 请求参数与返回重点见 [docs/mcp-tool-reference.md](/opt/claude/opendog/docs/mcp-tool-reference.md)。
+快速上手、MCP/CLI 接入、只读 Resources 和外部项目集成提示见 [QUICKSTART.md](/opt/claude/opendog/QUICKSTART.md)。
+如果你只想先拿最短路径，从这里开始即可。
 
 ## 历史方案与关键修正
 

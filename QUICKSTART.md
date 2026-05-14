@@ -112,6 +112,52 @@ opendog daemon   # Starts the background daemon explicitly (useful for systemd/u
 
 For stable cross-session reuse, prefer setting `OPENDOG_HOME` to a fixed absolute directory. If you omit it, OPENDOG falls back to `HOME/.opendog`, which is fine only when the host always launches `opendog mcp` with the same `HOME`.
 
+#### MCP Binary Updates
+
+MCP hosts execute the binary path configured in their MCP settings. Updating OpenDog source code does not update already configured MCP servers by itself.
+
+If a host is configured like this:
+
+```json
+{
+  "command": "/opt/claude/opendog/target/release/opendog",
+  "args": ["mcp"]
+}
+```
+
+then it will use the latest code only after both conditions are true:
+
+- OpenDog has been rebuilt with `cargo build --release`.
+- The MCP host has restarted or reconnected so the old `opendog mcp` process exits and a new process starts.
+
+Recommended update flow:
+
+```bash
+cd /opt/claude/opendog
+opendog self-update status --source /opt/claude/opendog
+opendog self-update build --source /opt/claude/opendog
+```
+
+Execution boundary:
+
+- Run this from a WSL/Linux shell, not as an automatic MCP tool action.
+- Treat it as an OpenDog maintenance/operations command, not as a business-project command.
+- Prefer running it from `/opt/claude/opendog`; if you run from another directory such as `/opt/claude/mystocks_spec`, explicitly target the OpenDog source path and do not treat the current project as the OpenDog source tree.
+- The human maintainer or an explicitly authorized local operations agent should run it.
+- The command updates the OpenDog release binary, not other projects' source code.
+
+The build command runs `cargo build --release` against the explicit `--source` path.
+
+Then restart or reconnect Claude Code, Codex CLI, or the MCP host that uses OpenDog. A currently running MCP server process does not hot-reload when the file on disk changes. OpenDog must not kill the MCP process, restart the host, or edit `.claude.json` / Codex MCP config automatically.
+
+For multi-project use, prefer configuring every project to point at the same release binary:
+
+```text
+/opt/claude/opendog/target/release/opendog
+```
+
+If a project uses a copied binary such as `/opt/claude/<project>/bin/opendog`, it will not receive OpenDog updates automatically. Either copy the rebuilt binary to that project-specific path, or update the MCP config to point to the shared release binary above.
+
 **Current MCP Tool Surface:**
 
 OPENDOG currently exposes 19 MCP tools:
@@ -123,6 +169,15 @@ OPENDOG currently exposes 19 MCP tools:
 - `get_data_risk_candidates`, `get_workspace_data_risk_overview`
 
 Detailed request and response shapes live in [docs/mcp-tool-reference.md](/opt/claude/opendog/docs/mcp-tool-reference.md).
+
+**Current Read-Only MCP Resources:**
+
+Use resources when an MCP client only needs stable state and no operation should run:
+
+- `opendog://projects` — registered project-list state as JSON
+- `opendog://project/{id}/verification` — latest recorded verification status for one project
+
+Tools remain the right surface for registration, snapshots, monitoring, verification execution, deletion, export, and cleanup.
 
 ### Using OPENDOG from External Projects
 
@@ -143,6 +198,18 @@ Do **not** treat these as stable external interfaces:
 - If your external project supports MCP, use `opendog mcp`
 - If your external project does not support MCP, invoke the `opendog` CLI directly
 - For stable cross-session reuse, always set a fixed `OPENDOG_HOME`
+
+#### Multi-Project MCP Isolation
+
+OpenDog supports multiple projects and MCP hosts sharing one daemon when they use the same fixed `OPENDOG_HOME`: `registry.db` stores unique project ids, `daemon.sock` is shared by MCP sessions, the daemon keeps one monitor handle per project id, repeated `start_monitor` returns `already_running`, and each project writes its own SQLite file at `$OPENDOG_HOME/data/projects/<project_id>.db`.
+
+Storage layout: `$OPENDOG_HOME/config.json`, `$OPENDOG_HOME/data/registry.db`, `$OPENDOG_HOME/data/daemon.sock`, `$OPENDOG_HOME/data/daemon.pid`, and `$OPENDOG_HOME/data/projects/<project_id>.db`. SQLite uses WAL and a busy timeout for normal concurrent CLI/MCP reads and daemon writes. If `OPENDOG_HOME` is not set, OpenDog falls back to `$HOME/.opendog/`; for multi-project MCP use, set the same absolute `OPENDOG_HOME` in every host config.
+
+#### Integration Boundary Hint
+
+- Prefer observation-first calls: `register_project`, `take_snapshot`, `start_monitor`, `get_guidance`, reports, stats, data-risk, and verification-status.
+- For read-only state in MCP hosts, prefer `opendog://projects` and `opendog://project/{id}/verification` when available.
+- OPENDOG does not normally modify project source. Extra attention is needed for `run_verification_command`, which runs your command in the project root, and `export`, which writes artifacts to your chosen output path.
 
 Recommended generic MCP host config:
 
@@ -197,11 +264,23 @@ Typical request examples:
 
 After a project has already been registered, later MCP sessions usually skip `register_project` and go straight to one of these read or runtime surfaces:
 
+- `opendog://projects` to read registered projects without invoking a tool
+- `opendog://project/{id}/verification` to read latest verification evidence without invoking a tool
 - `get_guidance` for the recommended next action
 - `get_stats` for hot files
 - `get_unused_files` for cleanup candidates
 - `get_time_window_report`, `compare_snapshots`, `get_usage_trends` for report-style observation
 - `get_verification_status` and `get_data_risk_candidates` for readiness and data-risk checks
+
+Source-first observation examples for AI-assisted repositories:
+
+```json
+get_stats {"id":"mystocks","path_classification":"source","limit":50}
+get_unused_files {"id":"mystocks","path_classification":"source","limit":50}
+get_stats {"id":"mystocks","path_classification":"infrastructure","limit":10}
+```
+
+`path_classification` accepts `all`, `source`, `infrastructure`, `backup`, and `project`. Filtering changes the returned `files` window, not the full project counts or `classification_summary`; infrastructure evidence such as `.claude/` remains available when requested.
 
 #### CLI Usage for Scripts and CI
 
@@ -219,6 +298,56 @@ Important behavior notes:
 - `opendog start --id <ID>` is a blocking foreground command
 - `opendog mcp` is the preferred long-lived integration surface for external hosts
 - config mutation, evidence export, and retained-data cleanup are currently CLI-only operator flows
+
+### Project Exchange Reports
+
+OpenDog keeps cross-project usage feedback here so reports do not scatter across target projects.
+
+Core files:
+
+- Directory guide: [docs/project-exchange/README.md](/opt/claude/opendog/docs/project-exchange/README.md)
+- Shared issue index: [docs/project-exchange/issues/INDEX.md](/opt/claude/opendog/docs/project-exchange/issues/INDEX.md)
+- Feedback template: [docs/project-exchange/templates/OPENDOG_USAGE_FEEDBACK_TEMPLATE.md](/opt/claude/opendog/docs/project-exchange/templates/OPENDOG_USAGE_FEEDBACK_TEMPLATE.md)
+
+Archived project reports:
+
+- [docs/project-exchange/reports/mystocks/OPENDOG_USAGE_FEEDBACK.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/OPENDOG_USAGE_FEEDBACK.md) - migrated `mystocks_spec` feedback.
+- [docs/project-exchange/reports/mystocks/opendog-mcp-retest-results-2026-05-11.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/opendog-mcp-retest-results-2026-05-11.md) - mystocks Case H / Case I PASS retest results.
+- [docs/project-exchange/reports/mystocks/source-signal-calibration-plan-2026-05-11.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/source-signal-calibration-plan-2026-05-11.md) - mystocks source-signal observation calibration plan.
+- [docs/project-exchange/reports/mystocks/source-first-observation-filter-retest-handoff-2026-05-11.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/source-first-observation-filter-retest-handoff-2026-05-11.md) - mystocks source-first filter retest handoff.
+- [docs/project-exchange/reports/mystocks/opendog-retest-handoff-2026-05-11.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/opendog-retest-handoff-2026-05-11.md) - mystocks Case H / Case I retest handoff.
+- [docs/project-exchange/reports/mystocks/opendog-change-summary-2026-05-11.md](/opt/claude/opendog/docs/project-exchange/reports/mystocks/opendog-change-summary-2026-05-11.md) - OpenDog-side change summary before mystocks retest.
+- [docs/project-exchange/reports/quantix-rust/opendog-mcp-test-report-2026-05-10.md](/opt/claude/opendog/docs/project-exchange/reports/quantix-rust/opendog-mcp-test-report-2026-05-10.md) - `quantix-rust` MCP report.
+
+For new reports, start from the template and save under `docs/project-exchange/reports/<project>/` so project A's report and OpenDog response stay one-to-one. If the same issue applies to A/B/C, assign an `ODX-YYYYMMDD-<slug>` id in `docs/project-exchange/issues/INDEX.md`, link each project report, and update both the shared index and origin report when fixed/deferred/rejected.
+
+Report hygiene:
+
+- Create or update `.planning/task-cards/` for product follow-up.
+- Update root `CHANGELOG.md` for substantial OpenDog changes.
+- Record exact MCP or CLI calls, binary path, `OPENDOG_HOME`, and relevant host version.
+- Do not paste secrets, tokens, private business data, or full raw payloads unless they are required evidence and safe to store.
+- Treat `unused` as evidence-window-limited; never interpret it as proof that a file is safe to delete.
+
+Large MCP payload retest:
+
+1. Call `get_stats {"id":"<project>"}`.
+2. Call `get_stats {"id":"<project>","limit":50}`.
+3. Call `get_unused_files {"id":"<project>"}`.
+4. Call `get_unused_files {"id":"<project>","limit":50}`.
+5. Call `get_stats {"id":"<project>","path_classification":"source","limit":50}` for source-first view validation.
+6. Confirm `files.length <= limit`, `result_window.limit == limit`, and `result_window.truncated` reports whether filtered counts exceed returned rows.
+7. Remember that `summary`, `unused_count`, and `classification_summary` may still report full project totals by design.
+8. If a host still receives MB-scale output, capture the configured MCP command, connected binary path/process, `OPENDOG_HOME`, and raw response envelope in the project report.
+
+MCP resource-discovery retest:
+
+1. Restart or reconnect the MCP host after any OpenDog rebuild.
+2. Confirm initialize capabilities include `resources`.
+3. Confirm `resources/list` returns `opendog://projects`.
+4. Confirm `resources/templates/list` returns `opendog://project/{id}/verification`.
+5. Confirm `resources/read` works for `opendog://projects` and `opendog://project/<project>/verification`.
+6. If the host still shows no resources, capture initialize capabilities, `resources/list` raw response, binary path/process, and host version.
 
 ### Daemon Mode (systemd)
 
@@ -294,7 +423,7 @@ You can override that root with `OPENDOG_HOME=/absolute/path/to/opendog-state`. 
 |-------|-----|
 | `inotify max_user_watches is low` | `sudo sysctl fs.inotify.max_user_watches=524288` |
 | `Detected WSL1` | Upgrade to WSL2 for reliable inotify |
-| `Invalid path` | Ensure directory exists before `create` |
+| `Invalid path` | Ensure directory exists before `register` |
 | `Project not found` | Run `opendog list` to see registered projects |
 | No stats showing | Run `opendog snapshot` first, then `opendog start` to begin monitoring |
 | MCP state disappears between reconnects | Ensure every MCP host launch uses the same `OPENDOG_HOME` value, or at least the same `HOME` |
