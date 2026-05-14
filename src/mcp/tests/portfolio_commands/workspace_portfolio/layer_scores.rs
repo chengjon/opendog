@@ -95,7 +95,7 @@ fn workspace_portfolio_layer_exposes_attention_scores_and_reasons() {
     alpha["safe_for_cleanup"] = json!(false);
     alpha["safe_for_refactor"] = json!(false);
 
-    let value = workspace_portfolio_layer(&[alpha], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[alpha], 0, &[], vec![], 0)).unwrap();
 
     assert!(value["attention_queue"][0]["attention_score"].is_i64());
     assert!(value["attention_queue"][0]["attention_band"].is_string());
@@ -140,7 +140,7 @@ fn workspace_portfolio_layer_batches_attention_queue_into_immediate_next_and_lat
 
     let foxtrot = portfolio_overview("foxtrot", "inspect_hot_files");
 
-    let value = workspace_portfolio_layer(&[alpha, beta, gamma, delta, echo, foxtrot], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[alpha, beta, gamma, delta, echo, foxtrot], 0, &[], vec![], 0)).unwrap();
 
     assert_attention_batch_metadata(&value, 5, 1);
     assert_attention_batches_match_queue(&value);
@@ -148,7 +148,7 @@ fn workspace_portfolio_layer_batches_attention_queue_into_immediate_next_and_lat
 
 #[test]
 fn workspace_portfolio_layer_batches_attention_queue_safely_when_empty() {
-    let value = workspace_portfolio_layer(&[], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[], 0, &[], vec![], 0)).unwrap();
 
     assert_attention_batch_metadata(&value, 0, 0);
     assert_attention_batches_match_queue(&value);
@@ -160,7 +160,7 @@ fn workspace_portfolio_layer_batches_single_attention_project_into_immediate_onl
     alpha["repo_status_risk"]["risk_level"] = json!("medium");
     alpha["verification_evidence"]["failing_runs"] = json!([{ "kind": "test" }]);
 
-    let value = workspace_portfolio_layer(&[alpha], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[alpha], 0, &[], vec![], 0)).unwrap();
     assert_attention_batch_metadata(&value, 1, 0);
     assert_attention_batches_match_queue(&value);
 }
@@ -175,7 +175,7 @@ fn workspace_portfolio_layer_batches_two_attention_projects_without_overflowing_
     beta["observation"]["coverage_state"] = json!("missing_snapshot");
     beta["observation"]["freshness"]["snapshot"]["status"] = json!("missing");
 
-    let value = workspace_portfolio_layer(&[alpha, beta], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[alpha, beta], 0, &[], vec![], 0)).unwrap();
 
     assert_attention_batch_metadata(&value, 2, 0);
     assert_attention_batches_match_queue(&value);
@@ -202,7 +202,7 @@ fn workspace_portfolio_layer_batches_three_attention_projects_without_overflowin
     gamma["observation"]["coverage_state"] = json!("missing_snapshot");
     gamma["observation"]["freshness"]["snapshot"]["status"] = json!("missing");
 
-    let value = workspace_portfolio_layer(&[alpha, beta, gamma], 0, &[], vec![], 0);
+    let value = serde_json::to_value(workspace_portfolio_layer(&[alpha, beta, gamma], 0, &[], vec![], 0)).unwrap();
 
     assert_attention_batch_metadata(&value, 3, 0);
     assert_attention_batches_match_queue(&value);

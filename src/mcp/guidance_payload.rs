@@ -528,13 +528,15 @@ pub(crate) fn agent_guidance_payload(
             repo_stabilization_priority_projects: json!(stabilization_summary.repo_stabilization_priority_projects),
         })
         .expect("ExecutionStrategyLayer serialization");
-    value["guidance"]["layers"]["multi_project_portfolio"] = workspace_portfolio_layer(
-        project_overviews,
-        monitoring_count,
-        monitored_projects,
-        sorted_project_recommendations,
-        projects_with_hardcoded_data,
-    );
+    value["guidance"]["layers"]["multi_project_portfolio"] =
+        serde_json::to_value(workspace_portfolio_layer(
+            project_overviews,
+            monitoring_count,
+            monitored_projects,
+            sorted_project_recommendations,
+            projects_with_hardcoded_data,
+        ))
+        .expect("WorkspacePortfolioLayer serialization");
     value["guidance"]["layers"]["storage_maintenance"] = storage_maintenance;
     value["guidance"]["layers"]["verification_evidence"] =
         workspace_verification_evidence_layer(project_overviews, project_count, monitoring_count);

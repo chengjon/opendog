@@ -271,7 +271,7 @@ pub(super) fn workspace_portfolio_layer(
     monitored_projects: &[String],
     priority_candidates: Vec<Value>,
     projects_with_hardcoded_data: usize,
-) -> Value {
+) -> WorkspacePortfolioLayer {
     let status = "available";
     let enriched_project_overviews = project_overviews
         .iter()
@@ -394,7 +394,7 @@ pub(super) fn workspace_portfolio_layer(
     let attention_batches =
         attention_batches_from_queue(&attention_queue, project_overviews.len(), status);
 
-    serde_json::to_value(WorkspacePortfolioLayer {
+    WorkspacePortfolioLayer {
         status: status.to_string(),
         project_count: project_overviews.len(),
         monitoring_count,
@@ -414,8 +414,7 @@ pub(super) fn workspace_portfolio_layer(
         projects_in_operation,
         attention_queue,
         attention_batches,
-    })
-    .expect("WorkspacePortfolioLayer serialization")
+    }
 }
 
 pub(super) fn sort_project_recommendations(
