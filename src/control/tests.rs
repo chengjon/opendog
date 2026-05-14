@@ -305,26 +305,19 @@ fn control_request_deserialization_defaults_omitted_incremental_patch_vectors() 
     .unwrap();
 
     match project_request {
-        ControlRequest::UpdateProjectConfig {
-            id,
-            ignore_patterns,
-            process_whitelist,
-            add_ignore_patterns,
-            remove_ignore_patterns,
-            add_process_whitelist,
-            remove_process_whitelist,
-            inherit_ignore_patterns,
-            inherit_process_whitelist,
-        } => {
-            assert_eq!(id, "demo");
-            assert_eq!(ignore_patterns, None);
-            assert_eq!(process_whitelist, Some(vec!["codex".to_string()]));
-            assert!(add_ignore_patterns.is_empty());
-            assert!(remove_ignore_patterns.is_empty());
-            assert!(add_process_whitelist.is_empty());
-            assert!(remove_process_whitelist.is_empty());
-            assert!(!inherit_ignore_patterns);
-            assert!(inherit_process_whitelist);
+        ControlRequest::UpdateProjectConfig(fields) => {
+            assert_eq!(fields.id, "demo");
+            assert_eq!(fields.patch.ignore_patterns, None);
+            assert_eq!(
+                fields.patch.process_whitelist,
+                Some(vec!["codex".to_string()])
+            );
+            assert!(fields.patch.add_ignore_patterns.is_empty());
+            assert!(fields.patch.remove_ignore_patterns.is_empty());
+            assert!(fields.patch.add_process_whitelist.is_empty());
+            assert!(fields.patch.remove_process_whitelist.is_empty());
+            assert!(!fields.patch.inherit_ignore_patterns);
+            assert!(fields.patch.inherit_process_whitelist);
         }
         other => panic!("unexpected response: {:?}", other),
     }

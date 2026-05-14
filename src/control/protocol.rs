@@ -1,6 +1,6 @@
 use crate::config::{
-    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload,
-    ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
+    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch,
+    ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::ProjectDataCleanupResult;
@@ -10,6 +10,13 @@ use crate::core::verification::ExecutedVerificationResult;
 use crate::storage::queries::{StatsEntry, VerificationRun};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateProjectConfigFields {
+    pub id: String,
+    #[serde(flatten)]
+    pub patch: ProjectConfigPatch,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ControlRequest {
@@ -31,21 +38,7 @@ pub enum ControlRequest {
         id: String,
     },
     UpdateGlobalConfig(ConfigPatch),
-    UpdateProjectConfig {
-        id: String,
-        ignore_patterns: Option<Vec<String>>,
-        process_whitelist: Option<Vec<String>>,
-        #[serde(default)]
-        add_ignore_patterns: Vec<String>,
-        #[serde(default)]
-        remove_ignore_patterns: Vec<String>,
-        #[serde(default)]
-        add_process_whitelist: Vec<String>,
-        #[serde(default)]
-        remove_process_whitelist: Vec<String>,
-        inherit_ignore_patterns: bool,
-        inherit_process_whitelist: bool,
-    },
+    UpdateProjectConfig(UpdateProjectConfigFields),
     ReloadProjectConfig {
         id: String,
     },

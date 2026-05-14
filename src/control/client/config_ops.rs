@@ -2,6 +2,7 @@ use crate::config::{
     ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch,
     ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
+use crate::control::protocol::UpdateProjectConfigFields;
 use crate::error::{OpenDogError, Result};
 
 use super::{ControlRequest, ControlResponse, DaemonClient};
@@ -56,17 +57,11 @@ impl DaemonClient {
         id: &str,
         patch: ProjectConfigPatch,
     ) -> Result<ProjectConfigUpdateResult> {
-        match self.send(ControlRequest::UpdateProjectConfig {
+        match self.send(ControlRequest::UpdateProjectConfig(UpdateProjectConfigFields {
             id: id.to_string(),
-            ignore_patterns: patch.ignore_patterns,
-            process_whitelist: patch.process_whitelist,
-            add_ignore_patterns: patch.add_ignore_patterns,
-            remove_ignore_patterns: patch.remove_ignore_patterns,
-            add_process_whitelist: patch.add_process_whitelist,
-            remove_process_whitelist: patch.remove_process_whitelist,
-            inherit_ignore_patterns: patch.inherit_ignore_patterns,
-            inherit_process_whitelist: patch.inherit_process_whitelist,
-        })? {
+            patch,
+        }))?
+        {
             ControlResponse::ProjectConfigUpdated { result } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(

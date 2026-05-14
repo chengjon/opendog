@@ -1,4 +1,3 @@
-use crate::config::ProjectConfigPatch;
 use crate::core::report::ReportWindow;
 use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
@@ -47,34 +46,14 @@ impl MonitorController {
                     },
                 }
             }
-            ControlRequest::UpdateProjectConfig {
-                id,
-                ignore_patterns,
-                process_whitelist,
-                add_ignore_patterns,
-                remove_ignore_patterns,
-                add_process_whitelist,
-                remove_process_whitelist,
-                inherit_ignore_patterns,
-                inherit_process_whitelist,
-            } => match self.update_project_config(
-                &id,
-                ProjectConfigPatch {
-                    ignore_patterns,
-                    process_whitelist,
-                    add_ignore_patterns,
-                    remove_ignore_patterns,
-                    add_process_whitelist,
-                    remove_process_whitelist,
-                    inherit_ignore_patterns,
-                    inherit_process_whitelist,
-                },
-            ) {
-                Ok(result) => ControlResponse::ProjectConfigUpdated { result },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::UpdateProjectConfig(fields) => {
+                match self.update_project_config(&fields.id, fields.patch) {
+                    Ok(result) => ControlResponse::ProjectConfigUpdated { result },
+                    Err(e) => ControlResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
+            }
             ControlRequest::ReloadProjectConfig { id } => match self.reload_project_config(&id) {
                 Ok(reload) => match self.pm.effective_project_config(&id) {
                     Ok(effective) => ControlResponse::ProjectConfigReloaded {
