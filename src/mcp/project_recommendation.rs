@@ -15,6 +15,7 @@ use self::reasoning::{build_reason, derive_confidence};
 use self::scoring::score_review_actions;
 use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
+use super::guidance_types::Recommendation;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
@@ -220,280 +221,274 @@ pub(crate) fn recommend_project_action(
         .first()
         .cloned()
         .unwrap_or_else(|| "git status".to_string());
-    let attach_execution_sequence = |mut payload: Value| {
-        let selected_action = payload["recommended_next_action"]
-            .as_str()
-            .unwrap_or_default();
-        payload["execution_sequence"] = execution_sequence_for_recommendation(
-            selected_action,
-            repo_risk,
-            verification_runs,
-            &project_toolchain,
-        );
-        payload
-    };
-    let attach_review_focus = |mut payload: Value| {
-        let selected_action = payload["recommended_next_action"]
-            .as_str()
-            .unwrap_or_default();
-        payload["review_focus"] = review_focus_for_action(selected_action, repo_risk);
-        payload
-    };
-    let attach_recommendation_metadata = |payload: Value| {
-        let payload = attach_execution_sequence(payload);
-        attach_review_focus(payload)
-    };
 
-    if eligibility.forced_action == Some("review_failing_verification") {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "review_failing_verification",
-            "recommended_flow": [
-                "Inspect the latest failing or uncertain verification evidence first.",
-                "Use shell diff and project-native verification commands to stabilize the project.",
-                "Return to cleanup or refactor review only after verification is passing again."
+    let blockers = || Some(Value::Array(cleanup_blockers.clone()));
+    let refactor_b = || Some(Value::Array(refactor_blockers.clone()));
+
+    let rec = if eligibility.forced_action == Some("review_failing_verification") {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "review_failing_verification".to_string(),
+            recommended_flow: vec![
+                "Inspect the latest failing or uncertain verification evidence first.".to_string(),
+                "Use shell diff and project-native verification commands to stabilize the project.".to_string(),
+                "Return to cleanup or refactor review only after verification is passing again.".to_string(),
             ],
-            "reason": "Recent verification evidence includes failing or uncertain runs, so review and stabilize those results before broader cleanup or refactoring.",
-            "confidence": "high",
-            "strategy_mode": "verify_before_modify",
-            "strategy_profile": strategy_profile(
+            reason: "Recent verification evidence includes failing or uncertain runs, so review and stabilize those results before broader cleanup or refactoring.".to_string(),
+            confidence: "high".to_string(),
+            strategy_mode: "verify_before_modify".to_string(),
+            strategy_profile: strategy_profile(
                 "verify_before_modify",
                 "shell",
                 "opendog",
                 &["verification", "repository_risk", "activity_signals"],
             ),
-            "verification_gate_levels": gate_levels,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: blockers(),
+            refactor_blockers: refactor_b(),
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 "opendog verification --id <project>".to_string(),
                 primary_verification_command,
-                "git diff".to_string()
-            ]
-        }))
-    } else if eligibility.forced_action == Some("stabilize_repository_state") {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "stabilize_repository_state",
-            "recommended_flow": [
-                "Stabilize the repository before broader code changes.",
-                "Use git status and diff to understand the in-progress operation.",
-                "Only return to OPENDOG-guided cleanup or review after the repository state is stable."
+                "git diff".to_string(),
             ],
-            "reason": "The repository is mid-operation (merge/rebase/cherry-pick/bisect), so avoid broad modifications until that state is resolved.",
-            "confidence": "high",
-            "strategy_mode": "stabilize_before_modify",
-            "strategy_profile": strategy_profile(
+        }
+    } else if eligibility.forced_action == Some("stabilize_repository_state") {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "stabilize_repository_state".to_string(),
+            recommended_flow: vec![
+                "Stabilize the repository before broader code changes.".to_string(),
+                "Use git status and diff to understand the in-progress operation.".to_string(),
+                "Only return to OPENDOG-guided cleanup or review after the repository state is stable.".to_string(),
+            ],
+            reason: "The repository is mid-operation (merge/rebase/cherry-pick/bisect), so avoid broad modifications until that state is resolved.".to_string(),
+            confidence: "high".to_string(),
+            strategy_mode: "stabilize_before_modify".to_string(),
+            strategy_profile: strategy_profile(
                 "stabilize_before_modify",
                 "shell",
                 "opendog",
                 &["repository_risk", "verification", "activity_signals"],
             ),
-            "verification_gate_levels": gate_levels,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: blockers(),
+            refactor_blockers: refactor_b(),
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 "git status".to_string(),
                 "git diff".to_string(),
-                "opendog verification --id <project>".to_string()
-            ]
-        }))
-    } else if project.status != "monitoring" {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "start_monitor",
-            "recommended_flow": [
-                "Start monitoring because fresh activity evidence does not exist yet.",
-                "Let real workflow activity happen after monitoring is active.",
-                "Inspect stats only after OPENDOG has observed meaningful activity."
+                "opendog verification --id <project>".to_string(),
             ],
-            "reason": "This project is not currently being monitored, so opendog cannot collect fresh activity data yet.",
-            "confidence": "medium",
-            "strategy_mode": "collect_evidence_first",
-            "strategy_profile": strategy_profile(
+        }
+    } else if project.status != "monitoring" {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "start_monitor".to_string(),
+            recommended_flow: vec![
+                "Start monitoring because fresh activity evidence does not exist yet.".to_string(),
+                "Let real workflow activity happen after monitoring is active.".to_string(),
+                "Inspect stats only after OPENDOG has observed meaningful activity.".to_string(),
+            ],
+            reason: "This project is not currently being monitored, so opendog cannot collect fresh activity data yet.".to_string(),
+            confidence: "medium".to_string(),
+            strategy_mode: "collect_evidence_first".to_string(),
+            strategy_profile: strategy_profile(
                 "collect_evidence_first",
                 "opendog",
                 "shell",
                 &["activity_signals", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: None,
+            refactor_blockers: None,
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 format!("opendog start --id {}", project.id),
-                format!("opendog stats --id {}", project.id)
-            ]
-        }))
-    } else if project.total_files == 0 || snapshot_stale {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "take_snapshot",
-            "recommended_flow": [
-                "Take a snapshot to establish the project baseline.",
-                "Use stats only after the baseline inventory exists.",
-                "If monitoring is already active, keep it running so activity can accumulate after snapshot."
+                format!("opendog stats --id {}", project.id),
             ],
-            "reason": if project.total_files == 0 {
+        }
+    } else if project.total_files == 0 || snapshot_stale {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "take_snapshot".to_string(),
+            recommended_flow: vec![
+                "Take a snapshot to establish the project baseline.".to_string(),
+                "Use stats only after the baseline inventory exists.".to_string(),
+                "If monitoring is already active, keep it running so activity can accumulate after snapshot.".to_string(),
+            ],
+            reason: if project.total_files == 0 {
                 "Monitoring is active but no snapshot data exists yet, so file inventory and stats are incomplete.".to_string()
             } else {
                 "Snapshot evidence exists but is stale, so refresh the baseline before trusting cleanup or hotspot conclusions.".to_string()
             },
-            "confidence": "medium",
-            "strategy_mode": "collect_evidence_first",
-            "strategy_profile": strategy_profile(
+            confidence: "medium".to_string(),
+            strategy_mode: "collect_evidence_first".to_string(),
+            strategy_profile: strategy_profile(
                 "collect_evidence_first",
                 "opendog",
                 "shell",
                 &["activity_signals", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: None,
+            refactor_blockers: None,
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 format!("opendog snapshot --id {}", project.id),
-                format!("opendog stats --id {}", project.id)
-            ]
-        }))
-    } else if project.accessed_files == 0 || activity_stale {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "generate_activity_then_stats",
-            "recommended_flow": [
-                "Generate real project activity with edits, tests, or builds.",
-                "Avoid drawing hotspot or cleanup conclusions before activity exists.",
-                "Inspect stats after the observation window is meaningful."
+                format!("opendog stats --id {}", project.id),
             ],
-            "reason": if project.accessed_files == 0 {
+        }
+    } else if project.accessed_files == 0 || activity_stale {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "generate_activity_then_stats".to_string(),
+            recommended_flow: vec![
+                "Generate real project activity with edits, tests, or builds.".to_string(),
+                "Avoid drawing hotspot or cleanup conclusions before activity exists.".to_string(),
+                "Inspect stats after the observation window is meaningful.".to_string(),
+            ],
+            reason: if project.accessed_files == 0 {
                 "Snapshot data exists, but no file access activity has been recorded yet.".to_string()
             } else {
                 "Activity evidence exists but is stale, so generate fresh workflow activity before trusting current hotspot or cleanup signals.".to_string()
             },
-            "confidence": "medium",
-            "strategy_mode": "collect_evidence_first",
-            "strategy_profile": strategy_profile(
+            confidence: "medium".to_string(),
+            strategy_mode: "collect_evidence_first".to_string(),
+            strategy_profile: strategy_profile(
                 "collect_evidence_first",
                 "shell",
                 "opendog",
                 &["activity_signals", "verification", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: None,
+            refactor_blockers: None,
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 project_commands[0].clone(),
-                format!("opendog stats --id {}", project.id)
-            ]
-        }))
-    } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "run_verification_before_high_risk_changes",
-            "recommended_flow": [
-                "Run and record project-native verification before risky changes.",
-                "Use OPENDOG to persist the resulting evidence for later decisions.",
-                "Return to cleanup or refactor review only after verification evidence exists."
+                format!("opendog stats --id {}", project.id),
             ],
-            "reason": if verification_is_missing(verification_runs) {
+        }
+    } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "run_verification_before_high_risk_changes".to_string(),
+            recommended_flow: vec![
+                "Run and record project-native verification before risky changes.".to_string(),
+                "Use OPENDOG to persist the resulting evidence for later decisions.".to_string(),
+                "Return to cleanup or refactor review only after verification evidence exists.".to_string(),
+            ],
+            reason: if verification_is_missing(verification_runs) {
                 "Activity evidence exists, but no recorded test/lint/build results are available yet. Verify first before risky cleanup or refactor work.".to_string()
             } else {
                 "Recorded verification evidence exists but is stale, so refresh test/lint/build results before risky cleanup or refactor work.".to_string()
             },
-            "confidence": "medium",
-            "strategy_mode": "verify_before_modify",
-            "strategy_profile": strategy_profile(
+            confidence: "medium".to_string(),
+            strategy_mode: "verify_before_modify".to_string(),
+            strategy_profile: strategy_profile(
                 "verify_before_modify",
                 "shell",
                 "opendog",
                 &["verification", "activity_signals", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: blockers(),
+            refactor_blockers: refactor_b(),
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 primary_verification_command,
                 "opendog run-verification --id <project> --kind test --command '<cmd>'".to_string(),
-                format!("opendog stats --id {}", project.id)
-            ]
-        }))
-    } else if best_review_action == "review_unused_files" {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "review_unused_files",
-            "recommended_flow": [
-                "Inspect unused-file candidates before proposing cleanup.",
-                "Validate each candidate with shell search, imports, and tests.",
-                "Only delete or refactor after cleanup blockers are cleared."
+                format!("opendog stats --id {}", project.id),
             ],
-            "reason": shared_review_reason.clone(),
-            "confidence": shared_review_confidence,
-            "strategy_mode": if safe_for_cleanup {
-                "review_then_modify"
-            } else {
-                "verify_before_modify"
-            },
-            "strategy_profile": strategy_profile(
-                if safe_for_cleanup {
-                    "review_then_modify"
-                } else {
-                    "verify_before_modify"
-                },
+        }
+    } else if best_review_action == "review_unused_files" {
+        let strategy_mode = if safe_for_cleanup {
+            "review_then_modify"
+        } else {
+            "verify_before_modify"
+        };
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "review_unused_files".to_string(),
+            recommended_flow: vec![
+                "Inspect unused-file candidates before proposing cleanup.".to_string(),
+                "Validate each candidate with shell search, imports, and tests.".to_string(),
+                "Only delete or refactor after cleanup blockers are cleared.".to_string(),
+            ],
+            reason: shared_review_reason.clone(),
+            confidence: shared_review_confidence.to_string(),
+            strategy_mode: strategy_mode.to_string(),
+            strategy_profile: strategy_profile(
+                strategy_mode,
                 "opendog",
                 "shell",
                 &["activity_signals", "verification", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "repo_truth_gaps": repo_truth_gaps_json.clone(),
-            "mandatory_shell_checks": mandatory_shell_checks_json.clone(),
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: blockers(),
+            refactor_blockers: refactor_b(),
+            repo_truth_gaps: repo_truth_gaps_json.clone(),
+            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+            suggested_commands: vec![
                 format!("opendog unused --id {}", project.id),
                 "rg \"<pattern>\" .".to_string(),
-                project_commands[0].clone()
-            ]
-        }))
-    } else {
-        attach_recommendation_metadata(json!({
-            "project_id": project.id,
-            "recommended_next_action": "inspect_hot_files",
-            "recommended_flow": [
-                "Inspect the hottest observed files first.",
-                "Use shell diff and symbol search after OPENDOG narrows the review target.",
-                "Treat hotspot review as a precursor to targeted refactor, not broad cleanup."
+                project_commands[0].clone(),
             ],
-            "reason": shared_review_reason,
-            "confidence": shared_review_confidence,
-            "strategy_mode": if safe_for_refactor {
-                "inspect_then_modify"
-            } else {
-                "verify_before_modify"
-            },
-            "strategy_profile": strategy_profile(
-                if safe_for_refactor {
-                    "inspect_then_modify"
-                } else {
-                    "verify_before_modify"
-                },
+        }
+    } else {
+        let strategy_mode = if safe_for_refactor {
+            "inspect_then_modify"
+        } else {
+            "verify_before_modify"
+        };
+        Recommendation {
+            project_id: project.id.clone(),
+            recommended_next_action: "inspect_hot_files".to_string(),
+            recommended_flow: vec![
+                "Inspect the hottest observed files first.".to_string(),
+                "Use shell diff and symbol search after OPENDOG narrows the review target.".to_string(),
+                "Treat hotspot review as a precursor to targeted refactor, not broad cleanup.".to_string(),
+            ],
+            reason: shared_review_reason,
+            confidence: shared_review_confidence.to_string(),
+            strategy_mode: strategy_mode.to_string(),
+            strategy_profile: strategy_profile(
+                strategy_mode,
                 if safe_for_refactor { "opendog" } else { "shell" },
                 if safe_for_refactor { "shell" } else { "opendog" },
                 &["activity_signals", "verification", "repository_risk"],
             ),
-            "verification_gate_levels": gate_levels,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "repo_truth_gaps": repo_truth_gaps_json,
-            "mandatory_shell_checks": mandatory_shell_checks_json,
-            "suggested_commands": [
+            verification_gate_levels: gate_levels,
+            cleanup_blockers: blockers(),
+            refactor_blockers: refactor_b(),
+            repo_truth_gaps: repo_truth_gaps_json,
+            mandatory_shell_checks: mandatory_shell_checks_json,
+            suggested_commands: vec![
                 format!("opendog stats --id {}", project.id),
                 "git diff".to_string(),
-                "rg \"<pattern>\" .".to_string()
-            ]
-        }))
-    }
+                "rg \"<pattern>\" .".to_string(),
+            ],
+        }
+    };
+
+    let mut payload = serde_json::to_value(rec).expect("Recommendation struct serialization");
+    let selected_action = payload["recommended_next_action"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    payload["execution_sequence"] = execution_sequence_for_recommendation(
+        &selected_action,
+        repo_risk,
+        verification_runs,
+        &project_toolchain,
+    );
+    payload["review_focus"] = review_focus_for_action(&selected_action, repo_risk);
+    payload
 }

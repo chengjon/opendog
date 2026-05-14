@@ -22,6 +22,7 @@ mod decision_support;
 mod guidance_handlers;
 mod guidance_payload;
 mod guidance_scaffold;
+mod guidance_types;
 mod mock_detection;
 mod observation;
 mod params;
