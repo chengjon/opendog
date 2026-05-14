@@ -3,10 +3,8 @@ use serde_json::{json, Value};
 
 use crate::control::{
     DaemonClient, DaemonProjectLifecycle, DirectProjectLifecycle, FallbackLifecycle,
-    ProjectLifecycle,
+    ProjectLifecycle, SnapshotMonitor,
 };
-use crate::core::snapshot;
-use crate::error::OpenDogError;
 
 use super::{
     delete_project_payload, error_json_for, list_projects_payload, open_dog_error_code,
@@ -56,68 +54,29 @@ pub(super) fn handle_delete_project(server: &OpenDogServer, id: &str) -> Json<Va
     }
 }
 
-// --- Snapshot & monitor handlers (still using inline fallback, to migrate in Step 3) ---
+// --- Snapshot & monitor handlers (migrated to trait) ---
 
 pub(super) fn handle_take_snapshot(server: &OpenDogServer, id: &str) -> Json<Value> {
-    match DaemonClient::new().take_snapshot(id) {
-        Ok(r) => {
-            return Json(snapshot_payload(id, r.total_files, r.new_files, r.removed_files));
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return error_json_for(MCP_SNAPSHOT_V1, Some(id), &e),
-    }
-
-    let result = (|| -> crate::error::Result<_> {
-        let (db, info) = server.get_project(id)?;
-        let effective_config = server
-            .inner
-            .lock()
-            .unwrap()
-            .project_manager()
-            .resolve_project_config(&info)?;
-        snapshot::take_snapshot(&db, &info.root_path, &effective_config)
-    })();
-    match result {
+    let svc = project_lifecycle(server);
+    match svc.take_snapshot(id) {
         Ok(r) => Json(snapshot_payload(id, r.total_files, r.new_files, r.removed_files)),
         Err(e) => error_json_for(MCP_SNAPSHOT_V1, Some(id), &e),
     }
 }
 
 pub(super) fn handle_start_monitor(server: &OpenDogServer, id: &str) -> Json<Value> {
-    match DaemonClient::new().start_monitor(id) {
-        Ok(outcome) => {
-            return Json(start_monitor_payload(id, outcome.already_running, outcome.snapshot_taken));
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return error_json_for(MCP_START_MONITOR_V1, Some(id), &e),
-    }
-
-    let result = {
-        let mut inner = server.inner.lock().unwrap();
-        inner.start_monitor(id)
-    };
-    match result {
+    let svc = project_lifecycle(server);
+    match svc.start_monitor(id) {
         Ok(outcome) => Json(start_monitor_payload(id, outcome.already_running, outcome.snapshot_taken)),
         Err(e) => error_json_for(MCP_START_MONITOR_V1, Some(id), &e),
     }
 }
 
 pub(super) fn handle_stop_monitor(server: &OpenDogServer, id: &str) -> Json<Value> {
-    match DaemonClient::new().stop_monitor(id) {
-        Ok(true) => {
-            return Json(stop_monitor_payload(id, true));
-        }
-        Ok(false) => {
-            return Json(stop_monitor_payload(id, false));
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return error_json_for(MCP_STOP_MONITOR_V1, Some(id), &e),
-    }
-
-    let mut inner = server.inner.lock().unwrap();
-    if inner.stop_monitor(id) {
-        Json(stop_monitor_payload(id, true))
-    } else {
-        Json(stop_monitor_payload(id, false))
+    let svc = project_lifecycle(server);
+    match svc.stop_monitor(id) {
+        Ok(true) => Json(stop_monitor_payload(id, true)),
+        Ok(false) => Json(stop_monitor_payload(id, false)),
+        Err(e) => error_json_for(MCP_STOP_MONITOR_V1, Some(id), &e),
     }
 }

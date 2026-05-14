@@ -1,6 +1,9 @@
 use crate::config::ProjectInfo;
 use crate::control::DaemonClient;
+use crate::core::snapshot::{self, SnapshotResult};
 use crate::error::{OpenDogError, Result};
+
+use super::protocol::StartMonitorOutcome;
 
 /// Narrow trait for project lifecycle operations: create, list, delete.
 /// Implementations may talk to the daemon over IPC or hit ProjectManager
@@ -9,6 +12,15 @@ pub trait ProjectLifecycle {
     fn create_project(&self, id: &str, path: &str) -> Result<ProjectInfo>;
     fn list_projects(&self) -> Result<Vec<ProjectInfo>>;
     fn delete_project(&self, id: &str) -> Result<bool>;
+}
+
+/// Narrow trait for snapshot and monitor operations.
+/// Same daemon/direct split as ProjectLifecycle — callers never know
+/// which transport is active.
+pub trait SnapshotMonitor {
+    fn take_snapshot(&self, id: &str) -> Result<SnapshotResult>;
+    fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome>;
+    fn stop_monitor(&self, id: &str) -> Result<bool>;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,6 +48,20 @@ impl ProjectLifecycle for DaemonProjectLifecycle<'_> {
 
     fn delete_project(&self, id: &str) -> Result<bool> {
         self.client.delete_project(id)
+    }
+}
+
+impl SnapshotMonitor for DaemonProjectLifecycle<'_> {
+    fn take_snapshot(&self, id: &str) -> Result<SnapshotResult> {
+        self.client.take_snapshot(id)
+    }
+
+    fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome> {
+        self.client.start_monitor(id)
+    }
+
+    fn stop_monitor(&self, id: &str) -> Result<bool> {
+        self.client.stop_monitor(id)
     }
 }
 
@@ -74,6 +100,23 @@ impl ProjectLifecycle for DirectProjectLifecycle<'_> {
     }
 }
 
+impl SnapshotMonitor for DirectProjectLifecycle<'_> {
+    fn take_snapshot(&self, id: &str) -> Result<SnapshotResult> {
+        let inner = self.controller.lock().unwrap();
+        inner.take_snapshot(id)
+    }
+
+    fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome> {
+        let mut inner = self.controller.lock().unwrap();
+        inner.start_monitor(id)
+    }
+
+    fn stop_monitor(&self, id: &str) -> Result<bool> {
+        let mut inner = self.controller.lock().unwrap();
+        Ok(inner.stop_monitor(id))
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Direct (ProjectManager-backed) implementation for CLI
 // ---------------------------------------------------------------------------
@@ -104,17 +147,41 @@ impl ProjectLifecycle for CliProjectLifecycle<'_> {
     }
 }
 
+impl SnapshotMonitor for CliProjectLifecycle<'_> {
+    fn take_snapshot(&self, id: &str) -> Result<SnapshotResult> {
+        let info = self
+            .pm
+            .get(id)?
+            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
+        let effective_config = self.pm.resolve_project_config(&info)?;
+        let db = self.pm.open_project_db(id)?;
+        snapshot::take_snapshot(&db, &info.root_path, &effective_config)
+    }
+
+    fn start_monitor(&self, _id: &str) -> Result<StartMonitorOutcome> {
+        Err(OpenDogError::RemoteControl(
+            "CLI direct start_monitor not supported through SnapshotMonitor trait".into(),
+        ))
+    }
+
+    fn stop_monitor(&self, _id: &str) -> Result<bool> {
+        Err(OpenDogError::RemoteControl(
+            "CLI direct stop_monitor not supported through SnapshotMonitor trait".into(),
+        ))
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Fallback: try daemon first, fall back to direct on DaemonUnavailable.
 // Other daemon errors propagate directly.
 // ---------------------------------------------------------------------------
 
-pub struct FallbackLifecycle<D: ProjectLifecycle, L: ProjectLifecycle> {
+pub struct FallbackLifecycle<D, L> {
     daemon: D,
     local: L,
 }
 
-impl<D: ProjectLifecycle, L: ProjectLifecycle> FallbackLifecycle<D, L> {
+impl<D, L> FallbackLifecycle<D, L> {
     pub fn new(daemon: D, local: L) -> Self {
         Self { daemon, local }
     }
@@ -151,6 +218,29 @@ impl<D: ProjectLifecycle, L: ProjectLifecycle> ProjectLifecycle for FallbackLife
         self.fallback(
             |svc| svc.delete_project(id),
             |svc| svc.delete_project(id),
+        )
+    }
+}
+
+impl<D: SnapshotMonitor, L: SnapshotMonitor> SnapshotMonitor for FallbackLifecycle<D, L> {
+    fn take_snapshot(&self, id: &str) -> Result<SnapshotResult> {
+        self.fallback(
+            |svc| svc.take_snapshot(id),
+            |svc| svc.take_snapshot(id),
+        )
+    }
+
+    fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome> {
+        self.fallback(
+            |svc| svc.start_monitor(id),
+            |svc| svc.start_monitor(id),
+        )
+    }
+
+    fn stop_monitor(&self, id: &str) -> Result<bool> {
+        self.fallback(
+            |svc| svc.stop_monitor(id),
+            |svc| svc.stop_monitor(id),
         )
     }
 }

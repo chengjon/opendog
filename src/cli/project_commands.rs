@@ -3,14 +3,14 @@ use std::path::Path;
 use crate::contracts::{CLI_CLEANUP_PROJECT_DATA_V1, CLI_EXPORT_PROJECT_EVIDENCE_V1};
 use crate::control::{
     CliProjectLifecycle, DaemonClient, DaemonProjectLifecycle, FallbackLifecycle,
-    ProjectLifecycle,
+    ProjectLifecycle, SnapshotMonitor,
 };
 use crate::core::export::{self, ExportFormat, ExportView};
 use crate::core::file_classification::{classify_file_path, FilePathClassificationFilter};
 use crate::core::monitor;
 use crate::core::project::ProjectManager;
 use crate::core::retention::{self, ProjectDataCleanupRequest};
-use crate::core::{snapshot, stats};
+use crate::core::stats;
 use crate::error::OpenDogError;
 use crate::mcp::export_project_evidence_payload;
 use crate::storage::queries::StatsEntry;
@@ -34,22 +34,8 @@ pub(super) fn cmd_register(pm: &ProjectManager, id: &str, path: &str) -> Result<
 }
 
 pub(super) fn cmd_snapshot(pm: &ProjectManager, id: &str) -> Result<(), OpenDogError> {
-    let daemon = DaemonClient::new();
-    match daemon.take_snapshot(id) {
-        Ok(result) => {
-            output::print_snapshot_result(id, &result);
-            return Ok(());
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return Err(e),
-    }
-
-    let db = pm.open_project_db(id)?;
-    let info = pm
-        .get(id)?
-        .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-    let effective_config = pm.resolve_project_config(&info)?;
-    let result = snapshot::take_snapshot(&db, &info.root_path, &effective_config)?;
+    let svc = project_lifecycle(pm);
+    let result = svc.take_snapshot(id)?;
     output::print_snapshot_result(id, &result);
     Ok(())
 }
