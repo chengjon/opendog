@@ -1,6 +1,8 @@
 use super::transport::map_connect_error_with_liveness;
 use super::*;
 use crate::config::{ConfigPatch, ProjectConfigPatch};
+use crate::control::client::decode_control_response;
+use crate::error::OpenDogError;
 use serde_json::json;
 use tempfile::TempDir;
 
@@ -22,6 +24,30 @@ fn handle_request_lists_no_monitors_initially() {
     match response {
         ControlResponse::Monitors { ids } => assert!(ids.is_empty()),
         other => panic!("unexpected response: {:?}", other),
+    }
+}
+
+#[test]
+fn decode_control_response_reports_empty_daemon_response_as_integrity_error() {
+    let error = decode_control_response(&[]).unwrap_err();
+
+    match error {
+        OpenDogError::DaemonResponseIntegrity(message) => {
+            assert!(message.contains("without returning a response"));
+        }
+        other => panic!("unexpected error: {:?}", other),
+    }
+}
+
+#[test]
+fn decode_control_response_reports_truncated_daemon_response_as_integrity_error() {
+    let error = decode_control_response(br#"{"DecisionBrief":{"payload":"#).unwrap_err();
+
+    match error {
+        OpenDogError::DaemonResponseIntegrity(message) => {
+            assert!(message.contains("incomplete JSON response"));
+        }
+        other => panic!("unexpected error: {:?}", other),
     }
 }
 

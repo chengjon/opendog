@@ -1,4 +1,5 @@
 use crate::config::ProjectInfo;
+use crate::core::file_classification::{classify_file_path, FilePathClassificationFilter};
 use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
@@ -19,11 +20,30 @@ pub(super) fn print_snapshot_result(id: &str, result: &SnapshotResult) {
     println!("  Removed:      {}", result.removed_files);
 }
 
-pub(super) fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEntry]) {
-    println!(
-        "Project '{}' — {} files | {} accessed | {} unused",
-        id, summary.total_files, summary.accessed_files, summary.unused_files
-    );
+pub(super) fn print_stats(
+    id: &str,
+    summary: &ProjectSummary,
+    entries: &[StatsEntry],
+    filter: FilePathClassificationFilter,
+    unfiltered_count: usize,
+) {
+    if filter == FilePathClassificationFilter::All {
+        println!(
+            "Project '{}' — {} files | {} accessed | {} unused",
+            id, summary.total_files, summary.accessed_files, summary.unused_files
+        );
+    } else {
+        println!(
+            "Project '{}' — {} files | {} accessed | {} unused | filter={} | shown={}/{}",
+            id,
+            summary.total_files,
+            summary.accessed_files,
+            summary.unused_files,
+            filter.as_str(),
+            entries.len().min(50),
+            unfiltered_count
+        );
+    }
     println!();
     if entries.is_empty() {
         println!(
@@ -34,14 +54,15 @@ pub(super) fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEn
     }
 
     println!(
-        "  {:40} {:>8} {:>12} {:>8} LAST ACCESS",
-        "PATH", "ACCESSES", "DURATION(ms)", "MODS"
+        "  {:40} {:>14} {:>8} {:>12} {:>8} LAST ACCESS",
+        "PATH", "CLASS", "ACCESSES", "DURATION(ms)", "MODS"
     );
-    println!("{}", "─".repeat(90));
+    println!("{}", "─".repeat(105));
     for e in entries.iter().take(50) {
         println!(
-            "  {:40} {:>8} {:>12} {:>8} {}",
+            "  {:40} {:>14} {:>8} {:>12} {:>8} {}",
             truncate(&e.file_path, 40),
+            classify_file_path(&e.file_path).as_str(),
             e.access_count,
             e.estimated_duration_ms,
             e.modification_count,
@@ -53,15 +74,37 @@ pub(super) fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEn
     }
 }
 
-pub(super) fn print_unused(id: &str, unused: &[StatsEntry]) {
-    println!(
-        "Unused files for project '{}' ({} files):",
-        id,
-        unused.len()
-    );
+pub(super) fn print_unused(
+    id: &str,
+    unused: &[StatsEntry],
+    filter: FilePathClassificationFilter,
+    unfiltered_count: usize,
+) {
+    if filter == FilePathClassificationFilter::All {
+        println!(
+            "Unused files for project '{}' ({} files):",
+            id,
+            unused.len()
+        );
+    } else {
+        println!(
+            "Unused files for project '{}' — filter={} | shown={}/{} | total_unused={}:",
+            id,
+            filter.as_str(),
+            unused.len().min(100),
+            unused.len(),
+            unfiltered_count
+        );
+    }
     println!();
     for e in unused.iter().take(100) {
-        println!("  {} ({}, {} bytes)", e.file_path, e.file_type, e.size);
+        println!(
+            "  {} [{}] ({}, {} bytes)",
+            e.file_path,
+            classify_file_path(&e.file_path).as_str(),
+            e.file_type,
+            e.size
+        );
     }
     if unused.len() > 100 {
         println!("  ... and {} more files", unused.len() - 100);

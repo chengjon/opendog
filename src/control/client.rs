@@ -63,7 +63,7 @@ impl DaemonClient {
 
             let mut response = Vec::new();
             stream.read_to_end(&mut response)?;
-            Ok(serde_json::from_slice(&response)?)
+            decode_control_response(&response)
         }
 
         #[cfg(not(unix))]
@@ -74,4 +74,23 @@ impl DaemonClient {
             ))
         }
     }
+}
+
+pub(super) fn decode_control_response(response: &[u8]) -> Result<ControlResponse> {
+    if response.is_empty() {
+        return Err(OpenDogError::DaemonResponseIntegrity(
+            "daemon closed the control socket without returning a response".to_string(),
+        ));
+    }
+
+    serde_json::from_slice(response).map_err(|error| {
+        if error.is_eof() {
+            OpenDogError::DaemonResponseIntegrity(format!(
+                "daemon returned an incomplete JSON response: {}",
+                error
+            ))
+        } else {
+            OpenDogError::Serialization(error)
+        }
+    })
 }

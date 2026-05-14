@@ -3,12 +3,14 @@ use std::path::Path;
 use crate::contracts::{CLI_CLEANUP_PROJECT_DATA_V1, CLI_EXPORT_PROJECT_EVIDENCE_V1};
 use crate::control::DaemonClient;
 use crate::core::export::{self, ExportFormat, ExportView};
+use crate::core::file_classification::{classify_file_path, FilePathClassificationFilter};
 use crate::core::monitor;
 use crate::core::project::ProjectManager;
 use crate::core::retention::{self, ProjectDataCleanupRequest};
 use crate::core::{snapshot, stats};
 use crate::error::OpenDogError;
 use crate::mcp::export_project_evidence_payload;
+use crate::storage::queries::StatsEntry;
 
 use super::output;
 
@@ -159,11 +161,17 @@ pub(super) fn cmd_cleanup_data(
     Ok(())
 }
 
-pub(super) fn cmd_stats(pm: &ProjectManager, id: &str) -> Result<(), OpenDogError> {
+pub(super) fn cmd_stats(
+    pm: &ProjectManager,
+    id: &str,
+    path_classification: &str,
+) -> Result<(), OpenDogError> {
+    let filter = parse_path_classification_filter(path_classification)?;
     let daemon = DaemonClient::new();
     match daemon.get_stats(id) {
         Ok((summary, entries)) => {
-            output::print_stats(id, &summary, &entries);
+            let filtered = filter_entries_by_classification(&entries, filter);
+            output::print_stats(id, &summary, &filtered, filter, entries.len());
             return Ok(());
         }
         Err(OpenDogError::DaemonUnavailable) => {}
@@ -173,15 +181,22 @@ pub(super) fn cmd_stats(pm: &ProjectManager, id: &str) -> Result<(), OpenDogErro
     let db = pm.open_project_db(id)?;
     let summary = stats::get_summary(&db)?;
     let entries = stats::get_stats(&db)?;
-    output::print_stats(id, &summary, &entries);
+    let filtered = filter_entries_by_classification(&entries, filter);
+    output::print_stats(id, &summary, &filtered, filter, entries.len());
     Ok(())
 }
 
-pub(super) fn cmd_unused(pm: &ProjectManager, id: &str) -> Result<(), OpenDogError> {
+pub(super) fn cmd_unused(
+    pm: &ProjectManager,
+    id: &str,
+    path_classification: &str,
+) -> Result<(), OpenDogError> {
+    let filter = parse_path_classification_filter(path_classification)?;
     let daemon = DaemonClient::new();
     match daemon.get_unused_files(id) {
         Ok(unused) => {
-            output::print_unused(id, &unused);
+            let filtered = filter_entries_by_classification(&unused, filter);
+            output::print_unused(id, &filtered, filter, unused.len());
             return Ok(());
         }
         Err(OpenDogError::DaemonUnavailable) => {}
@@ -190,8 +205,26 @@ pub(super) fn cmd_unused(pm: &ProjectManager, id: &str) -> Result<(), OpenDogErr
 
     let db = pm.open_project_db(id)?;
     let unused = stats::get_unused_files(&db)?;
-    output::print_unused(id, &unused);
+    let filtered = filter_entries_by_classification(&unused, filter);
+    output::print_unused(id, &filtered, filter, unused.len());
     Ok(())
+}
+
+fn parse_path_classification_filter(
+    value: &str,
+) -> Result<FilePathClassificationFilter, OpenDogError> {
+    FilePathClassificationFilter::parse(Some(value)).map_err(OpenDogError::InvalidInput)
+}
+
+fn filter_entries_by_classification(
+    entries: &[StatsEntry],
+    filter: FilePathClassificationFilter,
+) -> Vec<StatsEntry> {
+    entries
+        .iter()
+        .filter(|entry| filter.matches(classify_file_path(&entry.file_path)))
+        .cloned()
+        .collect()
 }
 
 pub(super) fn cmd_list(pm: &ProjectManager) -> Result<(), OpenDogError> {
@@ -228,4 +261,41 @@ pub(super) fn cmd_delete(pm: &ProjectManager, id: &str) -> Result<(), OpenDogErr
         std::process::exit(1);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::file_classification::FilePathClassificationFilter;
+    use crate::storage::queries::StatsEntry;
+
+    fn entry(path: &str) -> StatsEntry {
+        StatsEntry {
+            file_path: path.to_string(),
+            size: 1,
+            file_type: "txt".to_string(),
+            access_count: 0,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }
+    }
+
+    #[test]
+    fn filters_entries_by_path_classification_for_cli_views() {
+        let entries = vec![
+            entry("src/main.rs"),
+            entry(".claude/settings.json"),
+            entry("README.md"),
+        ];
+
+        let source =
+            filter_entries_by_classification(&entries, FilePathClassificationFilter::Source);
+        assert_eq!(source.len(), 1);
+        assert_eq!(source[0].file_path, "src/main.rs");
+
+        let all = filter_entries_by_classification(&entries, FilePathClassificationFilter::All);
+        assert_eq!(all.len(), 3);
+    }
 }

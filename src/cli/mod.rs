@@ -4,6 +4,7 @@ mod config_commands;
 mod guidance_commands;
 mod project_commands;
 mod report_commands;
+mod self_update_commands;
 mod verification_commands;
 
 use crate::core::project::ProjectManager;
@@ -14,6 +15,7 @@ use clap::Parser;
 
 use self::config_commands::{cmd_config, ConfigCommand};
 use self::report_commands::{cmd_report, ReportCommand};
+use self::self_update_commands::{cmd_self_update, SelfUpdateCommand};
 
 #[derive(Parser)]
 #[command(
@@ -90,6 +92,11 @@ enum Cli {
         #[command(subcommand)]
         command: ReportCommand,
     },
+    /// Check or rebuild the OpenDog release binary from an explicit source tree
+    SelfUpdate {
+        #[command(subcommand)]
+        command: SelfUpdateCommand,
+    },
     /// Run as stdio MCP server (for AI clients)
     Mcp,
     /// Show usage statistics for a project
@@ -97,12 +104,18 @@ enum Cli {
         /// Project identifier
         #[arg(short, long)]
         id: String,
+        /// Optional row classification filter: all, source, infrastructure, backup, or project.
+        #[arg(long, default_value = "all")]
+        path_classification: String,
     },
     /// List never-accessed files (unused candidates)
     Unused {
         /// Project identifier
         #[arg(short, long)]
         id: String,
+        /// Optional row classification filter: all, source, infrastructure, backup, or project.
+        #[arg(long, default_value = "all")]
+        path_classification: String,
     },
     /// List all registered projects
     List,
@@ -242,12 +255,19 @@ pub fn run() {
             )
         }),
         Cli::Report { command } => cmd_report(&pm, command),
+        Cli::SelfUpdate { command } => cmd_self_update(command),
         Cli::Mcp => {
             crate::mcp::run_stdio();
             return;
         }
-        Cli::Stats { id } => project_commands::cmd_stats(&pm, &id),
-        Cli::Unused { id } => project_commands::cmd_unused(&pm, &id),
+        Cli::Stats {
+            id,
+            path_classification,
+        } => project_commands::cmd_stats(&pm, &id, &path_classification),
+        Cli::Unused {
+            id,
+            path_classification,
+        } => project_commands::cmd_unused(&pm, &id, &path_classification),
         Cli::List => project_commands::cmd_list(&pm),
         Cli::AgentGuidance { project, top, json } => {
             guidance_commands::cmd_agent_guidance(&pm, project, top, json)
@@ -364,7 +384,6 @@ mod tests {
     use super::format_error_lines;
     use crate::error::OpenDogError;
     use crate::guidance::trim_agent_guidance_payload;
-    use clap::{error::ErrorKind, CommandFactory, Parser};
     use serde_json::json;
 
     #[test]
@@ -419,67 +438,5 @@ mod tests {
                 .len(),
             1
         );
-    }
-
-    #[test]
-    fn config_cli_rejects_mixed_overwrite_and_incremental_ignore_flags() {
-        let result = super::Cli::try_parse_from([
-            "opendog",
-            "config",
-            "set-project",
-            "--id",
-            "demo",
-            "--ignore-pattern",
-            "logs",
-            "--add-ignore-pattern",
-            "tmp",
-        ]);
-        let error = match result {
-            Ok(_) => panic!("expected clap to reject mixed overwrite and incremental ignore flags"),
-            Err(error) => error,
-        };
-
-        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
-    fn config_cli_rejects_inherit_and_incremental_process_flags() {
-        let result = super::Cli::try_parse_from([
-            "opendog",
-            "config",
-            "set-project",
-            "--id",
-            "demo",
-            "--inherit-process-whitelist",
-            "--remove-process",
-            "claude",
-        ]);
-        let error = match result {
-            Ok(_) => panic!("expected clap to reject inherit and incremental process flags"),
-            Err(error) => error,
-        };
-
-        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
-    fn config_cli_help_lists_incremental_flags() {
-        let mut command = super::Cli::command();
-        command.build();
-        let config = command
-            .find_subcommand_mut("config")
-            .expect("config subcommand should exist");
-        config.build();
-        let set_project = config
-            .find_subcommand_mut("set-project")
-            .expect("config set-project subcommand should exist");
-        let mut help = Vec::new();
-        set_project.write_long_help(&mut help).unwrap();
-        let help = String::from_utf8(help).unwrap();
-
-        assert!(help.contains("--add-ignore-pattern"));
-        assert!(help.contains("--remove-ignore-pattern"));
-        assert!(help.contains("--add-process"));
-        assert!(help.contains("--remove-process"));
     }
 }

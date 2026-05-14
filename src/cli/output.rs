@@ -8,6 +8,7 @@ use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
     ProjectConfigView, ProjectInfo,
 };
+use crate::core::file_classification::FilePathClassificationFilter;
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::snapshot::SnapshotResult;
@@ -24,12 +25,23 @@ pub fn print_snapshot_result(id: &str, result: &SnapshotResult) {
     project_output::print_snapshot_result(id, result);
 }
 
-pub fn print_stats(id: &str, summary: &ProjectSummary, entries: &[StatsEntry]) {
-    project_output::print_stats(id, summary, entries);
+pub fn print_stats(
+    id: &str,
+    summary: &ProjectSummary,
+    entries: &[StatsEntry],
+    filter: FilePathClassificationFilter,
+    unfiltered_count: usize,
+) {
+    project_output::print_stats(id, summary, entries, filter, unfiltered_count);
 }
 
-pub fn print_unused(id: &str, unused: &[StatsEntry]) {
-    project_output::print_unused(id, unused);
+pub fn print_unused(
+    id: &str,
+    unused: &[StatsEntry],
+    filter: FilePathClassificationFilter,
+    unfiltered_count: usize,
+) {
+    project_output::print_unused(id, unused, filter, unfiltered_count);
 }
 
 pub fn print_time_window_report(id: &str, report: &TimeWindowReport) {
