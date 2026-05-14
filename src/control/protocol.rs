@@ -3,10 +3,10 @@ use crate::config::{
     ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
-use crate::core::retention::ProjectDataCleanupResult;
+use crate::core::retention::{ProjectDataCleanupRequest, ProjectDataCleanupResult};
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
-use crate::core::verification::ExecutedVerificationResult;
+use crate::core::verification::{ExecuteVerificationInput, ExecutedVerificationResult, RecordVerificationInput};
 use crate::storage::queries::{StatsEntry, VerificationRun};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,6 +16,27 @@ pub struct UpdateProjectConfigFields {
     pub id: String,
     #[serde(flatten)]
     pub patch: ProjectConfigPatch,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RecordVerificationFields {
+    pub id: String,
+    #[serde(flatten)]
+    pub input: RecordVerificationInput,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecuteVerificationFields {
+    pub id: String,
+    #[serde(flatten)]
+    pub input: ExecuteVerificationInput,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CleanupProjectDataFields {
+    pub id: String,
+    #[serde(flatten)]
+    pub request: ProjectDataCleanupRequest,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,30 +107,9 @@ pub enum ControlRequest {
     GetVerificationStatus {
         id: String,
     },
-    CleanupProjectData {
-        id: String,
-        scope: String,
-        older_than_days: Option<i64>,
-        keep_snapshot_runs: Option<usize>,
-        vacuum: bool,
-        dry_run: bool,
-    },
-    ExecuteVerification {
-        id: String,
-        kind: String,
-        command: String,
-        source: String,
-    },
-    RecordVerificationResult {
-        id: String,
-        kind: String,
-        status: String,
-        command: String,
-        exit_code: Option<i64>,
-        summary: Option<String>,
-        source: String,
-        started_at: Option<String>,
-    },
+    CleanupProjectData(CleanupProjectDataFields),
+    ExecuteVerification(ExecuteVerificationFields),
+    RecordVerificationResult(RecordVerificationFields),
     StartMonitor {
         id: String,
     },

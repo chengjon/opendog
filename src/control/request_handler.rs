@@ -1,6 +1,4 @@
 use crate::core::report::ReportWindow;
-use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
-use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 
 use super::{ControlRequest, ControlResponse, MonitorController};
 
@@ -190,82 +188,39 @@ impl MonitorController {
                     message: e.to_string(),
                 },
             },
-            ControlRequest::CleanupProjectData {
-                id,
-                scope,
-                older_than_days,
-                keep_snapshot_runs,
-                vacuum,
-                dry_run,
-            } => {
-                let scope = match CleanupScope::parse(&scope) {
-                    Ok(scope) => scope,
-                    Err(e) => {
-                        return ControlResponse::Error {
-                            message: e.to_string(),
-                        };
-                    }
-                };
-                match self.cleanup_project_data(
-                    &id,
-                    ProjectDataCleanupRequest {
-                        scope,
-                        older_than_days,
-                        keep_snapshot_runs,
-                        vacuum,
-                        dry_run,
+            ControlRequest::CleanupProjectData(fields) => {
+                match self.cleanup_project_data(&fields.id, fields.request) {
+                    Ok(result) => ControlResponse::CleanupProjectData {
+                        id: fields.id,
+                        result,
                     },
-                ) {
-                    Ok(result) => ControlResponse::CleanupProjectData { id, result },
                     Err(e) => ControlResponse::Error {
                         message: e.to_string(),
                     },
                 }
             }
-            ControlRequest::RecordVerificationResult {
-                id,
-                kind,
-                status,
-                command,
-                exit_code,
-                summary,
-                source,
-                started_at,
-            } => match self.record_verification_result(
-                &id,
-                RecordVerificationInput {
-                    kind,
-                    status,
-                    command,
-                    exit_code,
-                    summary,
-                    source,
-                    started_at,
-                },
-            ) {
-                Ok(run) => ControlResponse::VerificationRecorded { id, run },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::ExecuteVerification {
-                id,
-                kind,
-                command,
-                source,
-            } => match self.execute_verification(
-                &id,
-                ExecuteVerificationInput {
-                    kind,
-                    command,
-                    source,
-                },
-            ) {
-                Ok(result) => ControlResponse::VerificationExecuted { id, result },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::RecordVerificationResult(fields) => {
+                match self.record_verification_result(&fields.id, fields.input) {
+                    Ok(run) => ControlResponse::VerificationRecorded {
+                        id: fields.id,
+                        run,
+                    },
+                    Err(e) => ControlResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
+            }
+            ControlRequest::ExecuteVerification(fields) => {
+                match self.execute_verification(&fields.id, fields.input) {
+                    Ok(result) => ControlResponse::VerificationExecuted {
+                        id: fields.id,
+                        result,
+                    },
+                    Err(e) => ControlResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
+            }
             ControlRequest::StartMonitor { id } => match self.start_monitor(&id) {
                 Ok(outcome) => ControlResponse::Started {
                     id,

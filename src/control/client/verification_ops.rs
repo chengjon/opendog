@@ -1,6 +1,7 @@
 use crate::core::verification::{
     ExecuteVerificationInput, ExecutedVerificationResult, RecordVerificationInput,
 };
+use crate::control::protocol::{ExecuteVerificationFields, RecordVerificationFields};
 use crate::error::{OpenDogError, Result};
 use crate::storage::queries::VerificationRun;
 
@@ -23,16 +24,11 @@ impl DaemonClient {
         id: &str,
         input: RecordVerificationInput,
     ) -> Result<VerificationRun> {
-        match self.send(ControlRequest::RecordVerificationResult {
+        match self.send(ControlRequest::RecordVerificationResult(RecordVerificationFields {
             id: id.to_string(),
-            kind: input.kind,
-            status: input.status,
-            command: input.command,
-            exit_code: input.exit_code,
-            summary: input.summary,
-            source: input.source,
-            started_at: input.started_at,
-        })? {
+            input,
+        }))?
+        {
             ControlResponse::VerificationRecorded { run, .. } => Ok(run),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(
@@ -47,12 +43,11 @@ impl DaemonClient {
         id: &str,
         input: ExecuteVerificationInput,
     ) -> Result<ExecutedVerificationResult> {
-        match self.send(ControlRequest::ExecuteVerification {
+        match self.send(ControlRequest::ExecuteVerification(ExecuteVerificationFields {
             id: id.to_string(),
-            kind: input.kind,
-            command: input.command,
-            source: input.source,
-        })? {
+            input,
+        }))?
+        {
             ControlResponse::VerificationExecuted { result, .. } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(
