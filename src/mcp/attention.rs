@@ -52,7 +52,7 @@ fn freshness_attention_score(status: &str, missing_weight: i64, stale_weight: i6
     }
 }
 
-fn project_attention_summary(overview: &Value) -> Value {
+fn project_attention_summary(overview: &Value) -> AttentionSummary {
     let action = overview["recommended_next_action"]
         .as_str()
         .unwrap_or("inspect_workspace_state");
@@ -186,7 +186,7 @@ fn project_attention_summary(overview: &Value) -> Value {
         "ready"
     };
 
-    serde_json::to_value(AttentionSummary {
+    AttentionSummary {
         attention_score: score,
         attention_band: attention_band(score).to_string(),
         attention_reasons: reasons,
@@ -208,8 +208,7 @@ fn project_attention_summary(overview: &Value) -> Value {
             safe_for_cleanup,
             safe_for_refactor,
         },
-    })
-    .expect("AttentionSummary serialization")
+    }
 }
 
 fn thin_attention_batch_entry(project: &Value) -> Value {
@@ -257,11 +256,12 @@ fn attention_batches_from_queue(
 pub(super) fn enrich_project_overview_with_attention(overview: &Value) -> Value {
     let mut enriched = overview.clone();
     let attention = project_attention_summary(&enriched);
-    enriched["attention_score"] = attention["attention_score"].clone();
-    enriched["attention_band"] = attention["attention_band"].clone();
-    enriched["attention_reasons"] = attention["attention_reasons"].clone();
-    enriched["evidence_quality"] = attention["evidence_quality"].clone();
-    enriched["priority_basis"] = attention["priority_basis"].clone();
+    enriched["attention_score"] = json!(attention.attention_score);
+    enriched["attention_band"] = json!(attention.attention_band);
+    enriched["attention_reasons"] = json!(attention.attention_reasons);
+    enriched["evidence_quality"] = json!(attention.evidence_quality);
+    enriched["priority_basis"] = serde_json::to_value(attention.priority_basis)
+        .expect("AttentionPriorityBasis serialization");
     enriched
 }
 
