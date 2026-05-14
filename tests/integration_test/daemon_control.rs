@@ -4,7 +4,9 @@ use opendog::control::{spawn_control_server_at, DaemonClient, MonitorController}
 use opendog::core::project::ProjectManager;
 use opendog::core::report::ReportWindow;
 use opendog::core::retention::{CleanupScope, ProjectDataCleanupRequest};
+use opendog::core::verification::ExecuteVerificationInput;
 use opendog::storage::database::Database;
+use opendog::storage::queries;
 use std::fs;
 use tempfile::TempDir;
 
@@ -132,6 +134,22 @@ fn test_daemon_control_roundtrip() {
         .iter()
         .any(|entry| entry.file_path == "lib.rs" && entry.change_type == "added"));
 
+    let snapshot_runs = queries::list_snapshot_runs(&report_db, 2).unwrap();
+    assert_eq!(snapshot_runs.len(), 2);
+    let explicit_comparison = client
+        .compare_snapshots(
+            "demo",
+            Some(snapshot_runs[1].id),
+            Some(snapshot_runs[0].id),
+            1,
+        )
+        .unwrap();
+    assert_eq!(explicit_comparison.base_run.run_id, snapshot_runs[1].id);
+    assert_eq!(explicit_comparison.head_run.run_id, snapshot_runs[0].id);
+    assert_eq!(explicit_comparison.summary.added_files, 1);
+    assert_eq!(explicit_comparison.summary.modified_files, 1);
+    assert_eq!(explicit_comparison.changes.len(), 1);
+
     let trends = client
         .get_usage_trends("demo", ReportWindow::Days7, 10)
         .unwrap();
@@ -155,6 +173,26 @@ fn test_daemon_control_roundtrip() {
         .unwrap();
     assert!(cleanup_preview.dry_run);
     assert!(cleanup_preview.deleted.file_sightings >= 1);
+
+    let verification = client
+        .execute_verification(
+            "demo",
+            ExecuteVerificationInput {
+                kind: "test".to_string(),
+                command: "printf daemon-verification-ok".to_string(),
+                source: "mcp".to_string(),
+            },
+        )
+        .unwrap();
+    assert_eq!(verification.run.status, "passed");
+    assert_eq!(verification.run.source, "mcp");
+    assert!(verification.stdout_tail.contains("daemon-verification-ok"));
+    let verification_status = client.get_verification_status("demo").unwrap();
+    assert!(verification_status.iter().any(|run| {
+        run.kind == "test"
+            && run.status == "passed"
+            && run.command == "printf daemon-verification-ok"
+    }));
 
     let start = client.start_monitor("demo").unwrap();
     assert!(!start.already_running);

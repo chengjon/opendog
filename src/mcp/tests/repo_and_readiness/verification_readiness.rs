@@ -75,3 +75,35 @@ fn verification_status_layer_flags_stale_evidence() {
         .iter()
         .any(|item| item.as_str().unwrap().contains("stale")));
 }
+
+#[test]
+fn verification_status_layer_exposes_freshness_ttl_policy() {
+    let value = verification_status_layer(&[VerificationRun {
+        id: 1,
+        kind: "test".to_string(),
+        status: "passed".to_string(),
+        command: "cargo test".to_string(),
+        exit_code: Some(0),
+        summary: None,
+        source: "cli".to_string(),
+        started_at: None,
+        finished_at: fresh_ts(),
+    }]);
+
+    assert_eq!(
+        value["freshness"]["policy"]["fresh_max_age_seconds"],
+        json!(86_400)
+    );
+    assert_eq!(
+        value["freshness"]["policy"]["aging_max_age_seconds"],
+        json!(604_800)
+    );
+    assert_eq!(
+        value["freshness"]["policy"]["stale_after_seconds"],
+        json!(604_800)
+    );
+    assert_eq!(
+        value["gate_assessment"]["cleanup"]["freshness_policy"]["stale_after_seconds"],
+        json!(604_800)
+    );
+}

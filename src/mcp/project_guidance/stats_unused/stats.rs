@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 use std::path::Path;
 
+use crate::core::file_classification::FilePathClassificationFilter;
 use crate::core::stats;
 use crate::storage::queries::{StatsEntry, VerificationRun};
 
@@ -18,6 +19,7 @@ pub(in crate::mcp) fn stats_guidance(
     summary: &stats::ProjectSummary,
     entries: &[StatsEntry],
     verification_runs: &[VerificationRun],
+    path_filter: FilePathClassificationFilter,
 ) -> Value {
     let project_commands = detect_project_commands(root_path);
     if summary.total_files == 0 {
@@ -40,6 +42,12 @@ pub(in crate::mcp) fn stats_guidance(
             "accessed_files": summary.accessed_files,
             "unused_files": summary.unused_files,
         });
+        apply_path_filter_observation(
+            &mut guidance,
+            path_filter,
+            summary.total_files,
+            entries.len(),
+        );
         guidance["layers"]["repo_status_risk"] = repo_status_risk_layer(root_path);
         guidance["layers"]["project_toolchain"] = project_toolchain_layer(root_path);
         guidance["layers"]["verification_evidence"] = verification_status_layer(verification_runs);
@@ -61,6 +69,12 @@ pub(in crate::mcp) fn stats_guidance(
             "accessed_files": summary.accessed_files,
             "unused_files": summary.unused_files,
         });
+        apply_path_filter_observation(
+            &mut guidance,
+            path_filter,
+            summary.total_files,
+            entries.len(),
+        );
         guidance["layers"]["repo_status_risk"] = repo_status_risk_layer(root_path);
         guidance["layers"]["project_toolchain"] = project_toolchain_layer(root_path);
         guidance["layers"]["verification_evidence"] = verification_status_layer(verification_runs);
@@ -145,6 +159,12 @@ pub(in crate::mcp) fn stats_guidance(
             "accessed_files": summary.accessed_files,
             "unused_files": summary.unused_files,
         });
+        apply_path_filter_observation(
+            &mut guidance,
+            path_filter,
+            summary.total_files,
+            entries.len(),
+        );
         guidance["layers"]["repo_status_risk"] = repo_risk.clone();
         guidance["layers"]["cleanup_refactor_candidates"] = json!({
             "status": "available",
@@ -203,7 +223,7 @@ pub(in crate::mcp) fn stats_guidance(
                     .to_string(),
             ],
             vec![
-                "Sampling-based monitoring may miss very brief file accesses.".to_string(),
+                "Sampling-based monitoring may miss very brief file reads, including MCP host or AI assistant reads that open and close source files quickly.".to_string(),
                 "This response does not include git diff, test, or build evidence.".to_string(),
             ],
             vec!["git diff".to_string(), project_commands[0].clone()],
@@ -239,9 +259,35 @@ pub(in crate::mcp) fn stats_guidance(
             "accessed_files": summary.accessed_files,
             "unused_files": summary.unused_files,
         });
+        apply_path_filter_observation(
+            &mut guidance,
+            path_filter,
+            summary.total_files,
+            entries.len(),
+        );
         guidance["layers"]["repo_status_risk"] = repo_status_risk_layer(root_path);
         guidance["layers"]["project_toolchain"] = project_toolchain_layer(root_path);
         guidance["layers"]["verification_evidence"] = verification_status_layer(verification_runs);
         guidance
+    }
+}
+
+fn apply_path_filter_observation(
+    guidance: &mut Value,
+    path_filter: FilePathClassificationFilter,
+    total_files: i64,
+    filtered_rows: usize,
+) {
+    if path_filter == FilePathClassificationFilter::All {
+        return;
+    }
+
+    guidance["layers"]["workspace_observation"]["path_classification_filter"] =
+        json!(path_filter.as_str());
+
+    if total_files > 0 && filtered_rows == 0 {
+        let note = "selected path_classification filter returned no rows; this does not mean the project has no files or no unused candidates";
+        guidance["layers"]["workspace_observation"]["filter_note"] = json!(note);
+        guidance["layers"]["verification_evidence"]["inferences"] = json!([note]);
     }
 }

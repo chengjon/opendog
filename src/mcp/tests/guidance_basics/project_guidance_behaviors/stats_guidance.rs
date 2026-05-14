@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::file_classification::FilePathClassificationFilter;
 
 #[test]
 fn stats_guidance_adapts_when_no_activity_exists() {
@@ -7,7 +8,13 @@ fn stats_guidance_adapts_when_no_activity_exists() {
         accessed_files: 0,
         unused_files: 5,
     };
-    let value = stats_guidance(std::path::Path::new("/tmp/demo"), &summary, &[], &[]);
+    let value = stats_guidance(
+        std::path::Path::new("/tmp/demo"),
+        &summary,
+        &[],
+        &[],
+        FilePathClassificationFilter::All,
+    );
 
     assert!(value["summary"]
         .as_str()
@@ -36,7 +43,13 @@ fn stats_guidance_mentions_hottest_file_when_available() {
         last_access_time: None,
         first_seen_time: None,
     }];
-    let value = stats_guidance(dir.path(), &summary, &entries, &[]);
+    let value = stats_guidance(
+        dir.path(),
+        &summary,
+        &entries,
+        &[],
+        FilePathClassificationFilter::All,
+    );
 
     assert!(value["summary"].as_str().unwrap().contains("src/main.rs"));
     assert_eq!(value["file_recommendations"][0]["file_path"], "src/main.rs");
@@ -70,7 +83,13 @@ fn stats_guidance_marks_observation_ready_when_summary_has_activity_but_entries_
         accessed_files: 2,
         unused_files: 1,
     };
-    let value = stats_guidance(std::path::Path::new("/tmp/demo"), &summary, &[], &[]);
+    let value = stats_guidance(
+        std::path::Path::new("/tmp/demo"),
+        &summary,
+        &[],
+        &[],
+        FilePathClassificationFilter::All,
+    );
 
     assert!(value["summary"]
         .as_str()

@@ -2,6 +2,9 @@ use super::repo_risk::{
     detect_lockfile_anomalies, parse_status_porcelain, repo_risk_findings, GitStatusEntry,
     RepoRiskSnapshot,
 };
+use super::resource_handlers::{
+    mcp_resource_templates, mcp_resources, read_resource_kind, ResourceKind,
+};
 use super::{
     agent_guidance_payload, build_constraints_boundaries_layer, cleanup_project_data_payload,
     collect_workspace_data_risk_summaries, data_risk_guidance, decision_brief_payload,
@@ -14,11 +17,11 @@ use super::{
     register_project_guidance, register_project_payload, repo_status_risk_layer,
     review_priority_score, run_verification_payload, scoped_projects_or_error, snapshot_payload,
     start_monitor_guidance, start_monitor_payload, stats_guidance, stats_payload,
-    stop_monitor_payload, tool_guidance, unused_files_payload, unused_guidance,
-    update_global_config_payload, validation_error_json, verification_status_layer,
-    verification_status_payload, workspace_data_risk_overview_payload, workspace_portfolio_layer,
-    workspace_strategy_profile, AgentGuidanceParams, DataCandidate, GuidanceParams, MockDataReport,
-    ProjectGuidanceState,
+    stats_payload_with_limit, stop_monitor_payload, tool_guidance, unused_files_payload,
+    unused_files_payload_with_limit, unused_guidance, update_global_config_payload,
+    validation_error_json, verification_status_layer, verification_status_payload,
+    workspace_data_risk_overview_payload, workspace_portfolio_layer, workspace_strategy_profile,
+    AgentGuidanceParams, DataCandidate, GuidanceParams, MockDataReport, ProjectGuidanceState,
 };
 use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigOverrides, ProjectConfigReload,

@@ -1,6 +1,9 @@
 use serde_json::{json, Value};
 use std::path::Path;
 
+use crate::core::file_classification::{
+    classify_file_path, FilePathClassification, FilePathClassificationFilter,
+};
 use crate::storage::queries::{StatsEntry, VerificationRun};
 
 use super::super::super::review_candidates::{
@@ -16,6 +19,7 @@ pub(in crate::mcp) fn unused_guidance(
     root_path: &Path,
     unused_entries: &[StatsEntry],
     verification_runs: &[VerificationRun],
+    path_filter: FilePathClassificationFilter,
 ) -> Value {
     let unused_count = unused_entries.len();
     let project_commands = detect_project_commands(root_path);
@@ -37,6 +41,7 @@ pub(in crate::mcp) fn unused_guidance(
             "activity_available": true,
             "unused_candidates": 0,
         });
+        apply_path_filter_observation(&mut guidance, path_filter, unused_count);
         guidance["layers"]["repo_status_risk"] = repo_status_risk_layer(root_path);
         guidance["layers"]["project_toolchain"] = project_toolchain_layer(root_path);
         guidance["layers"]["verification_evidence"] = verification_status_layer(verification_runs);
@@ -60,6 +65,10 @@ pub(in crate::mcp) fn unused_guidance(
         };
         let file_recommendations: Vec<Value> = unused_entries
             .iter()
+            .filter(|entry| classify_file_path(&entry.file_path) == FilePathClassification::Source)
+            .chain(unused_entries.iter().filter(|entry| {
+                classify_file_path(&entry.file_path) != FilePathClassification::Source
+            }))
             .enumerate()
             .take(3)
             .map(|(idx, entry)| {
@@ -84,7 +93,11 @@ pub(in crate::mcp) fn unused_guidance(
             "snapshot_available": true,
             "activity_available": true,
             "unused_candidates": unused_count,
+            "source_candidates": count_classification(unused_entries, FilePathClassification::Source),
+            "infrastructure_candidates": count_classification(unused_entries, FilePathClassification::Infrastructure),
+            "backup_candidates": count_classification(unused_entries, FilePathClassification::Backup),
         });
+        apply_path_filter_observation(&mut guidance, path_filter, unused_count);
         guidance["layers"]["repo_status_risk"] = repo_risk.clone();
         guidance["layers"]["cleanup_refactor_candidates"] = json!({
             "status": "available",
@@ -139,7 +152,7 @@ pub(in crate::mcp) fn unused_guidance(
                 "Unused candidates may still matter through indirect runtime paths or infrequent workflows."
                     .to_string(),
             ],
-            vec!["Lack of observed access is not proof that a file is safe to delete.".to_string()],
+            vec!["access_count=0 means OPENDOG did not observe an open descriptor; it is not proof that the file was never read or is safe to delete.".to_string()],
             vec!["git grep <symbol>".to_string(), project_commands[0].clone()],
         );
         guidance["layers"]["constraints_boundaries"]["protected_paths"] =
@@ -154,4 +167,30 @@ pub(in crate::mcp) fn unused_guidance(
             mock_summary["mixed_review_files"].clone();
         guidance
     }
+}
+
+fn apply_path_filter_observation(
+    guidance: &mut Value,
+    path_filter: FilePathClassificationFilter,
+    filtered_rows: usize,
+) {
+    if path_filter == FilePathClassificationFilter::All {
+        return;
+    }
+
+    guidance["layers"]["workspace_observation"]["path_classification_filter"] =
+        json!(path_filter.as_str());
+
+    if filtered_rows == 0 {
+        let note = "selected path_classification filter returned no rows; this does not mean the project has no files or no unused candidates";
+        guidance["layers"]["workspace_observation"]["filter_note"] = json!(note);
+        guidance["layers"]["verification_evidence"]["inferences"] = json!([note]);
+    }
+}
+
+fn count_classification(entries: &[StatsEntry], classification: FilePathClassification) -> usize {
+    entries
+        .iter()
+        .filter(|entry| classify_file_path(&entry.file_path) == classification)
+        .count()
 }

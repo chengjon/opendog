@@ -18,6 +18,16 @@ pub struct ProjectIdParams {
 }
 
 #[derive(Deserialize, schemars::JsonSchema)]
+pub struct ObservationRowsParams {
+    /// Project identifier
+    pub id: String,
+    /// Optional file row limit, defaults to 50 for MCP payload safety.
+    pub limit: Option<usize>,
+    /// Optional row classification filter: "all" (default), "source", "infrastructure", "backup", or "project".
+    pub path_classification: Option<String>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
 pub struct GlobalConfigParams {}
 
 #[derive(Deserialize, schemars::JsonSchema)]

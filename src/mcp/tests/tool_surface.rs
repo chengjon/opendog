@@ -1,3 +1,5 @@
+use super::{mcp_resource_templates, mcp_resources, read_resource_kind, ResourceKind};
+
 #[test]
 fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
     let mcp_router_source = include_str!("../mod.rs");
@@ -29,4 +31,51 @@ fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
             "unexpected MCP tool still exposed: {removed}"
         );
     }
+}
+
+#[test]
+fn observation_tool_params_expose_path_classification_filter() {
+    let params_source = include_str!("../params.rs");
+    let mcp_router_source = include_str!("../mod.rs");
+
+    assert!(params_source.contains("pub path_classification: Option<String>"));
+    assert!(mcp_router_source.contains("path_classification filters rows"));
+}
+
+#[test]
+fn mcp_resource_templates_expose_readonly_project_state_uris() {
+    let templates = mcp_resource_templates();
+    let uris: Vec<&str> = templates
+        .iter()
+        .map(|template| template.raw.uri_template.as_str())
+        .collect();
+
+    assert!(uris.contains(&"opendog://projects"));
+    assert!(uris.contains(&"opendog://project/{id}/verification"));
+}
+
+#[test]
+fn mcp_resources_expose_static_projects_resource() {
+    let resources = mcp_resources();
+    let uris: Vec<&str> = resources
+        .iter()
+        .map(|resource| resource.raw.uri.as_str())
+        .collect();
+
+    assert!(uris.contains(&"opendog://projects"));
+}
+
+#[test]
+fn mcp_resource_uri_parser_accepts_only_readonly_state_resources() {
+    assert_eq!(
+        read_resource_kind("opendog://projects"),
+        Some(ResourceKind::Projects)
+    );
+    assert_eq!(
+        read_resource_kind("opendog://project/demo/verification"),
+        Some(ResourceKind::ProjectVerification {
+            id: "demo".to_string()
+        })
+    );
+    assert_eq!(read_resource_kind("opendog://project/demo/delete"), None);
 }

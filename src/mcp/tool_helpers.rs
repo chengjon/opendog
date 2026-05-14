@@ -18,6 +18,7 @@ pub(super) fn open_dog_error_code(error: &OpenDogError) -> &'static str {
         OpenDogError::MonitorAlreadyRunning(_) => "monitor_already_running",
         OpenDogError::DaemonUnavailable => "daemon_unavailable",
         OpenDogError::DaemonControlUnavailable => "daemon_control_unavailable",
+        OpenDogError::DaemonResponseIntegrity(_) => "daemon_response_integrity_error",
         OpenDogError::RemoteControl(_) => "remote_control_error",
         OpenDogError::Database(_) => "database_error",
         OpenDogError::Io(_) => "io_error",
@@ -39,6 +40,14 @@ pub(super) fn error_json_for(
                 "Check whether the daemon control socket exists and is reachable.",
                 "Remove a stale daemon socket if the daemon is no longer serving requests.",
                 "Restart `opendog daemon` cleanly after checking the daemon pid file."
+            ]
+        })),
+        OpenDogError::DaemonResponseIntegrity(_) => Some(json!({
+            "socket_path": crate::config::daemon_socket_path().display().to_string(),
+            "suggested_actions": [
+                "Retry the request once to rule out a transient socket interruption.",
+                "Use the equivalent CLI command to confirm core business logic still succeeds.",
+                "Restart `opendog daemon` if repeated daemon-backed MCP calls return incomplete responses."
             ]
         })),
         _ => None,

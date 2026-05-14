@@ -7,7 +7,9 @@ use crate::core::verification::ExecutedVerificationResult;
 use crate::storage::queries::VerificationRun;
 
 use super::constraints::readiness_reason_summary;
-use super::observation::{freshness_detail, latest_verification_timestamp, verification_is_stale};
+use super::observation::{
+    freshness_detail, freshness_policy, latest_verification_timestamp, verification_is_stale,
+};
 use super::{now_unix_secs, versioned_project_payload};
 
 pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
@@ -591,6 +593,7 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
         "missing_kinds": missing_kinds,
         "failing_kinds": failing,
         "stale_kinds": stale_kinds,
+        "freshness_policy": freshness_policy(),
         "reasons": reasons,
         "next_steps": gate_next_steps(
             target,

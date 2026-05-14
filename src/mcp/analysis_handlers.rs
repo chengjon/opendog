@@ -2,30 +2,46 @@ use rmcp::handler::server::wrapper::Json;
 use serde_json::Value;
 
 use crate::control::DaemonClient;
+use crate::core::file_classification::FilePathClassificationFilter;
 use crate::core::report::{self, ReportWindow};
 use crate::core::stats;
 use crate::error::OpenDogError;
 
 use super::{
     error_json_for, latest_verification_runs_for_project, snapshot_comparison_payload,
-    stats_payload, time_window_report_payload, unused_files_payload, usage_trends_payload,
-    OpenDogServer, MCP_SNAPSHOT_COMPARE_V1, MCP_STATS_V1, MCP_TIME_WINDOW_REPORT_V1,
-    MCP_UNUSED_FILES_V1, MCP_USAGE_TRENDS_V1,
+    stats_payload_with_limit, time_window_report_payload, unused_files_payload_with_limit,
+    usage_trends_payload, OpenDogServer, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
+    MCP_SNAPSHOT_COMPARE_V1, MCP_STATS_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
+    MCP_USAGE_TRENDS_V1,
 };
 
-pub(super) fn handle_get_stats(server: &OpenDogServer, id: &str) -> Json<Value> {
+pub(super) fn handle_get_stats(
+    server: &OpenDogServer,
+    id: &str,
+    limit: Option<usize>,
+    path_classification: Option<String>,
+) -> Json<Value> {
+    let limit = limit.unwrap_or(DEFAULT_OBSERVATION_PAYLOAD_LIMIT);
+    let path_filter = match FilePathClassificationFilter::parse(path_classification.as_deref()) {
+        Ok(filter) => filter,
+        Err(message) => {
+            return error_json_for(MCP_STATS_V1, Some(id), &OpenDogError::InvalidInput(message));
+        }
+    };
     match DaemonClient::new().get_stats(id) {
         Ok((summary, entries)) => {
             let (root_path, verification_runs) = server
                 .get_project(id)
                 .map(|(db, info)| (info.root_path, latest_verification_runs_for_project(&db)))
                 .unwrap_or_else(|_| (std::path::PathBuf::from("."), Vec::new()));
-            return Json(stats_payload(
+            return Json(stats_payload_with_limit(
                 id,
                 &summary,
                 &entries,
                 &root_path,
                 &verification_runs,
+                limit,
+                path_filter,
             ));
         }
         Err(OpenDogError::DaemonUnavailable) => {}
@@ -40,29 +56,49 @@ pub(super) fn handle_get_stats(server: &OpenDogServer, id: &str) -> Json<Value> 
         Ok((summary, entries, info.root_path, verification_runs))
     })();
     match result {
-        Ok((summary, entries, root_path, verification_runs)) => Json(stats_payload(
+        Ok((summary, entries, root_path, verification_runs)) => Json(stats_payload_with_limit(
             id,
             &summary,
             &entries,
             &root_path,
             &verification_runs,
+            limit,
+            path_filter,
         )),
         Err(e) => error_json_for(MCP_STATS_V1, Some(id), &e),
     }
 }
 
-pub(super) fn handle_get_unused_files(server: &OpenDogServer, id: &str) -> Json<Value> {
+pub(super) fn handle_get_unused_files(
+    server: &OpenDogServer,
+    id: &str,
+    limit: Option<usize>,
+    path_classification: Option<String>,
+) -> Json<Value> {
+    let limit = limit.unwrap_or(DEFAULT_OBSERVATION_PAYLOAD_LIMIT);
+    let path_filter = match FilePathClassificationFilter::parse(path_classification.as_deref()) {
+        Ok(filter) => filter,
+        Err(message) => {
+            return error_json_for(
+                MCP_UNUSED_FILES_V1,
+                Some(id),
+                &OpenDogError::InvalidInput(message),
+            );
+        }
+    };
     match DaemonClient::new().get_unused_files(id) {
         Ok(unused) => {
             let (root_path, verification_runs) = server
                 .get_project(id)
                 .map(|(db, info)| (info.root_path, latest_verification_runs_for_project(&db)))
                 .unwrap_or_else(|_| (std::path::PathBuf::from("."), Vec::new()));
-            return Json(unused_files_payload(
+            return Json(unused_files_payload_with_limit(
                 id,
                 &unused,
                 &root_path,
                 &verification_runs,
+                limit,
+                path_filter,
             ));
         }
         Err(OpenDogError::DaemonUnavailable) => {}
@@ -76,11 +112,13 @@ pub(super) fn handle_get_unused_files(server: &OpenDogServer, id: &str) -> Json<
         Ok((unused, info.root_path, verification_runs))
     })();
     match result {
-        Ok((unused, root_path, verification_runs)) => Json(unused_files_payload(
+        Ok((unused, root_path, verification_runs)) => Json(unused_files_payload_with_limit(
             id,
             &unused,
             &root_path,
             &verification_runs,
+            limit,
+            path_filter,
         )),
         Err(e) => error_json_for(MCP_UNUSED_FILES_V1, Some(id), &e),
     }

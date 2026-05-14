@@ -1,6 +1,6 @@
 use rmcp::handler::server::wrapper::{Json, Parameters};
 use rmcp::model::CallToolResult;
-use rmcp::{tool, tool_router};
+use rmcp::{tool, tool_handler, tool_router};
 use serde_json::Value;
 
 use crate::contracts::{
@@ -30,6 +30,7 @@ mod project_guidance;
 mod project_handlers;
 mod project_recommendation;
 mod repo_risk;
+mod resource_handlers;
 pub(crate) mod review_candidates;
 mod risk_handlers;
 mod server_core;
@@ -80,18 +81,20 @@ use self::observation::{
 };
 pub use self::params::{
     AgentGuidanceParams, CompareSnapshotsParams, DataRiskParams, DecisionBriefParams,
-    ExecuteVerificationParams, GlobalConfigParams, GuidanceParams, ProjectIdParams,
-    RecordVerificationParams, RegisterProjectParams, TimeWindowReportParams, UsageTrendParams,
-    WorkspaceDataRiskParams,
+    ExecuteVerificationParams, GlobalConfigParams, GuidanceParams, ObservationRowsParams,
+    ProjectIdParams, RecordVerificationParams, RegisterProjectParams, TimeWindowReportParams,
+    UsageTrendParams, WorkspaceDataRiskParams,
 };
 pub(crate) use self::payloads::{
     cleanup_project_data_payload, delete_project_payload, export_project_evidence_payload,
     global_config_payload, list_projects_payload, project_config_payload,
     project_config_reload_payload, project_config_update_payload, register_project_payload,
-    snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload,
-    stop_monitor_payload, time_window_report_payload, unused_files_payload,
-    update_global_config_payload, usage_trends_payload,
+    snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload_with_limit,
+    stop_monitor_payload, time_window_report_payload, unused_files_payload_with_limit,
+    update_global_config_payload, usage_trends_payload, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
 };
+#[cfg(test)]
+pub(crate) use self::payloads::{stats_payload, unused_files_payload};
 use self::project_guidance::{
     register_project_guidance, snapshot_guidance, start_monitor_guidance, stats_guidance,
     unused_guidance,
@@ -104,6 +107,7 @@ pub(crate) use self::project_recommendation::collect_project_guidance_context;
 #[cfg(test)]
 use self::project_recommendation::{project_overview, recommend_project_action};
 use self::repo_risk::repo_status_risk_layer;
+use self::resource_handlers::{mcp_resource_templates, mcp_resources, read_mcp_resource};
 use self::risk_handlers::{
     handle_get_data_risk_candidates, handle_get_workspace_data_risk_overview,
 };
@@ -140,7 +144,7 @@ fn structured_tool_output(payload: Json<Value>) -> ToolResult {
     Ok(CallToolResult::structured(payload.0))
 }
 
-#[tool_router(server_handler)]
+#[tool_router]
 impl OpenDogServer {
     #[tool(
         name = "get_guidance",
@@ -215,24 +219,37 @@ impl OpenDogServer {
 
     #[tool(
         name = "get_stats",
-        description = "Query usage statistics for a project — per-file access count, estimated duration, modifications, last access"
+        description = "Query usage statistics for a project. Required param: id. Optional params: limit (default 50) bounds returned file rows; path_classification filters rows by all/source/infrastructure/backup/project; summary still reports full project counts."
     )]
     fn get_stats(
         &self,
-        Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
+        Parameters(ObservationRowsParams {
+            id,
+            limit,
+            path_classification,
+        }): Parameters<ObservationRowsParams>,
     ) -> ToolResult {
-        structured_tool_output(handle_get_stats(self, &id))
+        structured_tool_output(handle_get_stats(self, &id, limit, path_classification))
     }
 
     #[tool(
         name = "get_unused_files",
-        description = "List never-accessed files for a project — candidates for cleanup or removal review"
+        description = "List never-accessed files for a project. Required param: id. Optional params: limit (default 50) bounds returned file rows; path_classification filters rows by all/source/infrastructure/backup/project; unused_count still reports the full count."
     )]
     fn get_unused_files(
         &self,
-        Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
+        Parameters(ObservationRowsParams {
+            id,
+            limit,
+            path_classification,
+        }): Parameters<ObservationRowsParams>,
     ) -> ToolResult {
-        structured_tool_output(handle_get_unused_files(self, &id))
+        structured_tool_output(handle_get_unused_files(
+            self,
+            &id,
+            limit,
+            path_classification,
+        ))
     }
 
     #[tool(
@@ -355,6 +372,51 @@ impl OpenDogServer {
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
     ) -> ToolResult {
         structured_tool_output(handle_delete_project(self, &id))
+    }
+}
+
+#[tool_handler(router = Self::tool_router())]
+impl rmcp::ServerHandler for OpenDogServer {
+    fn get_info(&self) -> rmcp::model::ServerInfo {
+        rmcp::model::ServerInfo::new(
+            rmcp::model::ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        )
+        .with_server_info(rmcp::model::Implementation::from_build_env())
+    }
+
+    async fn list_resource_templates(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<rmcp::model::ListResourceTemplatesResult, rmcp::ErrorData> {
+        Ok(rmcp::model::ListResourceTemplatesResult {
+            resource_templates: mcp_resource_templates(),
+            meta: None,
+            next_cursor: None,
+        })
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<rmcp::model::ListResourcesResult, rmcp::ErrorData> {
+        Ok(rmcp::model::ListResourcesResult {
+            resources: mcp_resources(),
+            meta: None,
+            next_cursor: None,
+        })
+    }
+
+    async fn read_resource(
+        &self,
+        request: rmcp::model::ReadResourceRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<rmcp::model::ReadResourceResult, rmcp::ErrorData> {
+        read_mcp_resource(self, &request.uri)
     }
 }
 

@@ -114,6 +114,40 @@ fn detect_mock_data_report_distinguishes_mock_and_hardcoded_candidates() {
 }
 
 #[test]
+fn detect_mock_data_report_handles_non_ascii_preview_boundaries() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/customer_case.md"),
+        format!(
+            "{}abcd address customer phone email street road",
+            "参".repeat(7)
+        ),
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "src/customer_case.md".to_string(),
+            size: 10,
+            file_type: "md".to_string(),
+            access_count: 1,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert_eq!(report.hardcoded_candidates.len(), 1);
+    assert!(report.hardcoded_candidates[0]
+        .evidence
+        .iter()
+        .any(|item| item.contains("content preview:")));
+}
+
+#[test]
 fn detect_mock_data_report_runtime_shared_weak_token_only_stays_hardcoded_only() {
     let dir = TempDir::new().unwrap();
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
@@ -254,6 +288,88 @@ fn detect_mock_data_report_runtime_shared_many_weak_literals_still_becomes_hardc
         .rule_hits
         .iter()
         .any(|hit| hit == "path.runtime_shared"));
+}
+
+#[test]
+fn detect_mock_data_report_downgrades_markdown_template_hardcoded_noise() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("docs/operations")).unwrap();
+    std::fs::write(
+        dir.path().join("docs/operations/DEPLOYMENT.md"),
+        r#"
+Set CLIENT_EMAIL=${CLIENT_EMAIL}, ORDER_AMOUNT=${ORDER_AMOUNT}, USER_ADDRESS=${USER_ADDRESS}.
+Example placeholders may look like customer@example.com, $ORDER_AMOUNT, or 1 Market Street.
+This deployment guide describes customer, client, order, amount, email, user, address, and payment placeholders.
+"#,
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "docs/operations/DEPLOYMENT.md".to_string(),
+            size: 10,
+            file_type: "md".to_string(),
+            access_count: 0,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert_eq!(report.hardcoded_candidates.len(), 1);
+    assert_eq!(
+        report.hardcoded_candidates[0].path_classification,
+        "documentation"
+    );
+    assert_eq!(report.hardcoded_candidates[0].review_priority, "low");
+    assert_eq!(report.hardcoded_candidates[0].confidence, "low");
+    assert!(report.hardcoded_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "path.documentation"));
+    assert!(report.hardcoded_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "content.template_placeholder"));
+}
+
+#[test]
+fn detect_mock_data_report_keeps_runtime_source_hardcoded_priority_high() {
+    let dir = TempDir::new().unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/customer_defaults.rs"),
+        r#"const CUSTOMER: &str = "Acme Corp"; const EMAIL: &str = "ops@corp.com"; const ADDRESS: &str = "1 Market Street"; const PAYMENT: &str = "$100";"#,
+    )
+    .unwrap();
+
+    let report = detect_mock_data_report(
+        dir.path(),
+        &[StatsEntry {
+            file_path: "src/customer_defaults.rs".to_string(),
+            size: 10,
+            file_type: "rs".to_string(),
+            access_count: 2,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }],
+    );
+
+    assert_eq!(report.hardcoded_candidates.len(), 1);
+    assert_eq!(
+        report.hardcoded_candidates[0].path_classification,
+        "runtime_shared"
+    );
+    assert_eq!(report.hardcoded_candidates[0].review_priority, "high");
+    assert_eq!(report.hardcoded_candidates[0].confidence, "high");
+    assert!(!report.hardcoded_candidates[0]
+        .rule_hits
+        .iter()
+        .any(|hit| hit == "content.template_placeholder"));
 }
 
 #[test]
@@ -406,7 +522,10 @@ fn detect_mock_data_report_unknown_path_weak_token_with_mock_content_becomes_moc
     );
 
     assert_eq!(report.mock_candidates.len(), 1);
-    assert_eq!(report.mock_candidates[0].path_classification, "unknown");
+    assert_eq!(
+        report.mock_candidates[0].path_classification,
+        "documentation"
+    );
     assert!(report.mock_candidates[0]
         .rule_hits
         .iter()

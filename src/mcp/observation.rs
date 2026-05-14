@@ -7,6 +7,14 @@ use super::{now_unix_secs, ProjectGuidanceState};
 const FRESHNESS_RECENT_MAX_AGE_SECS: i64 = 24 * 60 * 60;
 const FRESHNESS_AGING_MAX_AGE_SECS: i64 = 7 * 24 * 60 * 60;
 
+pub(super) fn freshness_policy() -> Value {
+    json!({
+        "fresh_max_age_seconds": FRESHNESS_RECENT_MAX_AGE_SECS,
+        "aging_max_age_seconds": FRESHNESS_AGING_MAX_AGE_SECS,
+        "stale_after_seconds": FRESHNESS_AGING_MAX_AGE_SECS,
+    })
+}
+
 fn parse_unix_timestamp(value: &str) -> Option<i64> {
     value.parse::<i64>().ok().filter(|ts| *ts >= 0)
 }
@@ -72,6 +80,7 @@ pub(super) fn freshness_detail(
         "observed_at": timestamp,
         "age_seconds": age_seconds,
         "available": available,
+        "policy": freshness_policy(),
     })
 }
 

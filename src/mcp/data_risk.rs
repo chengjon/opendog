@@ -58,10 +58,22 @@ pub(super) const DATA_RISK_RULES: &[DataRiskRuleMeta] = &[
         description: "File sits inside a generated-artifact directory and should be down-ranked.",
     },
     DataRiskRuleMeta {
+        rule: "path.documentation",
+        group: "classification",
+        severity: "low",
+        description: "File sits under documentation or operator-note paths and should be reviewed as lower-confidence context.",
+    },
+    DataRiskRuleMeta {
         rule: "content.business_literal_combo",
         group: "content",
         severity: "high",
         description: "Content combines business-like keywords with literal-value markers.",
+    },
+    DataRiskRuleMeta {
+        rule: "content.template_placeholder",
+        group: "content",
+        severity: "low",
+        description: "Content includes template placeholders, so literal-looking values may be examples rather than runtime data.",
     },
     DataRiskRuleMeta {
         rule: "path.runtime_shared",

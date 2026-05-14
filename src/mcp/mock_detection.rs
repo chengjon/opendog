@@ -86,6 +86,20 @@ fn path_is_runtime_shared(path_lower: &str) -> bool {
         .any(|token| path_lower.contains(token))
 }
 
+fn path_is_documentation(path_lower: &str) -> bool {
+    [
+        "docs/",
+        "doc/",
+        "documentation/",
+        "operations/",
+        "runbooks/",
+        "readme",
+        "changelog",
+    ]
+    .iter()
+    .any(|token| path_lower.contains(token))
+}
+
 fn path_is_generated_artifact(path_lower: &str) -> bool {
     [
         "target/",
@@ -107,9 +121,19 @@ fn classify_path_kind(path_lower: &str) -> &'static str {
         "test_only"
     } else if path_is_runtime_shared(path_lower) {
         "runtime_shared"
+    } else if path_is_documentation(path_lower) {
+        "documentation"
     } else {
         "unknown"
     }
+}
+
+fn content_has_template_placeholder(content_lower: &str) -> bool {
+    content_lower.contains("${")
+        || content_lower.contains("{{")
+        || content_lower.contains("<your_")
+        || content_lower.contains("<insert_")
+        || content_lower.contains("example.com")
 }
 
 fn is_strong_hardcoded_combo(
@@ -131,6 +155,29 @@ fn allow_runtime_shared_hardcoded_amplification(
     path_classification == "runtime_shared" && combo_is_strong
 }
 
+fn hardcoded_review_priority(
+    path_classification: &str,
+    has_template_placeholder: bool,
+) -> &'static str {
+    if path_classification == "runtime_shared" && !has_template_placeholder {
+        "high"
+    } else if path_classification == "documentation" || has_template_placeholder {
+        "low"
+    } else {
+        "medium"
+    }
+}
+
+fn hardcoded_confidence(path_classification: &str, has_template_placeholder: bool) -> &'static str {
+    if path_classification == "runtime_shared" && !has_template_placeholder {
+        "high"
+    } else if path_classification == "documentation" || has_template_placeholder {
+        "low"
+    } else {
+        "medium"
+    }
+}
+
 fn discounted_weak_literal_hits(raw_weak_hits: usize) -> usize {
     raw_weak_hits / 2
 }
@@ -148,13 +195,29 @@ fn content_preview_snippet(content: &str, keywords: &[String]) -> Option<String>
     let lower = content.to_lowercase();
     for keyword in keywords {
         if let Some(index) = lower.find(keyword) {
-            let start = index.saturating_sub(24);
-            let end = (index + keyword.len() + 40).min(content.len());
+            let start = previous_char_boundary(content, index.saturating_sub(24));
+            let end = next_char_boundary(content, (index + keyword.len() + 40).min(content.len()));
             let snippet = content[start..end].replace(['\n', '\r'], " ");
             return Some(snippet);
         }
     }
     None
+}
+
+fn previous_char_boundary(value: &str, mut index: usize) -> usize {
+    index = index.min(value.len());
+    while index > 0 && !value.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+fn next_char_boundary(value: &str, mut index: usize) -> usize {
+    index = index.min(value.len());
+    while index < value.len() && !value.is_char_boundary(index) {
+        index += 1;
+    }
+    index
 }
 
 pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> MockDataReport {
@@ -224,7 +287,7 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
 
         let allow_weak_path_mock_signal = match path_classification {
             "test_only" | "generated_artifact" => true,
-            "runtime_shared" | "unknown" => has_content_mock_signal,
+            "runtime_shared" | "documentation" | "unknown" => has_content_mock_signal,
             _ => false,
         };
 
@@ -266,9 +329,9 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         let strong_literal_hits = count_keyword_hits(&content_lower, &strong_literal_markers);
         let weak_literal_hits = count_keyword_hits(&content_lower, &weak_literal_markers);
         let literal_hits = strong_literal_hits + discounted_weak_literal_hits(weak_literal_hits);
-        let runtime_path = path_is_runtime_shared(&path_lower);
         let strong_hardcoded_combo =
             is_strong_hardcoded_combo(path_classification, business_hits, literal_hits);
+        let has_template_placeholder = content_has_template_placeholder(&content_lower);
         let mut hardcoded_reasons = Vec::new();
         let mut hardcoded_evidence = Vec::new();
         let mut hardcoded_rule_hits = Vec::new();
@@ -308,6 +371,22 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
             hardcoded_evidence.push("runtime/shared path".to_string());
             hardcoded_rule_hits.push("path.runtime_shared".to_string());
         }
+        if path_classification == "documentation" && !hardcoded_reasons.is_empty() {
+            hardcoded_reasons.push(
+                "Candidate appears in documentation or operator notes, so treat literal-looking examples as lower-priority context."
+                    .to_string(),
+            );
+            hardcoded_evidence.push("documentation/operator-note path".to_string());
+            hardcoded_rule_hits.push("path.documentation".to_string());
+        }
+        if has_template_placeholder && !hardcoded_reasons.is_empty() {
+            hardcoded_reasons.push(
+                "Content includes template placeholders, so apparent values may be examples rather than runtime data."
+                    .to_string(),
+            );
+            hardcoded_evidence.push("template placeholder pattern".to_string());
+            hardcoded_rule_hits.push("content.template_placeholder".to_string());
+        }
         if !hardcoded_keywords.is_empty() {
             if let Some(snippet) =
                 content_preview_snippet(&content.unwrap_or_default(), &hardcoded_keywords)
@@ -345,8 +424,11 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
         if !hardcoded_reasons.is_empty() {
             report.hardcoded_candidates.push(DataCandidate {
                 file_path: entry.file_path.clone(),
-                confidence: if runtime_path { "high" } else { "medium" },
-                review_priority: if runtime_path { "high" } else { "medium" },
+                confidence: hardcoded_confidence(path_classification, has_template_placeholder),
+                review_priority: hardcoded_review_priority(
+                    path_classification,
+                    has_template_placeholder,
+                ),
                 path_classification,
                 rule_hits: hardcoded_rule_hits,
                 matched_keywords: hardcoded_keywords,

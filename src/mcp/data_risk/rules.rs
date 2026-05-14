@@ -54,6 +54,7 @@ pub(crate) fn path_kind_score(kind: &str) -> i32 {
         "runtime_shared" => 3,
         "unknown" => 2,
         "test_only" => 1,
+        "documentation" => 1,
         "generated_artifact" => 0,
         _ => 0,
     }

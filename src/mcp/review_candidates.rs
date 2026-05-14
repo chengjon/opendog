@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
 
+use crate::core::file_classification::classify_file_path;
+
 #[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct CandidateFreshness {
@@ -87,6 +89,7 @@ pub(crate) fn build_review_candidate(
     json!({
         "kind": kind,
         "file_path": file_path,
+        "path_classification": classify_file_path(file_path).as_str(),
         "reason": reason,
         "suggested_commands": suggested_commands,
         "candidate_basis": candidate_basis_for(kind, context.mock_summary, file_path),

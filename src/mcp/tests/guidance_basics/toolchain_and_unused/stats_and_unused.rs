@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::file_classification::FilePathClassificationFilter;
 
 fn stats_entry(path: &str, access_count: i64, modification_count: i64) -> StatsEntry {
     StatsEntry {
@@ -54,6 +55,7 @@ fn stats_guidance_marks_hot_file_candidate_as_primary_with_basis() {
             stats_entry("src/old.rs", 0, 0),
         ],
         &passing_verification_runs(),
+        FilePathClassificationFilter::All,
     );
 
     assert_eq!(
@@ -93,6 +95,7 @@ fn stats_guidance_marks_companion_unused_candidate_as_secondary_with_basis() {
             stats_entry("src/old.rs", 0, 0),
         ],
         &passing_verification_runs(),
+        FilePathClassificationFilter::All,
     );
 
     assert_eq!(
@@ -159,6 +162,7 @@ fn stats_guidance_surfaces_refactor_gate_level_in_execution_strategy() {
             started_at: None,
             finished_at: fresh_ts(),
         }],
+        FilePathClassificationFilter::All,
     );
 
     assert_eq!(
@@ -187,7 +191,7 @@ fn unused_guidance_marks_first_candidate_as_primary() {
         stats_entry("src/legacy.rs", 0, 0),
     ];
 
-    let value = unused_guidance(dir.path(), &entries, &[]);
+    let value = unused_guidance(dir.path(), &entries, &[], FilePathClassificationFilter::All);
     assert_eq!(
         value["layers"]["workspace_observation"]["unused_candidates"],
         json!(2)
@@ -216,7 +220,12 @@ fn unused_guidance_marks_overlap_in_candidate_basis() {
     )
     .unwrap();
 
-    let value = unused_guidance(dir.path(), &[stats_entry("src/legacy.rs", 0, 0)], &[]);
+    let value = unused_guidance(
+        dir.path(),
+        &[stats_entry("src/legacy.rs", 0, 0)],
+        &[],
+        FilePathClassificationFilter::All,
+    );
     assert_eq!(
         value["file_recommendations"][0]["candidate_basis"],
         json!([
@@ -241,6 +250,7 @@ fn unused_guidance_marks_later_candidates_as_secondary() {
             stats_entry("src/legacy.rs", 0, 0),
         ],
         &[],
+        FilePathClassificationFilter::All,
     );
     assert_eq!(
         value["file_recommendations"][1]["candidate_priority"],
@@ -253,7 +263,12 @@ fn unused_guidance_reuses_shared_cleanup_reason() {
     let dir = TempDir::new().unwrap();
     let entries = vec![stats_entry("src/old.rs", 0, 0)];
 
-    let value = unused_guidance(dir.path(), &entries, &passing_verification_runs());
+    let value = unused_guidance(
+        dir.path(),
+        &entries,
+        &passing_verification_runs(),
+        FilePathClassificationFilter::All,
+    );
 
     assert_eq!(
         value["layers"]["cleanup_refactor_candidates"]["safe_for_cleanup"],
@@ -263,4 +278,65 @@ fn unused_guidance_reuses_shared_cleanup_reason() {
         value["layers"]["cleanup_refactor_candidates"]["cleanup_blockers"],
         json!([])
     );
+}
+
+#[test]
+fn guidance_marks_active_path_classification_filter_and_empty_filtered_result() {
+    let dir = TempDir::new().unwrap();
+    let summary = ProjectSummary {
+        total_files: 4,
+        accessed_files: 2,
+        unused_files: 2,
+    };
+
+    let stats_value = stats_guidance(
+        dir.path(),
+        &summary,
+        &[],
+        &[],
+        FilePathClassificationFilter::Source,
+    );
+    assert_eq!(
+        stats_value["layers"]["workspace_observation"]["path_classification_filter"],
+        json!("source")
+    );
+    assert!(stats_value
+        .to_string()
+        .contains("selected path_classification filter returned no rows"));
+
+    let unused_value = unused_guidance(dir.path(), &[], &[], FilePathClassificationFilter::Source);
+    assert_eq!(
+        unused_value["layers"]["workspace_observation"]["path_classification_filter"],
+        json!("source")
+    );
+    assert!(unused_value
+        .to_string()
+        .contains("selected path_classification filter returned no rows"));
+}
+
+#[test]
+fn guidance_expands_transient_read_and_unused_safety_boundaries() {
+    let dir = TempDir::new().unwrap();
+    let stats_value = stats_guidance(
+        dir.path(),
+        &summary_with_activity(),
+        &[stats_entry("src/main.rs", 12, 3)],
+        &[],
+        FilePathClassificationFilter::All,
+    );
+
+    let stats_text = stats_value.to_string();
+    assert!(stats_text.contains("very brief file reads"));
+    assert!(stats_text.contains("AI assistant reads"));
+
+    let unused_value = unused_guidance(
+        dir.path(),
+        &[stats_entry("src/old.rs", 0, 0)],
+        &[],
+        FilePathClassificationFilter::All,
+    );
+
+    let unused_text = unused_value.to_string();
+    assert!(unused_text.contains("open descriptor"));
+    assert!(unused_text.contains("never read"));
 }
