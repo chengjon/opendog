@@ -247,14 +247,14 @@ fn handle_request_applies_incremental_global_config_updates() {
         })
         .unwrap();
 
-    let response = controller.handle_request(ControlRequest::UpdateGlobalConfig {
+    let response = controller.handle_request(ControlRequest::UpdateGlobalConfig(ConfigPatch {
         ignore_patterns: None,
         process_whitelist: Some(vec!["claude".to_string(), "codex".to_string()]),
         add_ignore_patterns: vec!["logs".to_string()],
         remove_ignore_patterns: vec!["node_modules".to_string()],
         add_process_whitelist: vec!["roo".to_string()],
         remove_process_whitelist: vec!["claude".to_string()],
-    });
+    }));
 
     match response {
         ControlResponse::GlobalConfigUpdated { result } => {
@@ -282,20 +282,13 @@ fn control_request_deserialization_defaults_omitted_incremental_patch_vectors() 
     .unwrap();
 
     match global_request {
-        ControlRequest::UpdateGlobalConfig {
-            ignore_patterns,
-            process_whitelist,
-            add_ignore_patterns,
-            remove_ignore_patterns,
-            add_process_whitelist,
-            remove_process_whitelist,
-        } => {
-            assert_eq!(ignore_patterns, None);
-            assert_eq!(process_whitelist, Some(vec!["claude".to_string()]));
-            assert!(add_ignore_patterns.is_empty());
-            assert!(remove_ignore_patterns.is_empty());
-            assert!(add_process_whitelist.is_empty());
-            assert!(remove_process_whitelist.is_empty());
+        ControlRequest::UpdateGlobalConfig(patch) => {
+            assert_eq!(patch.ignore_patterns, None);
+            assert_eq!(patch.process_whitelist, Some(vec!["claude".to_string()]));
+            assert!(patch.add_ignore_patterns.is_empty());
+            assert!(patch.remove_ignore_patterns.is_empty());
+            assert!(patch.add_process_whitelist.is_empty());
+            assert!(patch.remove_process_whitelist.is_empty());
         }
         other => panic!("unexpected response: {:?}", other),
     }

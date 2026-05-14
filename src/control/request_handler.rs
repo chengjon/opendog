@@ -1,4 +1,4 @@
-use crate::config::{ConfigPatch, ProjectConfigPatch};
+use crate::config::ProjectConfigPatch;
 use crate::core::report::ReportWindow;
 use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
@@ -39,26 +39,14 @@ impl MonitorController {
                     message: e.to_string(),
                 },
             },
-            ControlRequest::UpdateGlobalConfig {
-                ignore_patterns,
-                process_whitelist,
-                add_ignore_patterns,
-                remove_ignore_patterns,
-                add_process_whitelist,
-                remove_process_whitelist,
-            } => match self.update_global_config(ConfigPatch {
-                ignore_patterns,
-                process_whitelist,
-                add_ignore_patterns,
-                remove_ignore_patterns,
-                add_process_whitelist,
-                remove_process_whitelist,
-            }) {
-                Ok(result) => ControlResponse::GlobalConfigUpdated { result },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::UpdateGlobalConfig(patch) => {
+                match self.update_global_config(patch) {
+                    Ok(result) => ControlResponse::GlobalConfigUpdated { result },
+                    Err(e) => ControlResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
+            }
             ControlRequest::UpdateProjectConfig {
                 id,
                 ignore_patterns,

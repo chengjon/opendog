@@ -1,6 +1,6 @@
 use crate::config::{
-    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch, ProjectConfigReload,
-    ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
+    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch,
+    ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::error::{OpenDogError, Result};
 
@@ -41,14 +41,7 @@ impl DaemonClient {
     }
 
     pub fn update_global_config(&self, patch: ConfigPatch) -> Result<GlobalConfigUpdateResult> {
-        match self.send(ControlRequest::UpdateGlobalConfig {
-            ignore_patterns: patch.ignore_patterns,
-            process_whitelist: patch.process_whitelist,
-            add_ignore_patterns: patch.add_ignore_patterns,
-            remove_ignore_patterns: patch.remove_ignore_patterns,
-            add_process_whitelist: patch.add_process_whitelist,
-            remove_process_whitelist: patch.remove_process_whitelist,
-        })? {
+        match self.send(ControlRequest::UpdateGlobalConfig(patch))? {
             ControlResponse::GlobalConfigUpdated { result } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(

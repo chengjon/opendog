@@ -1,6 +1,6 @@
 use crate::config::{
-    GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
-    ProjectConfigView, ProjectInfo,
+    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload,
+    ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::ProjectDataCleanupResult;
@@ -30,18 +30,7 @@ pub enum ControlRequest {
     GetProjectConfig {
         id: String,
     },
-    UpdateGlobalConfig {
-        ignore_patterns: Option<Vec<String>>,
-        process_whitelist: Option<Vec<String>>,
-        #[serde(default)]
-        add_ignore_patterns: Vec<String>,
-        #[serde(default)]
-        remove_ignore_patterns: Vec<String>,
-        #[serde(default)]
-        add_process_whitelist: Vec<String>,
-        #[serde(default)]
-        remove_process_whitelist: Vec<String>,
-    },
+    UpdateGlobalConfig(ConfigPatch),
     UpdateProjectConfig {
         id: String,
         ignore_patterns: Option<Vec<String>>,
