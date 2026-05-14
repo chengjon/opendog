@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use crate::contracts::{CLI_CLEANUP_PROJECT_DATA_V1, CLI_EXPORT_PROJECT_EVIDENCE_V1};
-use crate::control::DaemonClient;
+use crate::control::{
+    CliProjectLifecycle, DaemonClient, DaemonProjectLifecycle, FallbackLifecycle,
+    ProjectLifecycle,
+};
 use crate::core::export::{self, ExportFormat, ExportView};
 use crate::core::file_classification::{classify_file_path, FilePathClassificationFilter};
 use crate::core::monitor;
@@ -14,13 +17,18 @@ use crate::storage::queries::StatsEntry;
 
 use super::output;
 
+fn project_lifecycle(pm: &ProjectManager) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, CliProjectLifecycle<'_>> {
+    static DAEMON: std::sync::OnceLock<DaemonClient> = std::sync::OnceLock::new();
+    let client = DAEMON.get_or_init(DaemonClient::new);
+    FallbackLifecycle::new(
+        DaemonProjectLifecycle::new(client),
+        CliProjectLifecycle::new(pm),
+    )
+}
+
 pub(super) fn cmd_register(pm: &ProjectManager, id: &str, path: &str) -> Result<(), OpenDogError> {
-    let daemon = DaemonClient::new();
-    let info = match daemon.create_project(id, path) {
-        Ok(info) => info,
-        Err(OpenDogError::DaemonUnavailable) => pm.create(id, Path::new(path))?,
-        Err(e) => return Err(e),
-    };
+    let svc = project_lifecycle(pm);
+    let info = svc.create_project(id, path)?;
     output::print_registered(&info);
     Ok(())
 }
@@ -228,37 +236,20 @@ fn filter_entries_by_classification(
 }
 
 pub(super) fn cmd_list(pm: &ProjectManager) -> Result<(), OpenDogError> {
-    let daemon = DaemonClient::new();
-    let projects = match daemon.list_projects() {
-        Ok(projects) => projects,
-        Err(OpenDogError::DaemonUnavailable) => pm.list()?,
-        Err(e) => return Err(e),
-    };
+    let svc = project_lifecycle(pm);
+    let projects = svc.list_projects()?;
     output::print_project_list(&projects);
     Ok(())
 }
 
 pub(super) fn cmd_delete(pm: &ProjectManager, id: &str) -> Result<(), OpenDogError> {
-    let daemon = DaemonClient::new();
-    match daemon.delete_project(id) {
-        Ok(true) => {
-            println!("Project '{}' deleted.", id);
-            return Ok(());
-        }
-        Ok(false) => {
+    let svc = project_lifecycle(pm);
+    match svc.delete_project(id)? {
+        true => println!("Project '{}' deleted.", id),
+        false => {
             eprintln!("Project '{}' not found.", id);
             std::process::exit(1);
         }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return Err(e),
-    }
-
-    let deleted = pm.delete(id)?;
-    if deleted {
-        println!("Project '{}' deleted.", id);
-    } else {
-        eprintln!("Project '{}' not found.", id);
-        std::process::exit(1);
     }
     Ok(())
 }

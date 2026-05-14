@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 mod client;
 mod controller_queries;
+mod fallback;
 mod protocol;
 mod request_handler;
 #[cfg(test)]
@@ -20,6 +21,10 @@ mod tests;
 mod transport;
 
 pub use self::client::DaemonClient;
+pub use self::fallback::{
+    CliProjectLifecycle, DaemonProjectLifecycle, DirectProjectLifecycle, FallbackLifecycle,
+    ProjectLifecycle,
+};
 pub use self::protocol::{ControlRequest, ControlResponse, StartMonitorOutcome};
 #[cfg(unix)]
 pub use self::transport::{spawn_control_server, spawn_control_server_at};
