@@ -1,9 +1,11 @@
 pub mod export;
+pub mod file_classification;
 pub mod monitor;
 pub mod project;
 pub mod report;
 pub mod retention;
 pub mod scanner;
+pub mod self_update;
 pub mod snapshot;
 pub mod stats;
 pub mod verification;

@@ -32,6 +32,9 @@ pub enum OpenDogError {
     #[error("Daemon appears to be running but the control socket is unavailable")]
     DaemonControlUnavailable,
 
+    #[error("Daemon IPC response integrity error: {0}")]
+    DaemonResponseIntegrity(String),
+
     #[error("Remote control error: {0}")]
     RemoteControl(String),
 

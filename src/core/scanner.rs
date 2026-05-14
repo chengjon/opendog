@@ -35,6 +35,7 @@ impl ProcScanner {
     pub fn scan(&self) -> ScanResult {
         let start = std::time::Instant::now();
         let mut sightings = Vec::new();
+        let mut seen_fds: HashSet<(i32, i32)> = HashSet::new();
         let mut pids_scanned = 0usize;
 
         let processes = match procfs::process::all_processes() {
@@ -74,12 +75,16 @@ impl ProcScanner {
             };
 
             for fd_info in fds {
-                let target = match fd_info {
-                    Ok(info) => info.target,
+                let info = match fd_info {
+                    Ok(info) => info,
                     Err(_) => continue,
                 };
 
-                let fd_path = match target {
+                if !mark_fd_seen(&mut seen_fds, pid, info.fd) {
+                    continue;
+                }
+
+                let fd_path = match info.target {
                     FDTarget::Path(p) => p,
                     _ => continue,
                 };
@@ -95,21 +100,16 @@ impl ProcScanner {
                     }
                 };
 
-                let canonical = match std::fs::canonicalize(&abs_path) {
-                    Ok(p) => p,
-                    Err(_) => continue,
-                };
-
-                // Check if this file is within our project root
-                if let Ok(rel) = canonical.strip_prefix(&self.root_path) {
-                    let rel_str = rel.to_str().unwrap_or("");
-                    if !rel_str.is_empty() && self.snapshot_paths.contains(rel_str) {
-                        sightings.push(FileSighting {
-                            file_path: rel_str.to_string(),
-                            process_name: comm.clone(),
-                            pid,
-                        });
-                    }
+                if let Some(rel_str) = resolve_snapshot_relative_file_path(
+                    &self.root_path,
+                    &self.snapshot_paths,
+                    &abs_path,
+                ) {
+                    sightings.push(FileSighting {
+                        file_path: rel_str,
+                        process_name: comm.clone(),
+                        pid,
+                    });
                 }
             }
         }
@@ -130,6 +130,30 @@ impl ProcScanner {
     }
 }
 
+fn mark_fd_seen(seen_fds: &mut HashSet<(i32, i32)>, pid: i32, fd: i32) -> bool {
+    seen_fds.insert((pid, fd))
+}
+
+fn resolve_snapshot_relative_file_path(
+    root_path: &Path,
+    snapshot_paths: &HashSet<String>,
+    abs_path: &Path,
+) -> Option<String> {
+    let canonical = std::fs::canonicalize(abs_path).ok()?;
+    let metadata = std::fs::metadata(&canonical).ok()?;
+    if !metadata.is_file() {
+        return None;
+    }
+
+    let rel = canonical.strip_prefix(root_path).ok()?;
+    let rel_str = rel.to_str().unwrap_or("");
+    if rel_str.is_empty() || !snapshot_paths.contains(rel_str) {
+        return None;
+    }
+
+    Some(rel_str.to_string())
+}
+
 pub fn default_process_whitelist() -> Vec<String> {
     vec![
         "claude".to_string(),
@@ -140,4 +164,37 @@ pub fn default_process_whitelist() -> Vec<String> {
         "gpt".to_string(),
         "glm".to_string(),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{mark_fd_seen, resolve_snapshot_relative_file_path};
+    use std::collections::HashSet;
+
+    #[test]
+    fn mark_fd_seen_deduplicates_per_pid_and_fd() {
+        let mut seen = HashSet::new();
+
+        assert!(mark_fd_seen(&mut seen, 42, 7));
+        assert!(!mark_fd_seen(&mut seen, 42, 7));
+        assert!(mark_fd_seen(&mut seen, 42, 8));
+        assert!(mark_fd_seen(&mut seen, 99, 7));
+    }
+
+    #[test]
+    fn resolve_snapshot_relative_file_path_ignores_directory_targets() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("project");
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::write(root.join("src/main.rs"), "fn main() {}").unwrap();
+        let snapshot_paths = HashSet::from([String::from("src/main.rs")]);
+
+        let file =
+            resolve_snapshot_relative_file_path(&root, &snapshot_paths, &root.join("src/main.rs"));
+        assert_eq!(file.as_deref(), Some("src/main.rs"));
+
+        let dir_target =
+            resolve_snapshot_relative_file_path(&root, &snapshot_paths, &root.join("src"));
+        assert_eq!(dir_target, None);
+    }
 }
