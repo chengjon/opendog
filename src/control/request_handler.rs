@@ -2,132 +2,101 @@ use crate::core::report::ReportWindow;
 
 use super::{ControlRequest, ControlResponse, MonitorController};
 
+fn respond<T>(
+    result: crate::error::Result<T>,
+    ok: impl FnOnce(T) -> ControlResponse,
+) -> ControlResponse {
+    match result {
+        Ok(value) => ok(value),
+        Err(e) => ControlResponse::Error {
+            message: e.to_string(),
+        },
+    }
+}
+
 impl MonitorController {
     pub fn handle_request(&mut self, request: ControlRequest) -> ControlResponse {
         match request {
             ControlRequest::Ping => ControlResponse::Pong,
-            ControlRequest::CreateProject { id, path } => match self.create_project(&id, &path) {
-                Ok(info) => ControlResponse::ProjectCreated { info },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::DeleteProject { id } => match self.delete_project(&id) {
-                Ok(deleted) => ControlResponse::ProjectDeleted { id, deleted },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::ListProjects => match self.list_projects() {
-                Ok(projects) => ControlResponse::Projects { projects },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::GetGlobalConfig => match self.global_config() {
-                Ok(config) => ControlResponse::GlobalConfig { config },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::GetProjectConfig { id } => match self.project_config_view(&id) {
-                Ok(view) => ControlResponse::ProjectConfig { view },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::CreateProject { id, path } => {
+                respond(self.create_project(&id, &path), |info| ControlResponse::ProjectCreated { info })
+            }
+            ControlRequest::DeleteProject { id } => {
+                respond(self.delete_project(&id), |deleted| ControlResponse::ProjectDeleted { id, deleted })
+            }
+            ControlRequest::ListProjects => {
+                respond(self.list_projects(), |projects| ControlResponse::Projects { projects })
+            }
+            ControlRequest::GetGlobalConfig => {
+                respond(self.global_config(), |config| ControlResponse::GlobalConfig { config })
+            }
+            ControlRequest::GetProjectConfig { id } => {
+                respond(self.project_config_view(&id), |view| ControlResponse::ProjectConfig { view })
+            }
             ControlRequest::UpdateGlobalConfig(patch) => {
-                match self.update_global_config(patch) {
-                    Ok(result) => ControlResponse::GlobalConfigUpdated { result },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(self.update_global_config(patch), |result| ControlResponse::GlobalConfigUpdated { result })
             }
             ControlRequest::UpdateProjectConfig(fields) => {
-                match self.update_project_config(&fields.id, fields.patch) {
-                    Ok(result) => ControlResponse::ProjectConfigUpdated { result },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.update_project_config(&fields.id, fields.patch),
+                    |result| ControlResponse::ProjectConfigUpdated { result },
+                )
             }
-            ControlRequest::ReloadProjectConfig { id } => match self.reload_project_config(&id) {
-                Ok(reload) => match self.pm.effective_project_config(&id) {
-                    Ok(effective) => ControlResponse::ProjectConfigReloaded {
-                        id,
-                        reload,
-                        effective,
-                    },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::ReloadProjectConfig { id } => respond(
+                self.reload_project_config(&id).and_then(|reload| {
+                    self.pm.effective_project_config(&id).map(|effective| (reload, effective))
+                }),
+                |(reload, effective)| ControlResponse::ProjectConfigReloaded { id, reload, effective },
+            ),
             ControlRequest::ListMonitors => ControlResponse::Monitors {
                 ids: self.monitor_ids(),
             },
-            ControlRequest::GetStats { id } => match self.get_stats(&id) {
-                Ok((summary, entries)) => ControlResponse::Stats {
+            ControlRequest::GetStats { id } => {
+                respond(self.get_stats(&id), |(summary, entries)| ControlResponse::Stats {
                     id,
                     summary,
                     entries,
-                },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::GetUnusedFiles { id } => match self.get_unused_files(&id) {
-                Ok(entries) => ControlResponse::UnusedFiles { id, entries },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+                })
+            }
+            ControlRequest::GetUnusedFiles { id } => {
+                respond(self.get_unused_files(&id), |entries| ControlResponse::UnusedFiles { id, entries })
+            }
             ControlRequest::GetTimeWindowReport { id, window, limit } => {
                 let window = match ReportWindow::parse(&window) {
-                    Ok(window) => window,
+                    Ok(w) => w,
                     Err(e) => {
                         return ControlResponse::Error {
                             message: e.to_string(),
                         };
                     }
                 };
-                match self.get_time_window_report(&id, window, limit) {
-                    Ok(report) => ControlResponse::TimeWindowReport { id, report },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.get_time_window_report(&id, window, limit),
+                    |report| ControlResponse::TimeWindowReport { id, report },
+                )
             }
             ControlRequest::CompareSnapshots {
                 id,
                 base_run_id,
                 head_run_id,
                 limit,
-            } => match self.compare_snapshots(&id, base_run_id, head_run_id, limit) {
-                Ok(comparison) => ControlResponse::SnapshotComparison { id, comparison },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            } => respond(
+                self.compare_snapshots(&id, base_run_id, head_run_id, limit),
+                |comparison| ControlResponse::SnapshotComparison { id, comparison },
+            ),
             ControlRequest::GetUsageTrends { id, window, limit } => {
                 let window = match ReportWindow::parse(&window) {
-                    Ok(window) => window,
+                    Ok(w) => w,
                     Err(e) => {
                         return ControlResponse::Error {
                             message: e.to_string(),
                         };
                     }
                 };
-                match self.get_usage_trends(&id, window, limit) {
-                    Ok(report) => ControlResponse::UsageTrends { id, report },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.get_usage_trends(&id, window, limit),
+                    |report| ControlResponse::UsageTrends { id, report },
+                )
             }
             ControlRequest::GetDataRiskCandidates {
                 id,
@@ -135,112 +104,68 @@ impl MonitorController {
                 min_review_priority,
                 limit,
                 schema_version,
-            } => match self.get_data_risk_candidates(
-                &schema_version,
-                &id,
-                &candidate_type,
-                &min_review_priority,
-                limit,
-            ) {
-                Ok(payload) => ControlResponse::DataRisk { payload },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            } => respond(
+                self.get_data_risk_candidates(&schema_version, &id, &candidate_type, &min_review_priority, limit),
+                |payload| ControlResponse::DataRisk { payload },
+            ),
             ControlRequest::GetWorkspaceDataRiskOverview {
                 candidate_type,
                 min_review_priority,
                 project_limit,
                 schema_version,
-            } => match self.get_workspace_data_risk_overview(
-                &schema_version,
-                &candidate_type,
-                &min_review_priority,
-                project_limit,
-            ) {
-                Ok(payload) => ControlResponse::WorkspaceDataRisk { payload },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            } => respond(
+                self.get_workspace_data_risk_overview(&schema_version, &candidate_type, &min_review_priority, project_limit),
+                |payload| ControlResponse::WorkspaceDataRisk { payload },
+            ),
             ControlRequest::GetAgentGuidance { project, top } => {
-                match self.get_agent_guidance(project.as_deref(), top) {
-                    Ok(payload) => ControlResponse::AgentGuidance { payload },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.get_agent_guidance(project.as_deref(), top),
+                    |payload| ControlResponse::AgentGuidance { payload },
+                )
             }
             ControlRequest::GetDecisionBrief {
                 project,
                 top,
                 schema_version,
-            } => match self.get_decision_brief(&schema_version, project.as_deref(), top) {
-                Ok(payload) => ControlResponse::DecisionBrief { payload },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
-            ControlRequest::GetVerificationStatus { id } => match self.get_verification_status(&id)
-            {
-                Ok(runs) => ControlResponse::VerificationStatus { id, runs },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            } => respond(
+                self.get_decision_brief(&schema_version, project.as_deref(), top),
+                |payload| ControlResponse::DecisionBrief { payload },
+            ),
+            ControlRequest::GetVerificationStatus { id } => {
+                respond(self.get_verification_status(&id), |runs| ControlResponse::VerificationStatus { id, runs })
+            }
             ControlRequest::CleanupProjectData(fields) => {
-                match self.cleanup_project_data(&fields.id, fields.request) {
-                    Ok(result) => ControlResponse::CleanupProjectData {
-                        id: fields.id,
-                        result,
-                    },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.cleanup_project_data(&fields.id, fields.request),
+                    |result| ControlResponse::CleanupProjectData { id: fields.id, result },
+                )
             }
             ControlRequest::RecordVerificationResult(fields) => {
-                match self.record_verification_result(&fields.id, fields.input) {
-                    Ok(run) => ControlResponse::VerificationRecorded {
-                        id: fields.id,
-                        run,
-                    },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.record_verification_result(&fields.id, fields.input),
+                    |run| ControlResponse::VerificationRecorded { id: fields.id, run },
+                )
             }
             ControlRequest::ExecuteVerification(fields) => {
-                match self.execute_verification(&fields.id, fields.input) {
-                    Ok(result) => ControlResponse::VerificationExecuted {
-                        id: fields.id,
-                        result,
-                    },
-                    Err(e) => ControlResponse::Error {
-                        message: e.to_string(),
-                    },
-                }
+                respond(
+                    self.execute_verification(&fields.id, fields.input),
+                    |result| ControlResponse::VerificationExecuted { id: fields.id, result },
+                )
             }
-            ControlRequest::StartMonitor { id } => match self.start_monitor(&id) {
-                Ok(outcome) => ControlResponse::Started {
+            ControlRequest::StartMonitor { id } => {
+                respond(self.start_monitor(&id), |outcome| ControlResponse::Started {
                     id,
                     already_running: outcome.already_running,
                     snapshot_taken: outcome.snapshot_taken,
-                },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+                })
+            }
             ControlRequest::StopMonitor { id } => ControlResponse::Stopped {
                 was_running: self.stop_monitor(&id),
                 id,
             },
-            ControlRequest::TakeSnapshot { id } => match self.take_snapshot(&id) {
-                Ok(result) => ControlResponse::Snapshot { id, result },
-                Err(e) => ControlResponse::Error {
-                    message: e.to_string(),
-                },
-            },
+            ControlRequest::TakeSnapshot { id } => {
+                respond(self.take_snapshot(&id), |result| ControlResponse::Snapshot { id, result })
+            }
         }
     }
 }
