@@ -72,7 +72,7 @@ This card covers the initial Phase 6 guidance families only. It does not expand 
 ## Guardrails
 
 - Do not broaden the card beyond the listed FT leaves.
-- Do not add new capability families without updating `.planning/FUNCTION_TREE.md`.
+- Do not add new capability families without updating `FUNCTION_TREE.md`.
 - Do not mark the work done without validation output.
 
 ## Verification

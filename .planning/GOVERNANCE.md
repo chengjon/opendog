@@ -7,7 +7,7 @@ This file describes the minimum governance loop for OPENDOG planning artifacts.
 Use this order when changing product scope:
 
 1. `.planning/PROJECT.md`
-2. `.planning/FUNCTION_TREE.md`
+2. `FUNCTION_TREE.md`
 3. `.planning/REQUIREMENTS.md`
 4. `.planning/ROADMAP.md`
 5. `.planning/task-cards/`
@@ -27,6 +27,8 @@ Interpretation:
 - Task cards should only target `L3` function-tree leaves
 - Backlog requirements must stay visible instead of being silently dropped
 - Capability changes should update `FUNCTION_TREE.md` before or alongside execution cards
+- Changes to `/proc/<pid>/fd` attribution logic must use an OpenSpec change plus task card before implementation or acceptance, because that path defines the trust boundary for file-level monitoring
+- Substantial project updates must add an entry to root `CHANGELOG.md` before closure so shipped changes remain discoverable across sessions and projects
 
 ## Validation Commands
 
@@ -51,6 +53,9 @@ In addition to ownership and mapping checks, OPENDOG now enforces a lightweight 
 - Machine-readable policy: `.planning/structural_hygiene_rules.json`
 - Validator: `scripts/validate_structural_hygiene.py`
 - Current posture: default line-count and byte-size budgets for key Rust/Python/Markdown surfaces, a strict dedicated budget for `src/mcp/mod.rs`, and a separate budget for embedded Rust test modules such as `src/**/tests.rs`; temporary legacy exceptions should be removed once files fall back under the default budget
+- Root docs stay readable but not artificially tiny: `README.md`, `CLAUDE.md`, and `REVIEW.md` have a 600-line budget, while `QUICKSTART.md` is the canonical detailed usage guide and has a 1000-line budget.
+- `docs/mcp-tool-reference.md` has its own larger budget because it is the canonical MCP contract reference; other reference docs remain under the tighter default docs budget.
+- `docs/json-contracts.md` has its own larger budget because it is the machine-consumption contract reference for CLI, MCP tools, and MCP Resources.
 
 This gate is meant to stop new oversized files from entering the repo silently while still allowing gradual reduction of existing large-file debt.
 
@@ -60,7 +65,7 @@ This gate is meant to stop new oversized files from entering the repo silently w
 
 - update the relevant section in `.planning/REQUIREMENTS.md`
 - keep or refine its `Maps to FT:` ownership
-- update `.planning/FUNCTION_TREE.md` if the capability boundary changed
+- update `FUNCTION_TREE.md` if the capability boundary changed
 - update `.planning/ROADMAP.md` if scheduling or backlog state changed
 
 ### Add execution work
@@ -69,6 +74,8 @@ This gate is meant to stop new oversized files from entering the repo silently w
 - map it to `FT-*` leaf nodes
 - explain why the chosen leaves are affected
 - include verification steps
+- include a root `CHANGELOG.md` update when the work materially changes behavior, interfaces, governance, or project structure
+- if the work changes scanner attribution semantics, require an OpenSpec change, review plan, and explicit acceptance before shipping the new behavior
 
 ### Add a new capability
 
@@ -91,7 +98,7 @@ If a requirement family is valid but not yet phase-scheduled:
 Use this progression instead of jumping directly from idea to phase:
 
 1. requirement is written and mapped in `.planning/REQUIREMENTS.md`
-2. capability ownership exists in `.planning/FUNCTION_TREE.md`
+2. capability ownership exists in `FUNCTION_TREE.md`
 3. backlog visibility exists in `.planning/ROADMAP.md`
 4. concrete task card exists in `.planning/task-cards/`
 5. numbered roadmap phase is assigned only when scheduling commitment is real

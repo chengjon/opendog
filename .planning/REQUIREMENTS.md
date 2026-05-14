@@ -5,7 +5,7 @@
 
 ## Function Tree Anchor
 
-Canonical capability hierarchy now lives in `.planning/FUNCTION_TREE.md`.
+Canonical capability hierarchy now lives in `FUNCTION_TREE.md`.
 
 Interpretation rule:
 
@@ -86,7 +86,7 @@ Maps to FT: `FT-02.02.01`
 Note: `MCP-01..09` describe the original baseline control surface. Later tools for reporting, config, export, cleanup, verification, guidance, and data-risk are intentionally tracked under their own requirement families instead of renumbering this baseline block.
 
 - [x] **MCP-01**: System exposes MCP server via rmcp crate over stdio transport
-- [x] **MCP-02**: MCP tool `create_project` — register project with ID and root path
+- [x] **MCP-02**: MCP tool `register_project` — register project with ID and root path
 - [x] **MCP-03**: MCP tool `take_snapshot` — trigger file scan for a project
 - [x] **MCP-04**: MCP tool `start_monitor` — begin file monitoring for a project
 - [x] **MCP-05**: MCP tool `stop_monitor` — stop file monitoring for a project

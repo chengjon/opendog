@@ -23,6 +23,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 - No direction drift: the project still centers on multi-project AI observation plus decision support
 - Broad but bounded scope: the capability surface is wider than a simple file-monitor, but it remains constrained by explicit observation, evidence, and non-destructive advisory boundaries
 - Current priority is depth over breadth: strengthen existing Phase 6 families, especially evidence quality, strategy clarity, and boundary messaging, before expanding the function map further
+- FD attribution credibility is now a governed baseline: `fix-fd-attribution` is accepted, verified, and future scanner attribution changes must use OpenSpec governance before shipping
 
 ## Phase Status
 
@@ -98,6 +99,19 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 ## Next Milestone Queue
 
 - Keep function-tree-based capability governance active, but apply it proportionally to project scale and change risk
+- Treat `/proc/<pid>/fd` scanner attribution as a high-trust-boundary path: future semantic changes require OpenSpec proposal, review plan, task mapping, and verification evidence
+- Treat `TASK-20260509-agent-guidance-utf8-panic` as the completed reference for separating guidance-layer defects from scanner attribution governance
+- Treat `TASK-20260510-mcp-observation-payload-bounds` as the completed reference for bounding MCP row-heavy observation payloads without removing full CLI visibility
+- Treat `TASK-20260510-daemon-ipc-response-integrity` as the completed reference for separating daemon transport-integrity failures from business-logic serialization errors
+- Treat `TASK-20260510-infrastructure-file-classification` as the completed reference for separating source-file signal from AI/tool infrastructure noise without changing scanner attribution or default ignore semantics
+- Treat `TASK-20260510-data-risk-context-aware-noise-reduction` as the completed reference for lowering documentation/template data-risk false positives without hiding audit evidence
+- Treat `TASK-20260510-mcp-regression-coverage-expansion` as the completed reference for adding coverage around high-value MCP/daemon paths without changing contracts
+- Treat `TASK-20260510-verification-evidence-ttl-policy` as the completed reference for exposing default verification freshness TTL policy without hiding stale evidence
+- Treat `TASK-20260510-mcp-readonly-resources` as the completed reference for adding low-parameter read-only MCP Resources while keeping mutations on tools/CLI
+- Treat `TASK-20260511-source-signal-observation-calibration` as the completed reference for proving transient Claude Code source reads are a sampling boundary, not a scanner-attribution regression
+- Treat `TASK-20260511-source-first-observation-views` as the completed reference for resolving infrastructure-dominated observation outputs with source-first filters and guidance boundaries
+- Treat `TASK-20260511-manual-self-update-workflow` as the completed reference for CLI-only release-binary maintenance without letting MCP mutate host configuration or restart itself
+- Next governed improvement candidates should be created from fresh project-exchange evidence rather than continuing the closed 2026-05-10 hardening batch
 - Use `.planning/TASK_CARD_TEMPLATE.md` as the default execution card format for substantial capability work
 - Use `.planning/GOVERNANCE.md` as the canonical operator/AI workflow for planning artifacts without forcing heavyweight ceremony on every small iteration
 - Prefer `scripts/validate_planning_governance.py` as the single governance check when planning artifacts change materially

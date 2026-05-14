@@ -27,6 +27,17 @@ Accurately identify which project files AI tools actually use and which are dead
 - Portable export shipped: `EXPORT-01..02` now exists in code with stable JSON/CSV artifact generation for project evidence rows
 - Comparative reporting shipped: `RPT-01..03` now exists in code with time-window summaries, snapshot comparison, usage trends, and CLI/MCP/daemon-control access
 - Retained-evidence lifecycle shipped: users and AI can selectively prune retained OPENDOG evidence per project, inspect storage-maintenance signals, and keep source files untouched
+- FD attribution credibility baseline accepted: `fix-fd-attribution` is closed-loop, verified against the `mystocks` large-repo workload, and governs future `/proc/<pid>/fd` scanner attribution changes
+- Agent-guidance UTF-8 panic hardening shipped: non-ASCII markdown content no longer panics in mock-detection preview generation
+- MCP observation payload bounds shipped: `get_stats` and `get_unused_files` default to bounded file rows with explicit result-window metadata for large repositories
+- Daemon IPC response integrity hardening shipped: empty or truncated daemon socket responses now surface as transport-integrity errors instead of generic serialization failures
+- Infrastructure file classification shipped: stats, unused, CLI, MCP, and guidance now separate source files from AI/tool infrastructure and backup-file noise without globally hiding evidence
+- Data-risk context-aware noise reduction shipped: documentation and template-placeholder findings are down-ranked while runtime-shared hardcoded source candidates remain high-priority
+- MCP regression coverage expansion shipped: daemon-backed explicit snapshot comparison and verification command execution paths now have integration coverage
+- Verification evidence TTL policy transparency shipped: verification freshness and gate assessments now expose the default fresh/aging/stale thresholds as machine-readable policy
+- Read-only MCP Resources shipped: AI clients can read stable project-list and per-project verification state through resource URIs without invoking heavier tools
+- Source-first observation views shipped: stats and unused outputs can filter source, infrastructure, backup, and project paths while preserving full classification summaries
+- Manual self-update workflow shipped: operators can check and rebuild the local release binary from the OpenDog source tree through CLI-only maintenance commands without MCP self-mutation
 
 ### Active
 
@@ -42,6 +53,7 @@ Current active work is intentionally focused on hardening and selectively deepen
 - [ ] Continue strengthening constraint and boundary layer — make blind spots and non-authoritative areas even more explicit
 - [ ] Continue tuning MOCK/hardcoded data detection — reduce false positives and improve review signals
 - [ ] Continue improving AI/operator documentation so new CLI/MCP capabilities are actually discoverable and used correctly
+- [ ] Evaluate new project-exchange evidence through governed task cards before opening additional hardening work
 - [ ] Keep `Maps to FT:` ownership current whenever requirement sections are added or revised
 - [ ] Keep adding concrete task cards under `.planning/task-cards/` instead of ad hoc execution notes
 - [ ] Keep `.planning/GOVERNANCE.md` and `scripts/validate_planning_governance.py` aligned with the real planning workflow
@@ -88,6 +100,7 @@ Current active work is intentionally focused on hardening and selectively deepen
 | Rust as implementation language | Memory safety + low overhead for long-running daemon | Adopted |
 | Per-project SQLite isolation | Zero cross-project data leakage, simple backup/deletion | Adopted |
 | /proc/<pid>/fd scanning + process whitelist for approximate attribution | inotify cannot provide PID; /proc scanning is the viable non-intrusive alternative | Adopted |
+| FD attribution scanner changes require OpenSpec governance | Scanner attribution is the source signal for hotspots, unused candidates, reports, and guidance; unreviewed changes can invalidate downstream trust | Adopted |
 | MCP stdio transport | Standard for CLI-integrated MCP servers, matches Claude Code integration | Adopted |
 | MCP should provide reusable information layers, not only raw control operations | AI needs decision support, evidence, and explicit boundaries about what to inspect or run next | Adopted |
 | CLI and MCP should route reusable project operations through the local control plane when the daemon is live | Avoid duplicate monitor ownership and state drift between interfaces | Adopted |

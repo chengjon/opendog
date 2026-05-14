@@ -62,8 +62,9 @@ If a task spans a requirement family, say so explicitly and keep the scope bound
 ## Guardrails
 
 - Do not silently expand scope outside the listed `FT-*` leaf nodes
-- Do not introduce new business capability without updating `.planning/FUNCTION_TREE.md`
+- Do not introduce new business capability without updating `FUNCTION_TREE.md`
 - Do not mark capability progress complete without matching verification evidence
+- For substantial updates, include a root `CHANGELOG.md` entry before closure
 
 ## Verification
 
@@ -77,7 +78,8 @@ If a task spans a requirement family, say so explicitly and keep the scope bound
 - capability behavior changed as intended
 - mapped requirement scope remains accurate
 - verification evidence recorded
-- any lifecycle changes are reflected back into `.planning/FUNCTION_TREE.md`
+- root `CHANGELOG.md` updated when behavior, interfaces, governance, or project structure changed materially
+- any lifecycle changes are reflected back into `FUNCTION_TREE.md`
 
 ## Mapping Notes
 

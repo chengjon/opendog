@@ -3,7 +3,7 @@
 **Created:** 2026-04-24
 **Phases:** 6
 **Requirements:** 114 total | 114 phase-mapped | 0 backlog
-**Capability anchor:** `.planning/FUNCTION_TREE.md`
+**Capability anchor:** `FUNCTION_TREE.md`
 **Mode:** YOLO | Standard granularity | Parallel execution
 
 ---
@@ -213,7 +213,7 @@ Promotion rule remains:
 
 ## Governance Note
 
-Future roadmap edits and task cards should declare which `FT-*` leaf nodes from `.planning/FUNCTION_TREE.md` they change.
+Future roadmap edits and task cards should declare which `FT-*` leaf nodes from `FUNCTION_TREE.md` they change.
 
 Default task-card skeleton:
 

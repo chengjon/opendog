@@ -159,8 +159,37 @@
       "include": [
         "docs/**/*.md"
       ],
+      "exclude": [
+        "docs/json-contracts.md",
+        "docs/mcp-tool-reference.md",
+        "docs/project-exchange/reports/**/*.md"
+      ],
       "max_lines": 950,
       "max_bytes": 26000
+    },
+    {
+      "name": "json-contracts",
+      "include": [
+        "docs/json-contracts.md"
+      ],
+      "max_lines": 1000,
+      "max_bytes": 50000
+    },
+    {
+      "name": "mcp-tool-reference",
+      "include": [
+        "docs/mcp-tool-reference.md"
+      ],
+      "max_lines": 1000,
+      "max_bytes": 50000
+    },
+    {
+      "name": "project-exchange-reports",
+      "include": [
+        "docs/project-exchange/reports/**/*.md"
+      ],
+      "max_lines": 1500,
+      "max_bytes": 120000
     },
     {
       "name": "planning-docs",
@@ -175,11 +204,18 @@
       "include": [
         "README.md",
         "CLAUDE.md",
-        "QUICKSTART.md",
         "REVIEW.md"
       ],
-      "max_lines": 350,
-      "max_bytes": 18000
+      "max_lines": 600,
+      "max_bytes": 30000
+    },
+    {
+      "name": "quickstart-guide",
+      "include": [
+        "QUICKSTART.md"
+      ],
+      "max_lines": 1000,
+      "max_bytes": 60000
     }
   ]
 }
