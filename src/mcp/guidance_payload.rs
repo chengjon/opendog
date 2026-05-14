@@ -8,6 +8,10 @@ use crate::storage::queries::{StatsEntry, VerificationRun};
 use super::{
     agent_guidance_recommended_flow, base_guidance_layers, build_constraints_boundaries_layer,
     default_shell_verification_commands, external_truth_boundary_for_top_project,
+    guidance_types::{
+        DataRiskFocusSummary, ObservationSummary, RepoTruthSummary, StabilizationSummary,
+        VerificationSummary,
+    },
     review_focus_projection_for_top_project, sort_project_recommendations,
     storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
     workspace_toolchain_layer, workspace_verification_evidence_layer,
@@ -84,11 +88,12 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> V
         }
     }
 
-    json!({
-        "projects_with_repo_truth_gaps": projects_with_repo_truth_gaps,
-        "repo_truth_gap_distribution": repo_truth_gap_distribution,
-        "mandatory_shell_check_examples": mandatory_shell_check_examples,
+    serde_json::to_value(RepoTruthSummary {
+        projects_with_repo_truth_gaps,
+        repo_truth_gap_distribution: Value::Object(repo_truth_gap_distribution),
+        mandatory_shell_check_examples,
     })
+    .expect("RepoTruthSummary serialization")
 }
 
 fn execution_strategy_repo_risk_coupling(
@@ -171,10 +176,11 @@ fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -
         }
     }
 
-    json!({
-        "projects_requiring_repo_stabilization": project_ids.len() as u64,
-        "repo_stabilization_priority_projects": project_ids,
+    serde_json::to_value(StabilizationSummary {
+        projects_requiring_repo_stabilization: project_ids.len() as u64,
+        repo_stabilization_priority_projects: project_ids,
     })
+    .expect("StabilizationSummary serialization")
 }
 
 fn execution_strategy_verification_summary(project_recommendations: &[Value]) -> Value {
@@ -196,11 +202,11 @@ fn execution_strategy_verification_summary(project_recommendations: &[Value]) ->
         })
         .count() as u64;
 
-    json!({
-        "projects_requiring_verification_run": projects_requiring_verification_run,
-        "projects_requiring_failing_verification_repair":
-            projects_requiring_failing_verification_repair,
+    serde_json::to_value(VerificationSummary {
+        projects_requiring_verification_run,
+        projects_requiring_failing_verification_repair,
     })
+    .expect("VerificationSummary serialization")
 }
 
 fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> Value {
@@ -228,11 +234,12 @@ fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> 
         })
         .count() as u64;
 
-    json!({
-        "projects_requiring_monitor_start": projects_requiring_monitor_start,
-        "projects_requiring_snapshot_refresh": projects_requiring_snapshot_refresh,
-        "projects_requiring_activity_generation": projects_requiring_activity_generation,
+    serde_json::to_value(ObservationSummary {
+        projects_requiring_monitor_start,
+        projects_requiring_snapshot_refresh,
+        projects_requiring_activity_generation,
     })
+    .expect("ObservationSummary serialization")
 }
 
 fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Value {
@@ -270,12 +277,13 @@ fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Va
         }
     }
 
-    json!({
-        "data_risk_focus_distribution": distribution,
-        "projects_requiring_hardcoded_review": projects_requiring_hardcoded_review,
-        "projects_requiring_mock_review": projects_requiring_mock_review,
-        "projects_requiring_mixed_file_review": projects_requiring_mixed_file_review,
+    serde_json::to_value(DataRiskFocusSummary {
+        data_risk_focus_distribution: distribution,
+        projects_requiring_hardcoded_review,
+        projects_requiring_mock_review,
+        projects_requiring_mixed_file_review,
     })
+    .expect("DataRiskFocusSummary serialization")
 }
 
 pub(crate) fn agent_guidance_payload(

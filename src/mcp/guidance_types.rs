@@ -135,3 +135,37 @@ pub(crate) struct DecisionSignals {
     pub(crate) attention_reasons: Vec<Value>,
     pub(crate) monitoring_count: u64,
 }
+
+#[derive(Serialize)]
+pub(crate) struct RepoTruthSummary {
+    pub(crate) projects_with_repo_truth_gaps: u64,
+    pub(crate) repo_truth_gap_distribution: Value,
+    pub(crate) mandatory_shell_check_examples: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct StabilizationSummary {
+    pub(crate) projects_requiring_repo_stabilization: u64,
+    pub(crate) repo_stabilization_priority_projects: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct VerificationSummary {
+    pub(crate) projects_requiring_verification_run: u64,
+    pub(crate) projects_requiring_failing_verification_repair: u64,
+}
+
+#[derive(Serialize)]
+pub(crate) struct ObservationSummary {
+    pub(crate) projects_requiring_monitor_start: u64,
+    pub(crate) projects_requiring_snapshot_refresh: u64,
+    pub(crate) projects_requiring_activity_generation: u64,
+}
+
+#[derive(Serialize)]
+pub(crate) struct DataRiskFocusSummary {
+    pub(crate) data_risk_focus_distribution: Value,
+    pub(crate) projects_requiring_hardcoded_review: u64,
+    pub(crate) projects_requiring_mock_review: u64,
+    pub(crate) projects_requiring_mixed_file_review: u64,
+}
