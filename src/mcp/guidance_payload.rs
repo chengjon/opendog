@@ -10,7 +10,7 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusSummary, ObservationSummary, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary,
+        VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project, sort_project_recommendations,
     storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
@@ -442,40 +442,50 @@ pub(crate) fn agent_guidance_payload(
             "layers": base_guidance_layers(),
         }
     });
-    value["guidance"]["layers"]["workspace_observation"] = json!({
-        "status": "available",
-        "project_count": project_count,
-        "monitoring_count": monitoring_count,
-        "analysis_state": if project_count == 0 {
-            "empty"
-        } else if monitoring_count == 0 {
-            "insufficient_activity"
-        } else if projects_with_stale_snapshot > 0
-            || projects_with_stale_activity > 0
-            || projects_with_stale_verification > 0
-        {
-            "stale"
-        } else {
-            "ready"
-        },
-        "projects_missing_snapshot": projects_missing_snapshot,
-        "projects_with_stale_snapshot": projects_with_stale_snapshot,
-        "projects_missing_activity": projects_missing_activity,
-        "projects_with_stale_activity": projects_with_stale_activity,
-        "projects_missing_verification": projects_missing_verification,
-        "projects_with_stale_verification": projects_with_stale_verification,
-        "projects_with_storage_maintenance_candidates": projects_with_storage_maintenance_candidates,
-        "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
-        "total_storage_reclaimable_bytes": storage_maintenance["total_approx_reclaimable_bytes"].clone(),
-        "data_risk_focus_distribution": data_risk_focus_summary["data_risk_focus_distribution"].clone(),
-        "projects_requiring_hardcoded_review":
-            data_risk_focus_summary["projects_requiring_hardcoded_review"].clone(),
-        "projects_requiring_mock_review":
-            data_risk_focus_summary["projects_requiring_mock_review"].clone(),
-        "projects_requiring_mixed_file_review":
-            data_risk_focus_summary["projects_requiring_mixed_file_review"].clone(),
-        "notes": notes,
-    });
+    let analysis_state = if project_count == 0 {
+        "empty"
+    } else if monitoring_count == 0 {
+        "insufficient_activity"
+    } else if projects_with_stale_snapshot > 0
+        || projects_with_stale_activity > 0
+        || projects_with_stale_verification > 0
+    {
+        "stale"
+    } else {
+        "ready"
+    };
+
+    value["guidance"]["layers"]["workspace_observation"] =
+        serde_json::to_value(WorkspaceObservationLayer {
+            status: "available".to_string(),
+            project_count,
+            monitoring_count,
+            analysis_state: analysis_state.to_string(),
+            projects_missing_snapshot,
+            projects_with_stale_snapshot,
+            projects_missing_activity,
+            projects_with_stale_activity,
+            projects_missing_verification,
+            projects_with_stale_verification,
+            projects_with_storage_maintenance_candidates,
+            projects_with_vacuum_candidates,
+            total_storage_reclaimable_bytes: storage_maintenance["total_approx_reclaimable_bytes"]
+                .clone(),
+            data_risk_focus_distribution: data_risk_focus_summary
+                ["data_risk_focus_distribution"]
+                .clone(),
+            projects_requiring_hardcoded_review: data_risk_focus_summary
+                ["projects_requiring_hardcoded_review"]
+                .clone(),
+            projects_requiring_mock_review: data_risk_focus_summary
+                ["projects_requiring_mock_review"]
+                .clone(),
+            projects_requiring_mixed_file_review: data_risk_focus_summary
+                ["projects_requiring_mixed_file_review"]
+                .clone(),
+            notes: notes.to_vec(),
+        })
+        .expect("WorkspaceObservationLayer serialization");
     value["guidance"]["layers"]["execution_strategy"] = json!({
         "status": "available",
         "recommended_flow": recommended_flow,

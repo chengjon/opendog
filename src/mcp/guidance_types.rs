@@ -169,3 +169,25 @@ pub(crate) struct DataRiskFocusSummary {
     pub(crate) projects_requiring_mock_review: u64,
     pub(crate) projects_requiring_mixed_file_review: u64,
 }
+
+#[derive(Serialize)]
+pub(crate) struct WorkspaceObservationLayer {
+    pub(crate) status: String,
+    pub(crate) project_count: usize,
+    pub(crate) monitoring_count: usize,
+    pub(crate) analysis_state: String,
+    pub(crate) projects_missing_snapshot: usize,
+    pub(crate) projects_with_stale_snapshot: usize,
+    pub(crate) projects_missing_activity: usize,
+    pub(crate) projects_with_stale_activity: usize,
+    pub(crate) projects_missing_verification: usize,
+    pub(crate) projects_with_stale_verification: usize,
+    pub(crate) projects_with_storage_maintenance_candidates: u64,
+    pub(crate) projects_with_vacuum_candidates: u64,
+    pub(crate) total_storage_reclaimable_bytes: Value,
+    pub(crate) data_risk_focus_distribution: Value,
+    pub(crate) projects_requiring_hardcoded_review: Value,
+    pub(crate) projects_requiring_mock_review: Value,
+    pub(crate) projects_requiring_mixed_file_review: Value,
+    pub(crate) notes: Vec<String>,
+}
