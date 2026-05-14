@@ -8,6 +8,7 @@ use crate::core::project::ProjectManager;
 use crate::core::snapshot;
 use crate::core::snapshot::SnapshotResult;
 use crate::error::{OpenDogError, Result};
+use crate::storage::database::Database;
 use std::collections::HashMap;
 
 mod client;
@@ -264,5 +265,33 @@ impl MonitorController {
         let mut ids: Vec<String> = self.monitors.keys().cloned().collect();
         ids.sort();
         ids
+    }
+
+    /// Validate that `id` maps to a known project, open its database, then
+    /// call `f` with the connection.  Eliminates the repeated
+    /// get→ok_or→open_project_db preamble shared by every query method.
+    fn with_project_db<F, T>(&self, id: &str, f: F) -> crate::error::Result<T>
+    where
+        F: FnOnce(&Database) -> crate::error::Result<T>,
+    {
+        self.pm
+            .get(id)?
+            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
+        let db = self.pm.open_project_db(id)?;
+        f(&db)
+    }
+
+    /// Like [`with_project_db`], but also passes the resolved [`ProjectInfo`]
+    /// to the closure.  Use when the delegate needs the project root path.
+    fn with_project_info_db<F, T>(&self, id: &str, f: F) -> crate::error::Result<T>
+    where
+        F: FnOnce(&ProjectInfo, &Database) -> crate::error::Result<T>,
+    {
+        let info = self
+            .pm
+            .get(id)?
+            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
+        let db = self.pm.open_project_db(id)?;
+        f(&info, &db)
     }
 }

@@ -23,21 +23,15 @@ use super::MonitorController;
 
 impl MonitorController {
     pub fn get_stats(&self, id: &str) -> Result<(ProjectSummary, Vec<StatsEntry>)> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        let summary = stats::get_summary(&db)?;
-        let entries = stats::get_stats(&db)?;
-        Ok((summary, entries))
+        self.with_project_db(id, |db| {
+            let summary = stats::get_summary(db)?;
+            let entries = stats::get_stats(db)?;
+            Ok((summary, entries))
+        })
     }
 
     pub fn get_unused_files(&self, id: &str) -> Result<Vec<StatsEntry>> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        stats::get_unused_files(&db)
+        self.with_project_db(id, |db| stats::get_unused_files(db))
     }
 
     pub fn get_time_window_report(
@@ -46,11 +40,7 @@ impl MonitorController {
         window: ReportWindow,
         limit: usize,
     ) -> Result<TimeWindowReport> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        report::get_time_window_report(&db, window, limit)
+        self.with_project_db(id, |db| report::get_time_window_report(db, window, limit))
     }
 
     pub fn compare_snapshots(
@@ -60,19 +50,13 @@ impl MonitorController {
         head_run_id: Option<i64>,
         limit: usize,
     ) -> Result<SnapshotComparison> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        match (base_run_id, head_run_id) {
-            (None, None) => report::compare_latest_snapshots(&db, limit),
-            (Some(base_run_id), Some(head_run_id)) => {
-                report::compare_snapshot_runs(&db, base_run_id, head_run_id, limit)
-            }
+        self.with_project_db(id, |db| match (base_run_id, head_run_id) {
+            (None, None) => report::compare_latest_snapshots(db, limit),
+            (Some(base), Some(head)) => report::compare_snapshot_runs(db, base, head, limit),
             _ => Err(OpenDogError::InvalidInput(
                 "base_run_id and head_run_id must be provided together".to_string(),
             )),
-        }
+        })
     }
 
     pub fn get_usage_trends(
@@ -81,11 +65,7 @@ impl MonitorController {
         window: ReportWindow,
         limit: usize,
     ) -> Result<UsageTrendReport> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        report::get_usage_trend_report(&db, window, limit)
+        self.with_project_db(id, |db| report::get_usage_trend_report(db, window, limit))
     }
 
     pub fn cleanup_project_data(
@@ -93,11 +73,7 @@ impl MonitorController {
         id: &str,
         request: ProjectDataCleanupRequest,
     ) -> Result<ProjectDataCleanupResult> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        retention::cleanup_project_data(&db, &request)
+        self.with_project_db(id, |db| retention::cleanup_project_data(db, &request))
     }
 
     pub fn get_data_risk_candidates(
@@ -119,21 +95,18 @@ impl MonitorController {
             OpenDogError::InvalidInput(error["error"].as_str().unwrap_or("").to_string())
         })?;
 
-        let info = self
-            .pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        let entries = stats::get_stats(&db)?;
-        Ok(project_data_risk_payload(
-            schema_version,
-            id,
-            &candidate_type,
-            &min_review_priority,
-            limit.max(1),
-            &info.root_path,
-            &entries,
-        ))
+        self.with_project_info_db(id, |info, db| {
+            let entries = stats::get_stats(db)?;
+            Ok(project_data_risk_payload(
+                schema_version,
+                id,
+                &candidate_type,
+                &min_review_priority,
+                limit.max(1),
+                &info.root_path,
+                &entries,
+            ))
+        })
     }
 
     pub fn get_workspace_data_risk_overview(
@@ -224,11 +197,7 @@ impl MonitorController {
     }
 
     pub fn get_verification_status(&self, id: &str) -> Result<Vec<VerificationRun>> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        verification::get_latest_verification_runs(&db)
+        self.with_project_db(id, |db| verification::get_latest_verification_runs(db))
     }
 
     pub fn record_verification_result(
@@ -236,11 +205,7 @@ impl MonitorController {
         id: &str,
         input: RecordVerificationInput,
     ) -> Result<VerificationRun> {
-        self.pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        verification::record_verification_result(&db, input)
+        self.with_project_db(id, |db| verification::record_verification_result(db, input))
     }
 
     pub fn execute_verification(
@@ -248,11 +213,8 @@ impl MonitorController {
         id: &str,
         input: ExecuteVerificationInput,
     ) -> Result<ExecutedVerificationResult> {
-        let info = self
-            .pm
-            .get(id)?
-            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
-        let db = self.pm.open_project_db(id)?;
-        verification::execute_verification_command(&db, &info.root_path, input)
+        self.with_project_info_db(id, |info, db| {
+            verification::execute_verification_command(db, &info.root_path, input)
+        })
     }
 }
