@@ -44,6 +44,7 @@ pub(super) fn tool_guidance(
             "Very brief file accesses may be missed because monitoring is sampling-based.".to_string(),
         ],
         default_shell_verification_commands(),
+        None,
     );
     if let Some(shell) = when_to_use_shell {
         value["when_to_use_shell"] = json!(shell);

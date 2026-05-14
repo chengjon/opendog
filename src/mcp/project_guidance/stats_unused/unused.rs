@@ -154,6 +154,7 @@ pub(in crate::mcp) fn unused_guidance(
             ],
             vec!["access_count=0 means OPENDOG did not observe an open descriptor; it is not proof that the file was never read or is safe to delete.".to_string()],
             vec!["git grep <symbol>".to_string(), project_commands[0].clone()],
+            None,
         );
         guidance["layers"]["constraints_boundaries"]["protected_paths"] =
             boundary_hints["protected_paths"].clone();

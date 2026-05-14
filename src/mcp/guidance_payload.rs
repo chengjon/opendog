@@ -15,6 +15,7 @@ use super::{
     review_focus_projection_for_top_project, sort_project_recommendations,
     storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
     workspace_toolchain_layer, workspace_verification_evidence_layer,
+    WorkspaceCounts,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -573,7 +574,7 @@ pub(crate) fn agent_guidance_payload(
     value["guidance"]["layers"]["verification_evidence"] =
         workspace_verification_evidence_layer(project_overviews, project_count, monitoring_count);
     value["guidance"]["layers"]["project_toolchain"] = workspace_toolchain_layer(project_overviews);
-    let mut constraints = build_constraints_boundaries_layer(
+    value["guidance"]["layers"]["constraints_boundaries"] = build_constraints_boundaries_layer(
         None,
         None,
         vec!["This workspace summary is based on registered projects and OPENDOG monitoring state."
@@ -587,18 +588,18 @@ pub(crate) fn agent_guidance_payload(
                 .to_string(),
         ],
         default_shell_verification_commands(),
+        Some(WorkspaceCounts {
+            projects_not_ready_for_cleanup,
+            projects_not_ready_for_refactor,
+            projects_with_hardcoded_data_candidates: projects_with_hardcoded_data,
+            projects_missing_snapshot,
+            projects_with_stale_snapshot,
+            projects_missing_activity,
+            projects_with_stale_activity,
+            projects_missing_verification,
+            projects_with_stale_verification,
+            projects_with_storage_maintenance_candidates,
+        }),
     );
-    constraints["projects_not_ready_for_cleanup"] = json!(projects_not_ready_for_cleanup);
-    constraints["projects_not_ready_for_refactor"] = json!(projects_not_ready_for_refactor);
-    constraints["projects_with_hardcoded_data_candidates"] = json!(projects_with_hardcoded_data);
-    constraints["projects_missing_snapshot"] = json!(projects_missing_snapshot);
-    constraints["projects_with_stale_snapshot"] = json!(projects_with_stale_snapshot);
-    constraints["projects_missing_activity"] = json!(projects_missing_activity);
-    constraints["projects_with_stale_activity"] = json!(projects_with_stale_activity);
-    constraints["projects_missing_verification"] = json!(projects_missing_verification);
-    constraints["projects_with_stale_verification"] = json!(projects_with_stale_verification);
-    constraints["projects_with_storage_maintenance_candidates"] =
-        json!(projects_with_storage_maintenance_candidates);
-    value["guidance"]["layers"]["constraints_boundaries"] = constraints;
     value
 }

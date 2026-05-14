@@ -54,7 +54,7 @@ use self::config_handlers::{handle_get_global_config, handle_get_project_config}
 use self::constraints::{
     build_constraints_boundaries_layer, common_boundary_hints,
     external_truth_boundary_for_top_project, project_readiness_snapshot,
-    review_focus_projection_for_top_project,
+    review_focus_projection_for_top_project, WorkspaceCounts,
 };
 #[cfg(test)]
 use self::data_risk::data_risk_guidance;

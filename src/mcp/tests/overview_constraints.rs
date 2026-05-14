@@ -120,6 +120,7 @@ fn build_constraints_boundaries_layer_includes_default_guardrails_and_blockers()
         Vec::new(),
         vec!["blind".to_string()],
         vec!["git diff".to_string()],
+        None,
     );
 
     assert!(value["guardrails"]

@@ -91,6 +91,7 @@ pub(in crate::mcp) fn stats_guidance(
                     .to_string(),
             ],
             vec![project_commands[0].clone(), "git status".to_string()],
+            None,
         );
         guidance["layers"]["constraints_boundaries"]["protected_paths"] =
             boundary_hints["protected_paths"].clone();
@@ -227,6 +228,7 @@ pub(in crate::mcp) fn stats_guidance(
                 "This response does not include git diff, test, or build evidence.".to_string(),
             ],
             vec!["git diff".to_string(), project_commands[0].clone()],
+            None,
         );
         guidance["layers"]["constraints_boundaries"]["protected_paths"] =
             boundary_hints["protected_paths"].clone();

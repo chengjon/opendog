@@ -240,3 +240,37 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) projects_requiring_repo_stabilization: Value,
     pub(crate) repo_stabilization_priority_projects: Value,
 }
+
+#[derive(Serialize)]
+pub(crate) struct ConstraintsBoundariesLayer {
+    pub(crate) status: String,
+    pub(crate) direct_observations: Vec<String>,
+    pub(crate) inferences: Vec<String>,
+    pub(crate) blind_spots: Vec<String>,
+    pub(crate) guardrails: Vec<String>,
+    pub(crate) destructive_operations_requiring_confirmation: Vec<String>,
+    pub(crate) human_review_required_for: Vec<String>,
+    pub(crate) cleanup_blockers: Vec<String>,
+    pub(crate) refactor_blockers: Vec<String>,
+    pub(crate) requires_shell_verification: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_not_ready_for_cleanup: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_not_ready_for_refactor: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_with_hardcoded_data_candidates: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_missing_snapshot: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_with_stale_snapshot: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_missing_activity: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_with_stale_activity: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_missing_verification: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_with_stale_verification: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) projects_with_storage_maintenance_candidates: Option<u64>,
+}
