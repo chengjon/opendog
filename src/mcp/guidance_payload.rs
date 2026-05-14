@@ -52,7 +52,7 @@ pub(crate) fn now_unix_secs() -> i64 {
         .as_secs() as i64
 }
 
-fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> Value {
+fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> RepoTruthSummary {
     let mut projects_with_repo_truth_gaps = 0_u64;
     let mut repo_truth_gap_distribution = Map::new();
     let mut mandatory_shell_check_examples = Vec::new();
@@ -89,12 +89,11 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> V
         }
     }
 
-    serde_json::to_value(RepoTruthSummary {
+    RepoTruthSummary {
         projects_with_repo_truth_gaps,
         repo_truth_gap_distribution: Value::Object(repo_truth_gap_distribution),
         mandatory_shell_check_examples,
-    })
-    .expect("RepoTruthSummary serialization")
+    }
 }
 
 fn execution_strategy_repo_risk_coupling(
@@ -164,7 +163,7 @@ fn execution_strategy_repo_risk_coupling(
     })
 }
 
-fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -> Value {
+fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -> StabilizationSummary {
     let mut project_ids = Vec::new();
 
     for recommendation in project_recommendations {
@@ -177,14 +176,13 @@ fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -
         }
     }
 
-    serde_json::to_value(StabilizationSummary {
+    StabilizationSummary {
         projects_requiring_repo_stabilization: project_ids.len() as u64,
         repo_stabilization_priority_projects: project_ids,
-    })
-    .expect("StabilizationSummary serialization")
+    }
 }
 
-fn execution_strategy_verification_summary(project_recommendations: &[Value]) -> Value {
+fn execution_strategy_verification_summary(project_recommendations: &[Value]) -> VerificationSummary {
     let projects_requiring_verification_run = project_recommendations
         .iter()
         .filter(|recommendation| {
@@ -203,14 +201,13 @@ fn execution_strategy_verification_summary(project_recommendations: &[Value]) ->
         })
         .count() as u64;
 
-    serde_json::to_value(VerificationSummary {
+    VerificationSummary {
         projects_requiring_verification_run,
         projects_requiring_failing_verification_repair,
-    })
-    .expect("VerificationSummary serialization")
+    }
 }
 
-fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> Value {
+fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> ObservationSummary {
     let projects_requiring_monitor_start = project_recommendations
         .iter()
         .filter(|recommendation| {
@@ -235,15 +232,14 @@ fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> 
         })
         .count() as u64;
 
-    serde_json::to_value(ObservationSummary {
+    ObservationSummary {
         projects_requiring_monitor_start,
         projects_requiring_snapshot_refresh,
         projects_requiring_activity_generation,
-    })
-    .expect("ObservationSummary serialization")
+    }
 }
 
-fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Value {
+fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> DataRiskFocusSummary {
     let mut distribution = json!({
         "hardcoded": 0,
         "mixed": 0,
@@ -278,13 +274,12 @@ fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Va
         }
     }
 
-    serde_json::to_value(DataRiskFocusSummary {
+    DataRiskFocusSummary {
         data_risk_focus_distribution: distribution,
         projects_requiring_hardcoded_review,
         projects_requiring_mock_review,
         projects_requiring_mixed_file_review,
-    })
-    .expect("DataRiskFocusSummary serialization")
+    }
 }
 
 pub(crate) fn agent_guidance_payload(
@@ -472,18 +467,10 @@ pub(crate) fn agent_guidance_payload(
             projects_with_vacuum_candidates,
             total_storage_reclaimable_bytes: storage_maintenance["total_approx_reclaimable_bytes"]
                 .clone(),
-            data_risk_focus_distribution: data_risk_focus_summary
-                ["data_risk_focus_distribution"]
-                .clone(),
-            projects_requiring_hardcoded_review: data_risk_focus_summary
-                ["projects_requiring_hardcoded_review"]
-                .clone(),
-            projects_requiring_mock_review: data_risk_focus_summary
-                ["projects_requiring_mock_review"]
-                .clone(),
-            projects_requiring_mixed_file_review: data_risk_focus_summary
-                ["projects_requiring_mixed_file_review"]
-                .clone(),
+            data_risk_focus_distribution: data_risk_focus_summary.data_risk_focus_distribution.clone(),
+            projects_requiring_hardcoded_review: json!(data_risk_focus_summary.projects_requiring_hardcoded_review),
+            projects_requiring_mock_review: json!(data_risk_focus_summary.projects_requiring_mock_review),
+            projects_requiring_mixed_file_review: json!(data_risk_focus_summary.projects_requiring_mixed_file_review),
             notes: notes.to_vec(),
         })
         .expect("WorkspaceObservationLayer serialization");
@@ -525,42 +512,20 @@ pub(crate) fn agent_guidance_payload(
             review_opendog_retention_before_large_cleanup:
                 projects_with_storage_maintenance_candidates > 0,
             recommend_manual_review_for_hardcoded_data: projects_with_hardcoded_data > 0,
-            data_risk_focus_distribution: data_risk_focus_summary["data_risk_focus_distribution"]
-                .clone(),
-            projects_requiring_hardcoded_review: data_risk_focus_summary
-                ["projects_requiring_hardcoded_review"]
-                .clone(),
-            projects_requiring_mock_review: data_risk_focus_summary["projects_requiring_mock_review"]
-                .clone(),
-            projects_requiring_mixed_file_review: data_risk_focus_summary
-                ["projects_requiring_mixed_file_review"]
-                .clone(),
-            projects_requiring_monitor_start: observation_summary
-                ["projects_requiring_monitor_start"]
-                .clone(),
-            projects_requiring_snapshot_refresh: observation_summary
-                ["projects_requiring_snapshot_refresh"]
-                .clone(),
-            projects_requiring_activity_generation: observation_summary
-                ["projects_requiring_activity_generation"]
-                .clone(),
-            projects_with_repo_truth_gaps: repo_truth_summary["projects_with_repo_truth_gaps"]
-                .clone(),
-            repo_truth_gap_distribution: repo_truth_summary["repo_truth_gap_distribution"].clone(),
-            mandatory_shell_check_examples: repo_truth_summary["mandatory_shell_check_examples"]
-                .clone(),
-            projects_requiring_verification_run: verification_summary
-                ["projects_requiring_verification_run"]
-                .clone(),
-            projects_requiring_failing_verification_repair: verification_summary
-                ["projects_requiring_failing_verification_repair"]
-                .clone(),
-            projects_requiring_repo_stabilization: stabilization_summary
-                ["projects_requiring_repo_stabilization"]
-                .clone(),
-            repo_stabilization_priority_projects: stabilization_summary
-                ["repo_stabilization_priority_projects"]
-                .clone(),
+            data_risk_focus_distribution: data_risk_focus_summary.data_risk_focus_distribution,
+            projects_requiring_hardcoded_review: json!(data_risk_focus_summary.projects_requiring_hardcoded_review),
+            projects_requiring_mock_review: json!(data_risk_focus_summary.projects_requiring_mock_review),
+            projects_requiring_mixed_file_review: json!(data_risk_focus_summary.projects_requiring_mixed_file_review),
+            projects_requiring_monitor_start: json!(observation_summary.projects_requiring_monitor_start),
+            projects_requiring_snapshot_refresh: json!(observation_summary.projects_requiring_snapshot_refresh),
+            projects_requiring_activity_generation: json!(observation_summary.projects_requiring_activity_generation),
+            projects_with_repo_truth_gaps: json!(repo_truth_summary.projects_with_repo_truth_gaps),
+            repo_truth_gap_distribution: repo_truth_summary.repo_truth_gap_distribution,
+            mandatory_shell_check_examples: json!(repo_truth_summary.mandatory_shell_check_examples),
+            projects_requiring_verification_run: json!(verification_summary.projects_requiring_verification_run),
+            projects_requiring_failing_verification_repair: json!(verification_summary.projects_requiring_failing_verification_repair),
+            projects_requiring_repo_stabilization: json!(stabilization_summary.projects_requiring_repo_stabilization),
+            repo_stabilization_priority_projects: json!(stabilization_summary.repo_stabilization_priority_projects),
         })
         .expect("ExecutionStrategyLayer serialization");
     value["guidance"]["layers"]["multi_project_portfolio"] = workspace_portfolio_layer(
