@@ -1,6 +1,8 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
+use super::guidance_types::{AttentionPriorityBasis, AttentionSummary};
+
 fn repo_risk_priority(score: &str) -> i32 {
     match score {
         "high" => 3,
@@ -184,29 +186,30 @@ fn project_attention_summary(overview: &Value) -> Value {
         "ready"
     };
 
-    json!({
-        "attention_score": score,
-        "attention_band": attention_band(score),
-        "attention_reasons": reasons,
-        "evidence_quality": evidence_quality,
-        "priority_basis": {
-            "recommended_next_action": action,
-            "recommended_action_base": attention_action_base(action),
-            "repo_risk_level": repo_risk_level,
-            "repo_in_operation": repo_in_operation,
-            "repo_is_dirty": repo_is_dirty,
-            "verification_status": verification_status,
-            "has_failing_verification": has_failing_verification,
-            "coverage_state": coverage_state,
-            "snapshot_freshness": snapshot_status,
-            "activity_freshness": activity_status,
-            "verification_freshness": verification_freshness,
-            "hardcoded_candidate_count": hardcoded_candidate_count,
-            "mock_candidate_count": mock_candidate_count,
-            "safe_for_cleanup": safe_for_cleanup,
-            "safe_for_refactor": safe_for_refactor
-        }
+    serde_json::to_value(AttentionSummary {
+        attention_score: score,
+        attention_band: attention_band(score).to_string(),
+        attention_reasons: reasons,
+        evidence_quality: evidence_quality.to_string(),
+        priority_basis: AttentionPriorityBasis {
+            recommended_next_action: action.to_string(),
+            recommended_action_base: attention_action_base(action),
+            repo_risk_level: repo_risk_level.to_string(),
+            repo_in_operation,
+            repo_is_dirty,
+            verification_status: verification_status.to_string(),
+            has_failing_verification,
+            coverage_state: coverage_state.to_string(),
+            snapshot_freshness: snapshot_status.to_string(),
+            activity_freshness: activity_status.to_string(),
+            verification_freshness: verification_freshness.to_string(),
+            hardcoded_candidate_count,
+            mock_candidate_count,
+            safe_for_cleanup,
+            safe_for_refactor,
+        },
     })
+    .expect("AttentionSummary serialization")
 }
 
 fn thin_attention_batch_entry(project: &Value) -> Value {
