@@ -80,6 +80,10 @@ pub(crate) struct AttentionPriorityBasis {
 pub(crate) struct WorkspacePortfolioLayer {
     pub(crate) status: String,
     pub(crate) project_count: usize,
+    pub(crate) monitoring_count: usize,
+    pub(crate) monitored_projects: Vec<Value>,
+    pub(crate) priority_candidates: Vec<Value>,
+    pub(crate) project_overviews: Vec<Value>,
     pub(crate) priority_model: String,
     pub(crate) dirty_projects: usize,
     pub(crate) high_risk_projects: usize,
@@ -87,6 +91,7 @@ pub(crate) struct WorkspacePortfolioLayer {
     pub(crate) projects_safe_for_cleanup: usize,
     pub(crate) projects_safe_for_refactor: usize,
     pub(crate) projects_with_hardcoded_candidates: usize,
+    pub(crate) projects_with_hardcoded_data_candidates: usize,
     pub(crate) total_mock_candidates: u64,
     pub(crate) total_hardcoded_candidates: u64,
     pub(crate) projects_in_operation: Vec<Value>,

@@ -265,7 +265,13 @@ pub(super) fn enrich_project_overview_with_attention(overview: &Value) -> Value 
     enriched
 }
 
-pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
+pub(super) fn workspace_portfolio_layer(
+    project_overviews: &[Value],
+    monitoring_count: usize,
+    monitored_projects: &[String],
+    priority_candidates: Vec<Value>,
+    projects_with_hardcoded_data: usize,
+) -> Value {
     let status = "available";
     let enriched_project_overviews = project_overviews
         .iter()
@@ -391,6 +397,10 @@ pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
     serde_json::to_value(WorkspacePortfolioLayer {
         status: status.to_string(),
         project_count: project_overviews.len(),
+        monitoring_count,
+        monitored_projects: monitored_projects.iter().map(|s| json!(s)).collect(),
+        priority_candidates,
+        project_overviews: project_overviews.to_vec(),
         priority_model: "action_urgency_plus_evidence_risk".to_string(),
         dirty_projects,
         high_risk_projects,
@@ -398,6 +408,7 @@ pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
         projects_safe_for_cleanup,
         projects_safe_for_refactor,
         projects_with_hardcoded_candidates,
+        projects_with_hardcoded_data_candidates: projects_with_hardcoded_data,
         total_mock_candidates,
         total_hardcoded_candidates,
         projects_in_operation,

@@ -562,26 +562,13 @@ pub(crate) fn agent_guidance_payload(
                 .clone(),
         })
         .expect("ExecutionStrategyLayer serialization");
-    value["guidance"]["layers"]["multi_project_portfolio"] = json!({
-        "status": "available",
-        "project_count": project_count,
-        "monitoring_count": monitoring_count,
-        "monitored_projects": monitored_projects,
-        "priority_candidates": sorted_project_recommendations,
-        "project_overviews": project_overviews,
-    });
-    value["guidance"]["layers"]["multi_project_portfolio"] =
-        workspace_portfolio_layer(project_overviews);
-    value["guidance"]["layers"]["multi_project_portfolio"]["monitoring_count"] =
-        json!(monitoring_count);
-    value["guidance"]["layers"]["multi_project_portfolio"]["monitored_projects"] =
-        json!(monitored_projects);
-    value["guidance"]["layers"]["multi_project_portfolio"]["priority_candidates"] =
-        json!(sorted_project_recommendations);
-    value["guidance"]["layers"]["multi_project_portfolio"]["project_overviews"] =
-        json!(project_overviews);
-    value["guidance"]["layers"]["multi_project_portfolio"]
-        ["projects_with_hardcoded_data_candidates"] = json!(projects_with_hardcoded_data);
+    value["guidance"]["layers"]["multi_project_portfolio"] = workspace_portfolio_layer(
+        project_overviews,
+        monitoring_count,
+        monitored_projects,
+        sorted_project_recommendations,
+        projects_with_hardcoded_data,
+    );
     value["guidance"]["layers"]["storage_maintenance"] = storage_maintenance;
     value["guidance"]["layers"]["verification_evidence"] =
         workspace_verification_evidence_layer(project_overviews, project_count, monitoring_count);
