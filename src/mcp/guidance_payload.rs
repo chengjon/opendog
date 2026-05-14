@@ -9,8 +9,8 @@ use super::{
     agent_guidance_recommended_flow, base_guidance_layers, build_constraints_boundaries_layer,
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
-        DataRiskFocusSummary, ObservationSummary, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary, WorkspaceObservationLayer,
+        DataRiskFocusSummary, ExecutionStrategyLayer, ObservationSummary, RepoTruthSummary,
+        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project, sort_project_recommendations,
     storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
@@ -486,65 +486,82 @@ pub(crate) fn agent_guidance_payload(
             notes: notes.to_vec(),
         })
         .expect("WorkspaceObservationLayer serialization");
-    value["guidance"]["layers"]["execution_strategy"] = json!({
-        "status": "available",
-        "recommended_flow": recommended_flow,
-        "project_recommendations": sorted_project_recommendations,
-        "global_strategy_mode": workspace_strategy["global_strategy_mode"].clone(),
-        "preferred_primary_tool": workspace_strategy["preferred_primary_tool"].clone(),
-        "preferred_secondary_tool": workspace_strategy["preferred_secondary_tool"].clone(),
-        "evidence_priority": workspace_strategy["evidence_priority"].clone(),
-        "risk_strategy_coupling": risk_strategy_coupling.clone(),
-        "external_truth_boundary": external_truth_boundary.clone(),
-        "review_focus_projection": review_focus_projection.clone(),
-        "when_to_use_opendog": [
-            "Choose OPENDOG when deciding which files are active, unused, or should be reviewed first.",
-        ],
-        "when_to_use_shell": [
-            "Choose shell commands for git state, diffs, tests, lint, and builds.",
-        ],
-        "guardrails": [
-            "Do not recommend broad cleanup or refactor work while recorded verification is failing.",
-            "Do not recommend broad changes while a repository is mid-merge, rebase, cherry-pick, or bisect.",
-            "When verification is missing, prefer running and recording test/lint/build evidence before high-risk edits.",
-            "When snapshot, activity, or verification evidence is stale, refresh it before trusting OPENDOG-driven sequencing.",
-        ],
-        "projects_not_ready_for_cleanup": projects_not_ready_for_cleanup,
-        "projects_not_ready_for_refactor": projects_not_ready_for_refactor,
-        "projects_with_hardcoded_data_candidates": projects_with_hardcoded_data,
-        "projects_missing_snapshot": projects_missing_snapshot,
-        "projects_with_stale_snapshot": projects_with_stale_snapshot,
-        "projects_missing_activity": projects_missing_activity,
-        "projects_with_stale_activity": projects_with_stale_activity,
-        "projects_missing_verification": projects_missing_verification,
-        "projects_with_stale_verification": projects_with_stale_verification,
-        "projects_with_storage_maintenance_candidates": projects_with_storage_maintenance_candidates,
-        "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
-        "review_opendog_retention_before_large_cleanup": projects_with_storage_maintenance_candidates > 0,
-        "recommend_manual_review_for_hardcoded_data": projects_with_hardcoded_data > 0,
-        "data_risk_focus_distribution": data_risk_focus_summary["data_risk_focus_distribution"].clone(),
-        "projects_requiring_hardcoded_review":
-            data_risk_focus_summary["projects_requiring_hardcoded_review"].clone(),
-        "projects_requiring_mock_review":
-            data_risk_focus_summary["projects_requiring_mock_review"].clone(),
-        "projects_requiring_mixed_file_review":
-            data_risk_focus_summary["projects_requiring_mixed_file_review"].clone(),
-        "projects_requiring_monitor_start":
-            observation_summary["projects_requiring_monitor_start"].clone(),
-        "projects_requiring_snapshot_refresh":
-            observation_summary["projects_requiring_snapshot_refresh"].clone(),
-        "projects_requiring_activity_generation":
-            observation_summary["projects_requiring_activity_generation"].clone(),
-        "projects_with_repo_truth_gaps": repo_truth_summary["projects_with_repo_truth_gaps"].clone(),
-        "repo_truth_gap_distribution": repo_truth_summary["repo_truth_gap_distribution"].clone(),
-        "mandatory_shell_check_examples": repo_truth_summary["mandatory_shell_check_examples"].clone(),
-        "projects_requiring_verification_run":
-            verification_summary["projects_requiring_verification_run"].clone(),
-        "projects_requiring_failing_verification_repair":
-            verification_summary["projects_requiring_failing_verification_repair"].clone(),
-        "projects_requiring_repo_stabilization": stabilization_summary["projects_requiring_repo_stabilization"].clone(),
-        "repo_stabilization_priority_projects": stabilization_summary["repo_stabilization_priority_projects"].clone(),
-    });
+    value["guidance"]["layers"]["execution_strategy"] =
+        serde_json::to_value(ExecutionStrategyLayer {
+            status: "available".to_string(),
+            recommended_flow,
+            project_recommendations: sorted_project_recommendations.clone(),
+            global_strategy_mode: workspace_strategy["global_strategy_mode"].clone(),
+            preferred_primary_tool: workspace_strategy["preferred_primary_tool"].clone(),
+            preferred_secondary_tool: workspace_strategy["preferred_secondary_tool"].clone(),
+            evidence_priority: workspace_strategy["evidence_priority"].clone(),
+            risk_strategy_coupling,
+            external_truth_boundary,
+            review_focus_projection,
+            when_to_use_opendog: vec![
+                "Choose OPENDOG when deciding which files are active, unused, or should be reviewed first.",
+            ],
+            when_to_use_shell: vec![
+                "Choose shell commands for git state, diffs, tests, lint, and builds.",
+            ],
+            guardrails: vec![
+                "Do not recommend broad cleanup or refactor work while recorded verification is failing.",
+                "Do not recommend broad changes while a repository is mid-merge, rebase, cherry-pick, or bisect.",
+                "When verification is missing, prefer running and recording test/lint/build evidence before high-risk edits.",
+                "When snapshot, activity, or verification evidence is stale, refresh it before trusting OPENDOG-driven sequencing.",
+            ],
+            projects_not_ready_for_cleanup,
+            projects_not_ready_for_refactor,
+            projects_with_hardcoded_data_candidates: projects_with_hardcoded_data,
+            projects_missing_snapshot,
+            projects_with_stale_snapshot,
+            projects_missing_activity,
+            projects_with_stale_activity,
+            projects_missing_verification,
+            projects_with_stale_verification,
+            projects_with_storage_maintenance_candidates,
+            projects_with_vacuum_candidates,
+            review_opendog_retention_before_large_cleanup:
+                projects_with_storage_maintenance_candidates > 0,
+            recommend_manual_review_for_hardcoded_data: projects_with_hardcoded_data > 0,
+            data_risk_focus_distribution: data_risk_focus_summary["data_risk_focus_distribution"]
+                .clone(),
+            projects_requiring_hardcoded_review: data_risk_focus_summary
+                ["projects_requiring_hardcoded_review"]
+                .clone(),
+            projects_requiring_mock_review: data_risk_focus_summary["projects_requiring_mock_review"]
+                .clone(),
+            projects_requiring_mixed_file_review: data_risk_focus_summary
+                ["projects_requiring_mixed_file_review"]
+                .clone(),
+            projects_requiring_monitor_start: observation_summary
+                ["projects_requiring_monitor_start"]
+                .clone(),
+            projects_requiring_snapshot_refresh: observation_summary
+                ["projects_requiring_snapshot_refresh"]
+                .clone(),
+            projects_requiring_activity_generation: observation_summary
+                ["projects_requiring_activity_generation"]
+                .clone(),
+            projects_with_repo_truth_gaps: repo_truth_summary["projects_with_repo_truth_gaps"]
+                .clone(),
+            repo_truth_gap_distribution: repo_truth_summary["repo_truth_gap_distribution"].clone(),
+            mandatory_shell_check_examples: repo_truth_summary["mandatory_shell_check_examples"]
+                .clone(),
+            projects_requiring_verification_run: verification_summary
+                ["projects_requiring_verification_run"]
+                .clone(),
+            projects_requiring_failing_verification_repair: verification_summary
+                ["projects_requiring_failing_verification_repair"]
+                .clone(),
+            projects_requiring_repo_stabilization: stabilization_summary
+                ["projects_requiring_repo_stabilization"]
+                .clone(),
+            repo_stabilization_priority_projects: stabilization_summary
+                ["repo_stabilization_priority_projects"]
+                .clone(),
+        })
+        .expect("ExecutionStrategyLayer serialization");
     value["guidance"]["layers"]["multi_project_portfolio"] = json!({
         "status": "available",
         "project_count": project_count,
