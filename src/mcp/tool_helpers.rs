@@ -1,7 +1,6 @@
 use rmcp::handler::server::wrapper::Json;
 use serde_json::{json, Value};
 
-use crate::config::ProjectInfo;
 use crate::error::OpenDogError;
 
 use super::{versioned_error_payload, versioned_project_error_payload};
@@ -90,17 +89,4 @@ pub(super) fn validation_error_json(
         versioned_error_payload(schema_version, error_code, error_message, [])
     };
     Json(value)
-}
-
-pub(super) fn scoped_projects_or_error(
-    mut projects: Vec<ProjectInfo>,
-    project_id: Option<&str>,
-) -> Result<Vec<ProjectInfo>, OpenDogError> {
-    if let Some(project_id) = project_id {
-        projects.retain(|project| project.id == project_id);
-        if projects.is_empty() {
-            return Err(OpenDogError::ProjectNotFound(project_id.to_string()));
-        }
-    }
-    Ok(projects)
 }

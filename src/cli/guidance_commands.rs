@@ -1,18 +1,15 @@
 use crate::contracts::{CLI_DATA_RISK_V1, CLI_DECISION_BRIEF_V1, CLI_WORKSPACE_DATA_RISK_V1};
-use crate::control::DaemonClient;
+use crate::control::{DaemonClient, Guidance};
 use crate::core::project::ProjectManager;
 use crate::core::stats;
 use crate::error::OpenDogError;
-use crate::guidance::{
-    build_agent_guidance_for_projects, build_decision_brief_for_projects,
-    load_project_guidance_data,
-};
 use crate::mcp::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,
     workspace_data_risk_payload,
 };
 
 use super::output;
+use super::project_commands::project_lifecycle;
 
 pub(super) fn cmd_agent_guidance(
     pm: &ProjectManager,
@@ -20,31 +17,8 @@ pub(super) fn cmd_agent_guidance(
     top: usize,
     json_output: bool,
 ) -> Result<(), OpenDogError> {
-    let top = top.max(1);
-    let daemon = DaemonClient::new();
-    match daemon.get_agent_guidance(project.as_deref(), top) {
-        Ok(guidance) => {
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&guidance)?);
-            } else {
-                output::print_agent_guidance(&guidance["guidance"]);
-            }
-            return Ok(());
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return Err(e),
-    }
-
-    let mut projects = pm.list()?;
-    if let Some(project_id) = project {
-        projects.retain(|p| p.id == project_id);
-        if projects.is_empty() {
-            return Err(OpenDogError::ProjectNotFound(project_id));
-        }
-    }
-    let guidance = build_agent_guidance_for_projects(&projects, top.max(1), |project| {
-        load_project_guidance_data(pm, project)
-    });
+    let svc = project_lifecycle(pm);
+    let guidance = svc.get_agent_guidance(project.as_deref(), top.max(1))?;
     if json_output {
         println!("{}", serde_json::to_string_pretty(&guidance)?);
     } else {
@@ -59,48 +33,8 @@ pub(super) fn cmd_decision_brief(
     top: usize,
     json_output: bool,
 ) -> Result<(), OpenDogError> {
-    let top = top.max(1);
-    let daemon = DaemonClient::new();
-    match daemon.get_decision_brief(project.as_deref(), top, CLI_DECISION_BRIEF_V1) {
-        Ok(payload) => {
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&payload)?);
-            } else {
-                output::print_decision_brief(&payload);
-            }
-            return Ok(());
-        }
-        Err(OpenDogError::DaemonUnavailable) => {}
-        Err(e) => return Err(e),
-    }
-
-    let mut projects = pm.list()?;
-    if let Some(project_id) = &project {
-        projects.retain(|p| p.id == *project_id);
-        if projects.is_empty() {
-            return Err(OpenDogError::ProjectNotFound(project_id.clone()));
-        }
-    }
-
-    let payload = build_decision_brief_for_projects(
-        CLI_DECISION_BRIEF_V1,
-        if project.is_some() {
-            "project"
-        } else {
-            "workspace"
-        },
-        project.as_deref(),
-        &projects,
-        top,
-        |project| load_project_guidance_data(pm, project),
-        |project| {
-            pm.open_project_db(&project.id)
-                .ok()
-                .and_then(|db| stats::get_stats(&db).ok())
-                .unwrap_or_default()
-        },
-    );
-
+    let svc = project_lifecycle(pm);
+    let payload = svc.get_decision_brief(CLI_DECISION_BRIEF_V1, project.as_deref(), top.max(1))?;
     if json_output {
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {

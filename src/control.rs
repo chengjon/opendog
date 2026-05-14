@@ -23,7 +23,7 @@ mod transport;
 pub use self::client::DaemonClient;
 pub use self::fallback::{
     CliProjectLifecycle, DaemonProjectLifecycle, DirectProjectLifecycle, FallbackLifecycle,
-    ProjectLifecycle, SnapshotMonitor,
+    Guidance, ProjectLifecycle, SnapshotMonitor,
 };
 pub use self::protocol::{ControlRequest, ControlResponse, StartMonitorOutcome};
 #[cfg(unix)]

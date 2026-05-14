@@ -13,7 +13,7 @@ use super::{
     MCP_REGISTER_PROJECT_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
 };
 
-fn project_lifecycle(server: &OpenDogServer) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, DirectProjectLifecycle<'_>> {
+pub(super) fn project_lifecycle(server: &OpenDogServer) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, DirectProjectLifecycle<'_>> {
     static DAEMON: std::sync::OnceLock<DaemonClient> = std::sync::OnceLock::new();
     let client = DAEMON.get_or_init(DaemonClient::new);
     FallbackLifecycle::new(

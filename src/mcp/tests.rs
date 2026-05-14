@@ -15,7 +15,7 @@ use super::{
     project_config_reload_payload, project_config_update_payload, project_overview,
     project_toolchain_layer, recommend_project_action, record_verification_payload,
     register_project_guidance, register_project_payload, repo_status_risk_layer,
-    review_priority_score, run_verification_payload, scoped_projects_or_error, snapshot_payload,
+    review_priority_score, run_verification_payload, snapshot_payload,
     start_monitor_guidance, start_monitor_payload, stats_guidance, stats_payload,
     stats_payload_with_limit, stop_monitor_payload, tool_guidance, unused_files_payload,
     unused_files_payload_with_limit, unused_guidance, update_global_config_payload,

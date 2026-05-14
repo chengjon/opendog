@@ -2,12 +2,11 @@ use crate::config::ProjectInfo;
 use crate::control::DaemonClient;
 use crate::core::snapshot::{self, SnapshotResult};
 use crate::error::{OpenDogError, Result};
+use serde_json::Value;
 
 use super::protocol::StartMonitorOutcome;
 
 /// Narrow trait for project lifecycle operations: create, list, delete.
-/// Implementations may talk to the daemon over IPC or hit ProjectManager
-/// directly — callers never know which path is active.
 pub trait ProjectLifecycle {
     fn create_project(&self, id: &str, path: &str) -> Result<ProjectInfo>;
     fn list_projects(&self) -> Result<Vec<ProjectInfo>>;
@@ -15,12 +14,21 @@ pub trait ProjectLifecycle {
 }
 
 /// Narrow trait for snapshot and monitor operations.
-/// Same daemon/direct split as ProjectLifecycle — callers never know
-/// which transport is active.
 pub trait SnapshotMonitor {
     fn take_snapshot(&self, id: &str) -> Result<SnapshotResult>;
     fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome>;
     fn stop_monitor(&self, id: &str) -> Result<bool>;
+}
+
+/// Narrow trait for guidance operations.
+pub trait Guidance {
+    fn get_agent_guidance(&self, project: Option<&str>, top: usize) -> Result<Value>;
+    fn get_decision_brief(
+        &self,
+        schema_version: &str,
+        project: Option<&str>,
+        top: usize,
+    ) -> Result<Value>;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,6 +73,21 @@ impl SnapshotMonitor for DaemonProjectLifecycle<'_> {
     }
 }
 
+impl Guidance for DaemonProjectLifecycle<'_> {
+    fn get_agent_guidance(&self, project: Option<&str>, top: usize) -> Result<Value> {
+        self.client.get_agent_guidance(project, top)
+    }
+
+    fn get_decision_brief(
+        &self,
+        schema_version: &str,
+        project: Option<&str>,
+        top: usize,
+    ) -> Result<Value> {
+        self.client.get_decision_brief(project, top, schema_version)
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Direct (ProjectManager-backed) implementation for MCP server
 // ---------------------------------------------------------------------------
@@ -95,7 +118,6 @@ impl ProjectLifecycle for DirectProjectLifecycle<'_> {
 
     fn delete_project(&self, id: &str) -> Result<bool> {
         let mut inner = self.controller.lock().unwrap();
-        // delete_project on MonitorController already calls stop_monitor internally
         inner.delete_project(id)
     }
 }
@@ -117,11 +139,33 @@ impl SnapshotMonitor for DirectProjectLifecycle<'_> {
     }
 }
 
+impl Guidance for DirectProjectLifecycle<'_> {
+    fn get_agent_guidance(&self, project: Option<&str>, top: usize) -> Result<Value> {
+        let inner = self.controller.lock().unwrap();
+        inner.get_agent_guidance(project, top)
+    }
+
+    fn get_decision_brief(
+        &self,
+        schema_version: &str,
+        project: Option<&str>,
+        top: usize,
+    ) -> Result<Value> {
+        let inner = self.controller.lock().unwrap();
+        inner.get_decision_brief(schema_version, project, top)
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Direct (ProjectManager-backed) implementation for CLI
 // ---------------------------------------------------------------------------
 
 use crate::core::project::ProjectManager;
+use crate::core::stats;
+use crate::guidance::{
+    build_agent_guidance_for_projects, build_decision_brief_for_projects,
+    load_project_guidance_data,
+};
 
 pub struct CliProjectLifecycle<'a> {
     pm: &'a ProjectManager,
@@ -130,6 +174,17 @@ pub struct CliProjectLifecycle<'a> {
 impl<'a> CliProjectLifecycle<'a> {
     pub fn new(pm: &'a ProjectManager) -> Self {
         Self { pm }
+    }
+
+    fn guidance_projects(&self, project: Option<&str>) -> Result<Vec<ProjectInfo>> {
+        let mut projects = self.pm.list()?;
+        if let Some(project_id) = project {
+            projects.retain(|p| p.id == project_id);
+            if projects.is_empty() {
+                return Err(OpenDogError::ProjectNotFound(project_id.to_string()));
+            }
+        }
+        Ok(projects)
     }
 }
 
@@ -171,9 +226,47 @@ impl SnapshotMonitor for CliProjectLifecycle<'_> {
     }
 }
 
+impl Guidance for CliProjectLifecycle<'_> {
+    fn get_agent_guidance(&self, project: Option<&str>, top: usize) -> Result<Value> {
+        let projects = self.guidance_projects(project)?;
+        Ok(build_agent_guidance_for_projects(
+            &projects,
+            top.max(1),
+            |p| load_project_guidance_data(self.pm, p),
+        ))
+    }
+
+    fn get_decision_brief(
+        &self,
+        schema_version: &str,
+        project: Option<&str>,
+        top: usize,
+    ) -> Result<Value> {
+        let projects = self.guidance_projects(project)?;
+        Ok(build_decision_brief_for_projects(
+            schema_version,
+            if project.is_some() {
+                "project"
+            } else {
+                "workspace"
+            },
+            project,
+            &projects,
+            top.max(1),
+            |p| load_project_guidance_data(self.pm, p),
+            |p| {
+                self.pm
+                    .open_project_db(&p.id)
+                    .ok()
+                    .and_then(|db| stats::get_stats(&db).ok())
+                    .unwrap_or_default()
+            },
+        ))
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Fallback: try daemon first, fall back to direct on DaemonUnavailable.
-// Other daemon errors propagate directly.
 // ---------------------------------------------------------------------------
 
 pub struct FallbackLifecycle<D, L> {
@@ -241,6 +334,27 @@ impl<D: SnapshotMonitor, L: SnapshotMonitor> SnapshotMonitor for FallbackLifecyc
         self.fallback(
             |svc| svc.stop_monitor(id),
             |svc| svc.stop_monitor(id),
+        )
+    }
+}
+
+impl<D: Guidance, L: Guidance> Guidance for FallbackLifecycle<D, L> {
+    fn get_agent_guidance(&self, project: Option<&str>, top: usize) -> Result<Value> {
+        self.fallback(
+            |svc| svc.get_agent_guidance(project, top),
+            |svc| svc.get_agent_guidance(project, top),
+        )
+    }
+
+    fn get_decision_brief(
+        &self,
+        schema_version: &str,
+        project: Option<&str>,
+        top: usize,
+    ) -> Result<Value> {
+        self.fallback(
+            |svc| svc.get_decision_brief(schema_version, project, top),
+            |svc| svc.get_decision_brief(schema_version, project, top),
         )
     }
 }

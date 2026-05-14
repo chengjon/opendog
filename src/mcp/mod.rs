@@ -120,7 +120,7 @@ use self::strategy::{
     agent_guidance_recommended_flow, strategy_profile, workspace_strategy_profile,
 };
 use self::tool_helpers::{
-    error_json_for, open_dog_error_code, scoped_projects_or_error, validation_error_json,
+    error_json_for, open_dog_error_code, validation_error_json,
 };
 use self::toolchain::{
     detect_project_commands, project_toolchain_layer, workspace_toolchain_layer,
