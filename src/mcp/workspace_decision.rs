@@ -7,7 +7,8 @@ use crate::storage::queries::StatsEntry;
 use super::{
     augment_entrypoints_for_storage_maintenance, decision_action_profile,
     decision_entrypoints_payload, decision_execution_templates, decision_risk_profile,
-    detect_mock_data_report, workspace_data_risk_overview_payload,
+    detect_mock_data_report, guidance_types::{DecisionBrief, DecisionSignals},
+    workspace_data_risk_overview_payload,
 };
 
 pub(crate) fn workspace_data_risk_payload<F>(
@@ -222,91 +223,95 @@ pub(crate) fn decision_brief_payload(
             .clone();
     }
 
+    let decision = serde_json::to_value(DecisionBrief {
+        summary: guidance["recommended_flow"]
+            .as_array()
+            .and_then(|steps| steps.first())
+            .and_then(|step| step.as_str())
+            .unwrap_or("No recommendation available.")
+            .to_string(),
+        recommended_next_action: recommended_next_action.to_string(),
+        reason: top_candidate["reason"].clone(),
+        repo_truth_gaps: top_candidate["repo_truth_gaps"].clone(),
+        mandatory_shell_checks: top_candidate["mandatory_shell_checks"].clone(),
+        external_truth_boundary: layers["execution_strategy"]["external_truth_boundary"].clone(),
+        review_focus: layers["execution_strategy"]["review_focus_projection"]["review_focus"]
+            .clone(),
+        execution_sequence: top_candidate["execution_sequence"].clone(),
+        data_risk_focus: matched_overview["mock_data_summary"]["data_risk_focus"].clone(),
+        target_project_id,
+        strategy_mode: strategy["global_strategy_mode"].clone(),
+        preferred_primary_tool: strategy["preferred_primary_tool"].clone(),
+        preferred_secondary_tool: strategy["preferred_secondary_tool"].clone(),
+        recommended_flow: guidance["recommended_flow"].clone(),
+        safe_for_cleanup,
+        safe_for_refactor,
+        verification_status: verification_status.to_string(),
+        requires_verification: verification_status != "available",
+        action_profile: decision_action_profile(
+            recommended_next_action,
+            strategy["global_strategy_mode"]
+                .as_str()
+                .unwrap_or("unknown"),
+        ),
+        risk_profile: decision_risk_profile(
+            recommended_next_action,
+            &matched_overview,
+            verification_status,
+            safe_for_cleanup,
+            safe_for_refactor,
+        ),
+        signals: DecisionSignals {
+            repo_risk_level: matched_overview["repo_status_risk"]["risk_level"]
+                .as_str()
+                .unwrap_or("unknown")
+                .to_string(),
+            repo_is_dirty: matched_overview["repo_status_risk"]["is_dirty"]
+                .as_bool()
+                .unwrap_or(false),
+            hardcoded_candidate_count: top_candidate["hardcoded_candidate_count"]
+                .as_u64()
+                .unwrap_or(0),
+            mock_candidate_count: top_candidate["mock_candidate_count"]
+                .as_u64()
+                .unwrap_or(0),
+            mixed_review_file_count: matched_overview["mock_data_summary"]
+                ["mixed_review_file_count"]
+                .as_u64()
+                .unwrap_or(0),
+            storage_maintenance_candidate: storage_maintenance["maintenance_candidate"]
+                .as_bool()
+                .unwrap_or(false),
+            storage_vacuum_candidate: storage_maintenance["vacuum_candidate"]
+                .as_bool()
+                .unwrap_or(false),
+            storage_reclaimable_bytes: storage_maintenance["approx_reclaimable_bytes"]
+                .as_i64()
+                .unwrap_or(0),
+            storage_db_size_bytes: storage_maintenance["approx_db_size_bytes"]
+                .as_i64()
+                .unwrap_or(0),
+            attention_score: top_candidate["attention_score"].as_i64().unwrap_or(0),
+            attention_band: top_candidate["attention_band"]
+                .as_str()
+                .unwrap_or("low")
+                .to_string(),
+            attention_reasons: top_candidate["attention_reasons"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+            monitoring_count: portfolio["monitoring_count"].as_u64().unwrap_or(0),
+        },
+    })
+    .expect("DecisionBrief serialization");
+
     versioned_payload(
         schema_version,
         [
             ("scope", json!(scope)),
             ("top", json!(top)),
             ("selected_project_id", json!(selected_project_id)),
-            (
-                "decision",
-                json!({
-                    "summary": guidance["recommended_flow"]
-                        .as_array()
-                        .and_then(|steps| steps.first())
-                        .and_then(|step| step.as_str())
-                        .unwrap_or("No recommendation available."),
-                    "recommended_next_action": recommended_next_action,
-                    "reason": top_candidate["reason"].clone(),
-                    "repo_truth_gaps": top_candidate["repo_truth_gaps"].clone(),
-                    "mandatory_shell_checks": top_candidate["mandatory_shell_checks"].clone(),
-                    "external_truth_boundary": layers["execution_strategy"]["external_truth_boundary"].clone(),
-                    "review_focus": layers["execution_strategy"]["review_focus_projection"]["review_focus"].clone(),
-                    "execution_sequence": top_candidate["execution_sequence"].clone(),
-                    "data_risk_focus": matched_overview["mock_data_summary"]["data_risk_focus"].clone(),
-                    "target_project_id": target_project_id,
-                    "strategy_mode": strategy["global_strategy_mode"].clone(),
-                    "preferred_primary_tool": strategy["preferred_primary_tool"].clone(),
-                    "preferred_secondary_tool": strategy["preferred_secondary_tool"].clone(),
-                    "recommended_flow": guidance["recommended_flow"].clone(),
-                    "safe_for_cleanup": safe_for_cleanup,
-                    "safe_for_refactor": safe_for_refactor,
-                    "verification_status": verification_status,
-                    "requires_verification": verification_status != "available",
-                    "action_profile": decision_action_profile(
-                        recommended_next_action,
-                        strategy["global_strategy_mode"].as_str().unwrap_or("unknown"),
-                    ),
-                    "risk_profile": decision_risk_profile(
-                        recommended_next_action,
-                        &matched_overview,
-                        verification_status,
-                        safe_for_cleanup,
-                        safe_for_refactor,
-                    ),
-                    "signals": {
-                        "repo_risk_level": matched_overview["repo_status_risk"]["risk_level"]
-                            .as_str()
-                            .unwrap_or("unknown"),
-                        "repo_is_dirty": matched_overview["repo_status_risk"]["is_dirty"]
-                            .as_bool()
-                            .unwrap_or(false),
-                        "hardcoded_candidate_count": top_candidate["hardcoded_candidate_count"]
-                            .as_u64()
-                            .unwrap_or(0),
-                        "mock_candidate_count": top_candidate["mock_candidate_count"]
-                            .as_u64()
-                            .unwrap_or(0),
-                        "mixed_review_file_count": matched_overview["mock_data_summary"]
-                            ["mixed_review_file_count"]
-                            .as_u64()
-                            .unwrap_or(0),
-                        "storage_maintenance_candidate": storage_maintenance["maintenance_candidate"]
-                            .as_bool()
-                            .unwrap_or(false),
-                        "storage_vacuum_candidate": storage_maintenance["vacuum_candidate"]
-                            .as_bool()
-                            .unwrap_or(false),
-                        "storage_reclaimable_bytes": storage_maintenance["approx_reclaimable_bytes"]
-                            .as_i64()
-                            .unwrap_or(0),
-                        "storage_db_size_bytes": storage_maintenance["approx_db_size_bytes"]
-                            .as_i64()
-                            .unwrap_or(0),
-                        "attention_score": top_candidate["attention_score"]
-                            .as_i64()
-                            .unwrap_or(0),
-                        "attention_band": top_candidate["attention_band"]
-                            .as_str()
-                            .unwrap_or("low"),
-                        "attention_reasons": top_candidate["attention_reasons"]
-                            .as_array()
-                            .cloned()
-                            .unwrap_or_default(),
-                        "monitoring_count": portfolio["monitoring_count"].as_u64().unwrap_or(0),
-                    },
-                }),
-            ),
+            ("decision", decision),
             ("entrypoints", entrypoints),
             ("layers", layers),
         ],
