@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
-use super::guidance_types::{AttentionPriorityBasis, AttentionSummary};
+use super::guidance_types::{AttentionPriorityBasis, AttentionSummary, WorkspacePortfolioLayer};
 
 fn repo_risk_priority(score: &str) -> i32 {
     match score {
@@ -388,22 +388,23 @@ pub(super) fn workspace_portfolio_layer(project_overviews: &[Value]) -> Value {
     let attention_batches =
         attention_batches_from_queue(&attention_queue, project_overviews.len(), status);
 
-    json!({
-        "status": status,
-        "project_count": project_overviews.len(),
-        "priority_model": "action_urgency_plus_evidence_risk",
-        "dirty_projects": dirty_projects,
-        "high_risk_projects": high_risk_projects,
-        "projects_with_failing_verification": projects_with_failing_verification,
-        "projects_safe_for_cleanup": projects_safe_for_cleanup,
-        "projects_safe_for_refactor": projects_safe_for_refactor,
-        "projects_with_hardcoded_candidates": projects_with_hardcoded_candidates,
-        "total_mock_candidates": total_mock_candidates,
-        "total_hardcoded_candidates": total_hardcoded_candidates,
-        "projects_in_operation": projects_in_operation,
-        "attention_queue": attention_queue,
-        "attention_batches": attention_batches,
+    serde_json::to_value(WorkspacePortfolioLayer {
+        status: status.to_string(),
+        project_count: project_overviews.len(),
+        priority_model: "action_urgency_plus_evidence_risk".to_string(),
+        dirty_projects,
+        high_risk_projects,
+        projects_with_failing_verification,
+        projects_safe_for_cleanup,
+        projects_safe_for_refactor,
+        projects_with_hardcoded_candidates,
+        total_mock_candidates,
+        total_hardcoded_candidates,
+        projects_in_operation,
+        attention_queue,
+        attention_batches,
     })
+    .expect("WorkspacePortfolioLayer serialization")
 }
 
 pub(super) fn sort_project_recommendations(

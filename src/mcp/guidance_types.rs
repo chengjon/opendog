@@ -75,3 +75,21 @@ pub(crate) struct AttentionPriorityBasis {
     pub(crate) safe_for_cleanup: bool,
     pub(crate) safe_for_refactor: bool,
 }
+
+#[derive(Serialize)]
+pub(crate) struct WorkspacePortfolioLayer {
+    pub(crate) status: String,
+    pub(crate) project_count: usize,
+    pub(crate) priority_model: String,
+    pub(crate) dirty_projects: usize,
+    pub(crate) high_risk_projects: usize,
+    pub(crate) projects_with_failing_verification: usize,
+    pub(crate) projects_safe_for_cleanup: usize,
+    pub(crate) projects_safe_for_refactor: usize,
+    pub(crate) projects_with_hardcoded_candidates: usize,
+    pub(crate) total_mock_candidates: u64,
+    pub(crate) total_hardcoded_candidates: u64,
+    pub(crate) projects_in_operation: Vec<Value>,
+    pub(crate) attention_queue: Vec<Value>,
+    pub(crate) attention_batches: Value,
+}
