@@ -15,7 +15,7 @@ use self::reasoning::{build_reason, derive_confidence};
 use self::scoring::score_review_actions;
 use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
-use super::guidance_types::Recommendation;
+use super::guidance_types::{ProjectOverview, Recommendation};
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
@@ -37,35 +37,37 @@ pub(crate) fn project_overview(
     let readiness = project_readiness_snapshot(repo_risk, verification_layer);
     let observation = project_observation_layer(project);
 
-    enrich_project_overview_with_attention(&json!({
-        "project_id": project.id,
-        "status": project.status,
-        "snapshot_available": project.total_files > 0,
-        "activity_available": project.accessed_files > 0,
-        "unused_files": project.unused_files,
-        "observation": observation,
-        "repo_status_risk": repo_risk,
-        "verification_evidence": verification_layer,
-        "mock_data_summary": mock_data_summary,
-        "storage_maintenance": storage_maintenance,
-        "project_toolchain": project_toolchain_layer(&project.root_path),
-        "verification_safe_for_cleanup": readiness["verification_safe_for_cleanup"].clone(),
-        "verification_safe_for_refactor": readiness["verification_safe_for_refactor"].clone(),
-        "verification_gate_levels": {
+    let overview = ProjectOverview {
+        project_id: project.id.clone(),
+        status: project.status.clone(),
+        snapshot_available: project.total_files > 0,
+        activity_available: project.accessed_files > 0,
+        unused_files: project.unused_files,
+        observation,
+        repo_status_risk: repo_risk.clone(),
+        verification_evidence: verification_layer.clone(),
+        mock_data_summary: mock_data_summary.clone(),
+        storage_maintenance: storage_maintenance.clone(),
+        project_toolchain: project_toolchain_layer(&project.root_path),
+        verification_safe_for_cleanup: readiness["verification_safe_for_cleanup"].clone(),
+        verification_safe_for_refactor: readiness["verification_safe_for_refactor"].clone(),
+        verification_gate_levels: json!({
             "cleanup": readiness["cleanup_gate_level"].clone(),
             "refactor": readiness["refactor_gate_level"].clone(),
-        },
-        "safe_for_cleanup": readiness["safe_for_cleanup"].clone(),
-        "safe_for_cleanup_reason": readiness["safe_for_cleanup_reason"].clone(),
-        "cleanup_blockers": readiness["cleanup_blockers"].clone(),
-        "safe_for_refactor": readiness["safe_for_refactor"].clone(),
-        "safe_for_refactor_reason": readiness["safe_for_refactor_reason"].clone(),
-        "refactor_blockers": readiness["refactor_blockers"].clone(),
-        "recommended_next_action": recommendation["recommended_next_action"].clone(),
-        "recommended_flow": recommendation["recommended_flow"].clone(),
-        "recommended_reason": recommendation["reason"].clone(),
-        "strategy_confidence": recommendation["confidence"].clone(),
-    }))
+        }),
+        safe_for_cleanup: readiness["safe_for_cleanup"].clone(),
+        safe_for_cleanup_reason: readiness["safe_for_cleanup_reason"].clone(),
+        cleanup_blockers: readiness["cleanup_blockers"].clone(),
+        safe_for_refactor: readiness["safe_for_refactor"].clone(),
+        safe_for_refactor_reason: readiness["safe_for_refactor_reason"].clone(),
+        refactor_blockers: readiness["refactor_blockers"].clone(),
+        recommended_next_action: recommendation["recommended_next_action"].clone(),
+        recommended_flow: recommendation["recommended_flow"].clone(),
+        recommended_reason: recommendation["reason"].clone(),
+        strategy_confidence: recommendation["confidence"].clone(),
+    };
+
+    enrich_project_overview_with_attention(&serde_json::to_value(overview).expect("ProjectOverview serialization"))
 }
 
 pub(crate) fn collect_project_guidance_context<F>(
