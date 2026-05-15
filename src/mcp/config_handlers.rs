@@ -2,11 +2,13 @@ use rmcp::handler::server::wrapper::Json;
 use serde_json::Value;
 
 use crate::control::DaemonClient;
+use crate::core::self_update::build_info_needs_rebuild;
 use crate::error::OpenDogError;
 
 use super::{
-    error_json_for, global_config_payload, project_config_payload, OpenDogServer,
-    MCP_GLOBAL_CONFIG_V1, MCP_PROJECT_CONFIG_V1,
+    build_info_payload, error_json_for, global_config_payload, project_config_payload,
+    OpenDogServer, MCP_BUILD_INFO_V1, MCP_GLOBAL_CONFIG_V1, MCP_PROJECT_CONFIG_V1,
+    OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
 };
 
 pub(super) fn handle_get_global_config(server: &OpenDogServer) -> Json<Value> {
@@ -35,4 +37,19 @@ pub(super) fn handle_get_project_config(server: &OpenDogServer, id: &str) -> Jso
         Ok(view) => Json(project_config_payload(MCP_PROJECT_CONFIG_V1, &view)),
         Err(e) => error_json_for(MCP_PROJECT_CONFIG_V1, Some(id), &e),
     }
+}
+
+pub(super) fn handle_get_build_info(_server: &OpenDogServer) -> Json<Value> {
+    let binary_path = std::env::current_exe()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| "unknown".to_string());
+    let needs_rebuild = build_info_needs_rebuild();
+    Json(build_info_payload(
+        MCP_BUILD_INFO_V1,
+        OPENDOG_VERSION,
+        OPENDOG_GIT_HASH,
+        OPENDOG_BUILD_TIME,
+        &binary_path,
+        needs_rebuild,
+    ))
 }

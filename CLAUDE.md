@@ -108,11 +108,11 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 ## MCP Tools
 
-Current MCP surface: 19 tools total.
+Current MCP surface: 20 tools total.
 
 Baseline control tools:
 
-- `create_project`
+- `register_project`
 - `take_snapshot`
 - `start_monitor`
 - `stop_monitor`
@@ -131,6 +131,7 @@ Configuration inspection:
 
 - `get_global_config`
 - `get_project_config`
+- `get_build_info`
 
 AI-facing guidance, verification, and data-risk tools:
 

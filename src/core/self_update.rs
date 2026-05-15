@@ -152,6 +152,23 @@ fn release_binary_path(source: &Path) -> PathBuf {
     source.join("target").join("release").join("opendog")
 }
 
+pub fn build_info_needs_rebuild() -> Option<bool> {
+    let exe = std::env::current_exe().ok()?;
+    // Expect: {source}/target/release/opendog → source = parent.parent.parent
+    let source = exe.parent()?.parent()?.parent()?;
+    let manifest = source.join("Cargo.toml");
+    if !manifest.exists() {
+        return None;
+    }
+    let content = fs::read_to_string(&manifest).ok()?;
+    if !content.contains("name = \"opendog\"") {
+        return None;
+    }
+    let binary_mtime = file_mtime_secs(&exe).ok()??;
+    let source_mtime = source_latest_mtime_secs(source).ok()??;
+    Some(source_mtime > binary_mtime)
+}
+
 fn file_mtime_secs(path: &Path) -> Result<Option<u64>> {
     if !path.exists() {
         return Ok(None);

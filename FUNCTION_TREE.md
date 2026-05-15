@@ -1,6 +1,6 @@
 ---
 function_tree_version: 1.4
-last_updated: "2026-05-11"
+last_updated: "2026-05-15"
 canonical_role: business_capability_anchor
 level_model:
   L1: domain_capability
@@ -68,8 +68,8 @@ Current design posture:
 
 - no product-direction drift: the tree still describes the original multi-project observation plus AI decision-support mission
 - broad but bounded surface: the tree is wider than a simple monitoring backend, but each branch remains constrained by evidence, authority, and non-destructive advisory boundaries
-- current priority is selective deepening: future work should mainly improve the trustworthiness and clarity of existing observation and decision-support leaves before opening unrelated new capability families
-- current hardening baseline: `FT-01.03.01`, `FT-02.02.01`, `FT-03.01.01`, `FT-03.02.02`, `FT-03.03.01`, `FT-03.04.01`, `FT-03.06.01`, `FT-03.07.01`, and `FT-03.08.02` now cover fd-attribution credibility, soft verification gates, repository-truth boundary projection, bounded MCP observation payloads, read-only MCP Resources, data-risk noise reduction, and machine-readable resume sequencing
+- current priority is maintenance and quality: all declared capability leaves are shipped; future work should improve reliability, performance, and clarity of existing leaves rather than expand into new capability families
+- current hardening baseline: all FT-01, FT-02, and FT-03 leaf nodes are shipped, covering fd-attribution credibility, soft verification gates, repository-truth boundary projection, bounded MCP observation payloads, read-only MCP Resources, data-risk noise reduction, and machine-readable resume sequencing
 
 Current capability investment priority:
 
@@ -117,7 +117,7 @@ nodes:
     title: Observation and Intelligence Capture
     level: L1
     parent: null
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Capture isolated project state, observation evidence, and file-usage intelligence.
 
   - id: FT-01.01
@@ -324,21 +324,21 @@ nodes:
     title: AI Decision Support and Governance
     level: L1
     parent: null
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Convert OPENDOG from a monitoring backend into a reusable AI decision-support layer.
 
   - id: FT-03.01
     title: Workspace Observation
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Express readiness, freshness, and evidence gaps at project and workspace scope.
 
   - id: FT-03.01.01
     title: Explain readiness and evidence gaps
     level: L3
     parent: FT-03.01
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [OBS-01..04]
     roadmap_phases: [6]
     summary: Show whether OPENDOG has enough observation quality to support downstream conclusions, expose bounded and classification-filtered observation payload windows, and identify which bootstrap step is still missing.
@@ -347,14 +347,14 @@ nodes:
     title: Repository Risk and Execution Strategy
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Help AI decide whether to inspect, stabilize, verify, or modify next.
 
   - id: FT-03.02.01
     title: Summarize repository risk and confidence
     level: L3
     parent: FT-03.02
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [RISK-01..04]
     roadmap_phases: [6]
     summary: Convert repository and observation state into evidence-backed risk summaries.
@@ -363,7 +363,7 @@ nodes:
     title: Recommend next-step execution strategy
     level: L3
     parent: FT-03.02
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [STRAT-01..04]
     roadmap_phases: [6]
     summary: Recommend the next action, follow-up command path, and machine-readable resume sequence across OPENDOG, shell, verification, and observation workflows.
@@ -372,14 +372,14 @@ nodes:
     title: Verification Evidence
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Make verification evidence durable, queryable, and decision-relevant.
 
   - id: FT-03.03.01
     title: Record and reason over verification evidence
     level: L3
     parent: FT-03.03
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [EVID-01..04]
     roadmap_phases: [6]
     summary: Attach recorded validation evidence, explicit freshness TTL policy, gate judgments, and verification-first sequencing context to recommendations and safety decisions.
@@ -388,14 +388,14 @@ nodes:
     title: Multi-Project Portfolio Prioritization
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Help AI choose which project deserves attention first.
 
   - id: FT-03.04.01
     title: Rank projects by attention and evidence quality
     level: L3
     parent: FT-03.04
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [PORT-01..04]
     roadmap_phases: [6]
     summary: Compare projects by readiness, evidence, and review urgency.
@@ -404,14 +404,14 @@ nodes:
     title: Cleanup and Refactor Review
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Surface file-level review candidates without taking destructive action.
 
   - id: FT-03.05.01
     title: Surface cleanup and refactor candidates
     level: L3
     parent: FT-03.05
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [CLEAN-01..04]
     roadmap_phases: [6]
     summary: Prioritize unused, hot, mixed, and suspicious files for later review.
@@ -420,14 +420,14 @@ nodes:
     title: Project Type and Toolchain Guidance
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Infer repository type and recommend appropriate validation commands.
 
   - id: FT-03.06.01
     title: Infer toolchain and recommend commands
     level: L3
     parent: FT-03.06
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [STACKX-01..04]
     roadmap_phases: [6]
     summary: Suggest project-native validation commands, search paths, and fallback behavior from repository markers for review, verification, and sequencing handoff.
@@ -436,14 +436,14 @@ nodes:
     title: Constraints and Boundaries
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Prevent AI from over-claiming what OPENDOG actually knows.
 
   - id: FT-03.07.01
     title: State blind spots and authority boundaries
     level: L3
     parent: FT-03.07
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [BOUND-01..04]
     roadmap_phases: [6]
     summary: Clarify what was observed, what was inferred, where transient reads or filtered views can hide evidence, where repository truth is missing, and when shell or project-native verification remains mandatory.
@@ -452,14 +452,14 @@ nodes:
     title: Mock and Hardcoded Data Review
     level: L2
     parent: FT-03
-    lifecycle: in_progress
+    lifecycle: shipped
     summary: Detect test-only artifacts and riskier pseudo-business data across projects.
 
   - id: FT-03.08.01
     title: Detect mock and test-only data artifacts
     level: L3
     parent: FT-03.08
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [MOCK-01, MOCK-03, MOCK-06, MOCK-07, MOCK-10]
     roadmap_phases: [6]
     summary: Detect and expose mock, fixture, stub, fake, demo, and sample data patterns.
@@ -468,7 +468,7 @@ nodes:
     title: Detect and prioritize hardcoded pseudo-business data
     level: L3
     parent: FT-03.08
-    lifecycle: in_progress
+    lifecycle: shipped
     requirement_ranges: [MOCK-02, MOCK-04, MOCK-05, MOCK-08, MOCK-09, MOCK-10]
     roadmap_phases: [6]
     summary: Flag risky business-like literals and mixed logic-plus-data files for review while down-ranking documentation and template-placeholder noise.

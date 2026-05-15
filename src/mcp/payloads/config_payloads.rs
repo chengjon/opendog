@@ -9,6 +9,47 @@ use crate::core::export::PortableProjectExport;
 
 use super::super::tool_guidance;
 
+pub(crate) fn build_info_payload(
+    schema_version: &str,
+    version: &str,
+    git_hash: &str,
+    build_time: &str,
+    binary_path: &str,
+    needs_rebuild: Option<bool>,
+) -> Value {
+    let rebuild_hint = match needs_rebuild {
+        Some(true) => Some(format!(
+            "Running binary is older than source code. Run `opendog self-update build --source /opt/claude/opendog`, then restart this MCP session."
+        )),
+        _ => None,
+    };
+
+    let mut fields: Vec<(&str, Value)> = vec![
+        ("version", json!(version)),
+        ("git_hash", json!(git_hash)),
+        ("build_time", json!(build_time)),
+        ("binary_path", json!(binary_path)),
+        ("needs_rebuild", json!(needs_rebuild)),
+    ];
+    if let Some(hint) = &rebuild_hint {
+        fields.push(("rebuild_hint", json!(hint)));
+    }
+    fields.push((
+        "guidance",
+        tool_guidance(
+            if needs_rebuild == Some(true) {
+                "Binary is stale — rebuild and restart to pick up latest changes."
+            } else {
+                "Build info loaded. Binary is up to date."
+            },
+            &["opendog self-update status --source /opt/claude/opendog"],
+            &[],
+            None,
+        ),
+    ));
+    versioned_payload(schema_version, fields)
+}
+
 pub(crate) fn global_config_payload(schema_version: &str, config: &ProjectConfig) -> Value {
     versioned_payload(
         schema_version,

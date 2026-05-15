@@ -5,12 +5,13 @@ use serde_json::Value;
 
 use crate::contracts::{
     versioned_error_payload, versioned_project_error_payload, versioned_project_payload,
-    MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1, MCP_GLOBAL_CONFIG_V1,
-    MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1,
-    MCP_REGISTER_PROJECT_V1, MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1,
-    MCP_START_MONITOR_V1, MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1,
-    MCP_UNUSED_FILES_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
-    MCP_WORKSPACE_DATA_RISK_V1,
+    MCP_BUILD_INFO_V1, MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
+    MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_PROJECT_CONFIG_V1,
+    MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1, MCP_RUN_VERIFICATION_V1,
+    MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STATS_V1,
+    MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1, MCP_USAGE_TRENDS_V1,
+    MCP_VERIFICATION_STATUS_V1, MCP_WORKSPACE_DATA_RISK_V1, OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH,
+    OPENDOG_VERSION,
 };
 
 mod analysis_handlers;
@@ -50,7 +51,7 @@ use self::analysis_handlers::{
 use self::attention::{
     enrich_project_overview_with_attention, sort_project_recommendations, workspace_portfolio_layer,
 };
-use self::config_handlers::{handle_get_global_config, handle_get_project_config};
+use self::config_handlers::{handle_get_build_info, handle_get_global_config, handle_get_project_config};
 use self::constraints::{
     build_constraints_boundaries_layer, common_boundary_hints,
     external_truth_boundary_for_top_project, project_readiness_snapshot,
@@ -87,7 +88,8 @@ pub use self::params::{
     UsageTrendParams, WorkspaceDataRiskParams,
 };
 pub(crate) use self::payloads::{
-    cleanup_project_data_payload, delete_project_payload, export_project_evidence_payload,
+    build_info_payload, cleanup_project_data_payload, delete_project_payload,
+    export_project_evidence_payload,
     global_config_payload, list_projects_payload, project_config_payload,
     project_config_reload_payload, project_config_update_payload, register_project_payload,
     snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload_with_limit,
@@ -161,6 +163,14 @@ impl OpenDogServer {
     )]
     fn get_global_config(&self) -> ToolResult {
         structured_tool_output(handle_get_global_config(self))
+    }
+
+    #[tool(
+        name = "get_build_info",
+        description = "Return OPENDOG binary version, git hash, build time, and whether a rebuild is needed."
+    )]
+    fn get_build_info(&self) -> ToolResult {
+        structured_tool_output(handle_get_build_info(self))
     }
 
     #[tool(

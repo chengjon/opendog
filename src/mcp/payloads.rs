@@ -10,7 +10,8 @@ pub(crate) use self::analysis_payloads::{
 #[cfg(test)]
 pub(crate) use self::analysis_payloads::{stats_payload, unused_files_payload};
 pub(crate) use self::config_payloads::{
-    export_project_evidence_payload, global_config_payload, project_config_payload,
+    build_info_payload, export_project_evidence_payload, global_config_payload,
+    project_config_payload,
     project_config_reload_payload, project_config_update_payload, update_global_config_payload,
 };
 pub(crate) use self::project_payloads::{

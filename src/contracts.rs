@@ -27,6 +27,11 @@ pub const MCP_VERIFICATION_STATUS_V1: &str = "opendog.mcp.verification-status.v1
 pub const MCP_RECORD_VERIFICATION_V1: &str = "opendog.mcp.record-verification.v1";
 pub const MCP_RUN_VERIFICATION_V1: &str = "opendog.mcp.run-verification.v1";
 pub const MCP_CLEANUP_PROJECT_DATA_V1: &str = "opendog.mcp.cleanup-project-data.v1";
+pub const MCP_BUILD_INFO_V1: &str = "opendog.mcp.build-info.v1";
+
+pub const OPENDOG_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const OPENDOG_GIT_HASH: &str = env!("OPENDOG_GIT_HASH");
+pub const OPENDOG_BUILD_TIME: &str = env!("OPENDOG_BUILD_TIME");
 
 pub const CLI_GLOBAL_CONFIG_V1: &str = "opendog.cli.global-config.v1";
 pub const CLI_PROJECT_CONFIG_V1: &str = "opendog.cli.project-config.v1";
