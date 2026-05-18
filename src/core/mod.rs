@@ -1,6 +1,7 @@
 pub mod export;
 pub mod file_classification;
 pub mod monitor;
+pub mod orphan;
 pub mod project;
 pub mod report;
 pub mod retention;

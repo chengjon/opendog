@@ -206,3 +206,71 @@ async fn mcp_sessions_reuse_shared_state_when_opendog_home_is_explicit(
     terminate_background_daemon(&opendog_home);
     Ok(())
 }
+
+#[tokio::test]
+async fn mcp_scan_orphans_blocks_entrypoint_referenced_file(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let dir = TempDir::new()?;
+    let home = dir.path();
+    let opendog_home = home.join(".opendog");
+    let project_dir = home.join("project");
+    fs::create_dir_all(project_dir.join("src/api"))?;
+    fs::write(project_dir.join("src/api/old.py"), "app = object()\n")?;
+    fs::write(
+        project_dir.join("Dockerfile"),
+        "CMD [\"uvicorn\", \"src.api.old:app\"]\n",
+    )?;
+
+    let client = spawn_mcp_client(home, None).await?;
+    let _ = structured_payload(
+        client
+            .call_tool(
+                CallToolRequestParams::new("register_project").with_arguments(
+                    json!({
+                        "id": "demo",
+                        "path": project_dir.display().to_string()
+                    })
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+                ),
+            )
+            .await?,
+    );
+
+    let scan_payload = structured_payload(
+        client
+            .call_tool(
+                CallToolRequestParams::new("scan_orphans").with_arguments(
+                    json!({
+                        "id": "demo",
+                        "subjects": [{
+                            "subject_kind": "file",
+                            "subject": "src/api/old.py",
+                            "path": "src/api/old.py",
+                            "display_name": null
+                        }]
+                    })
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+                ),
+            )
+            .await?,
+    );
+    client.cancel().await?;
+
+    assert_eq!(scan_payload["schema_version"], "opendog.mcp.orphan-scan.v1");
+    assert_eq!(scan_payload["project_id"], "demo");
+    assert_eq!(scan_payload["summary"]["blocked_count"], 1);
+    assert_eq!(scan_payload["candidates"][0]["classification"], "blocked");
+    let scanners = scan_payload["scanner_health"]
+        .as_array()
+        .expect("scanner_health should be an array");
+    assert!(scanners
+        .iter()
+        .any(|entry| entry["scanner"] == "entrypoint_scanner"));
+
+    terminate_background_daemon(&opendog_home);
+    Ok(())
+}

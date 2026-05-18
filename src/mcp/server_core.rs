@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::config::ProjectInfo;
+use crate::config::{ProjectConfig, ProjectInfo};
 use crate::control::MonitorController;
 use crate::error::OpenDogError;
 use crate::storage::database::Database;
@@ -49,5 +49,19 @@ impl OpenDogServer {
         let db = inner.project_manager().open_project_db(id)?;
         drop(inner);
         Ok((db, info))
+    }
+
+    pub(super) fn get_project_with_config(
+        &self,
+        id: &str,
+    ) -> Result<(ProjectInfo, ProjectConfig), OpenDogError> {
+        let inner = self.inner.lock().unwrap();
+        let info = inner
+            .project_manager()
+            .get(id)?
+            .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
+        let config = inner.project_manager().resolve_project_config(&info)?;
+        drop(inner);
+        Ok((info, config))
     }
 }

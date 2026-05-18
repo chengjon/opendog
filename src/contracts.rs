@@ -28,6 +28,8 @@ pub const MCP_RECORD_VERIFICATION_V1: &str = "opendog.mcp.record-verification.v1
 pub const MCP_RUN_VERIFICATION_V1: &str = "opendog.mcp.run-verification.v1";
 pub const MCP_CLEANUP_PROJECT_DATA_V1: &str = "opendog.mcp.cleanup-project-data.v1";
 pub const MCP_BUILD_INFO_V1: &str = "opendog.mcp.build-info.v1";
+pub const MCP_ORPHAN_SCAN_V1: &str = "opendog.mcp.orphan-scan.v1";
+pub const MCP_ORPHAN_DELETION_PLAN_V1: &str = "opendog.mcp.orphan-deletion-plan.v1";
 
 pub const OPENDOG_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const OPENDOG_GIT_HASH: &str = env!("OPENDOG_GIT_HASH");

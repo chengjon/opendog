@@ -43,6 +43,13 @@ fn observation_tool_params_expose_path_classification_filter() {
 }
 
 #[test]
+fn orphan_detection_tools_are_exposed() {
+    let mcp_router_source = include_str!("../mod.rs");
+    assert!(mcp_router_source.contains("name = \"scan_orphans\""));
+    assert!(mcp_router_source.contains("name = \"verify_deletion_plan\""));
+}
+
+#[test]
 fn mcp_resource_templates_expose_readonly_project_state_uris() {
     let templates = mcp_resource_templates();
     let uris: Vec<&str> = templates
