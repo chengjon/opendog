@@ -1,6 +1,6 @@
 use crate::config::{
-    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch,
-    ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
+    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch, ProjectConfigReload,
+    ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::control::protocol::UpdateProjectConfigFields;
 use crate::error::{OpenDogError, Result};
@@ -57,11 +57,12 @@ impl DaemonClient {
         id: &str,
         patch: ProjectConfigPatch,
     ) -> Result<ProjectConfigUpdateResult> {
-        match self.send(ControlRequest::UpdateProjectConfig(UpdateProjectConfigFields {
-            id: id.to_string(),
-            patch,
-        }))?
-        {
+        match self.send(ControlRequest::UpdateProjectConfig(
+            UpdateProjectConfigFields {
+                id: id.to_string(),
+                patch,
+            },
+        ))? {
             ControlResponse::ProjectConfigUpdated { result } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(

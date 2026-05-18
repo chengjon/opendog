@@ -67,7 +67,9 @@ pub(crate) fn project_overview(
         strategy_confidence: recommendation["confidence"].clone(),
     };
 
-    enrich_project_overview_with_attention(&serde_json::to_value(overview).expect("ProjectOverview serialization"))
+    enrich_project_overview_with_attention(
+        &serde_json::to_value(overview).expect("ProjectOverview serialization"),
+    )
 }
 
 pub(crate) fn collect_project_guidance_context<F>(
@@ -355,7 +357,8 @@ pub(crate) fn recommend_project_action(
                 "Inspect stats after the observation window is meaningful.".to_string(),
             ],
             reason: if project.accessed_files == 0 {
-                "Snapshot data exists, but no file access activity has been recorded yet.".to_string()
+                "Snapshot data exists, but no file access activity has been recorded yet."
+                    .to_string()
             } else {
                 "Activity evidence exists but is stale, so generate fresh workflow activity before trusting current hotspot or cleanup signals.".to_string()
             },
@@ -384,7 +387,8 @@ pub(crate) fn recommend_project_action(
             recommended_flow: vec![
                 "Run and record project-native verification before risky changes.".to_string(),
                 "Use OPENDOG to persist the resulting evidence for later decisions.".to_string(),
-                "Return to cleanup or refactor review only after verification evidence exists.".to_string(),
+                "Return to cleanup or refactor review only after verification evidence exists."
+                    .to_string(),
             ],
             reason: if verification_is_missing(verification_runs) {
                 "Activity evidence exists, but no recorded test/lint/build results are available yet. Verify first before risky cleanup or refactor work.".to_string()
@@ -455,16 +459,26 @@ pub(crate) fn recommend_project_action(
             recommended_next_action: "inspect_hot_files".to_string(),
             recommended_flow: vec![
                 "Inspect the hottest observed files first.".to_string(),
-                "Use shell diff and symbol search after OPENDOG narrows the review target.".to_string(),
-                "Treat hotspot review as a precursor to targeted refactor, not broad cleanup.".to_string(),
+                "Use shell diff and symbol search after OPENDOG narrows the review target."
+                    .to_string(),
+                "Treat hotspot review as a precursor to targeted refactor, not broad cleanup."
+                    .to_string(),
             ],
             reason: shared_review_reason,
             confidence: shared_review_confidence.to_string(),
             strategy_mode: strategy_mode.to_string(),
             strategy_profile: strategy_profile(
                 strategy_mode,
-                if safe_for_refactor { "opendog" } else { "shell" },
-                if safe_for_refactor { "shell" } else { "opendog" },
+                if safe_for_refactor {
+                    "opendog"
+                } else {
+                    "shell"
+                },
+                if safe_for_refactor {
+                    "shell"
+                } else {
+                    "opendog"
+                },
                 &["activity_signals", "verification", "repository_risk"],
             ),
             verification_gate_levels: gate_levels,

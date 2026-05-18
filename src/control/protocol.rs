@@ -1,12 +1,14 @@
 use crate::config::{
-    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch,
-    ProjectConfigReload, ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
+    ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch, ProjectConfigReload,
+    ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::{ProjectDataCleanupRequest, ProjectDataCleanupResult};
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
-use crate::core::verification::{ExecuteVerificationInput, ExecutedVerificationResult, RecordVerificationInput};
+use crate::core::verification::{
+    ExecuteVerificationInput, ExecutedVerificationResult, RecordVerificationInput,
+};
 use crate::storage::queries::{StatsEntry, VerificationRun};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

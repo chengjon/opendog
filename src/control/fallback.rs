@@ -108,7 +108,9 @@ impl<'a> DirectProjectLifecycle<'a> {
 impl ProjectLifecycle for DirectProjectLifecycle<'_> {
     fn create_project(&self, id: &str, path: &str) -> Result<ProjectInfo> {
         let inner = self.controller.lock().unwrap();
-        inner.project_manager().create(id, std::path::Path::new(path))
+        inner
+            .project_manager()
+            .create(id, std::path::Path::new(path))
     }
 
     fn list_projects(&self) -> Result<Vec<ProjectInfo>> {
@@ -301,40 +303,25 @@ impl<D: ProjectLifecycle, L: ProjectLifecycle> ProjectLifecycle for FallbackLife
     }
 
     fn list_projects(&self) -> Result<Vec<ProjectInfo>> {
-        self.fallback(
-            |svc| svc.list_projects(),
-            |svc| svc.list_projects(),
-        )
+        self.fallback(|svc| svc.list_projects(), |svc| svc.list_projects())
     }
 
     fn delete_project(&self, id: &str) -> Result<bool> {
-        self.fallback(
-            |svc| svc.delete_project(id),
-            |svc| svc.delete_project(id),
-        )
+        self.fallback(|svc| svc.delete_project(id), |svc| svc.delete_project(id))
     }
 }
 
 impl<D: SnapshotMonitor, L: SnapshotMonitor> SnapshotMonitor for FallbackLifecycle<D, L> {
     fn take_snapshot(&self, id: &str) -> Result<SnapshotResult> {
-        self.fallback(
-            |svc| svc.take_snapshot(id),
-            |svc| svc.take_snapshot(id),
-        )
+        self.fallback(|svc| svc.take_snapshot(id), |svc| svc.take_snapshot(id))
     }
 
     fn start_monitor(&self, id: &str) -> Result<StartMonitorOutcome> {
-        self.fallback(
-            |svc| svc.start_monitor(id),
-            |svc| svc.start_monitor(id),
-        )
+        self.fallback(|svc| svc.start_monitor(id), |svc| svc.start_monitor(id))
     }
 
     fn stop_monitor(&self, id: &str) -> Result<bool> {
-        self.fallback(
-            |svc| svc.stop_monitor(id),
-            |svc| svc.stop_monitor(id),
-        )
+        self.fallback(|svc| svc.stop_monitor(id), |svc| svc.stop_monitor(id))
     }
 }
 

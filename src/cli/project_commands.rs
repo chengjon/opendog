@@ -2,8 +2,8 @@ use std::path::Path;
 
 use crate::contracts::{CLI_CLEANUP_PROJECT_DATA_V1, CLI_EXPORT_PROJECT_EVIDENCE_V1};
 use crate::control::{
-    CliProjectLifecycle, DaemonClient, DaemonProjectLifecycle, FallbackLifecycle,
-    ProjectLifecycle, SnapshotMonitor,
+    CliProjectLifecycle, DaemonClient, DaemonProjectLifecycle, FallbackLifecycle, ProjectLifecycle,
+    SnapshotMonitor,
 };
 use crate::core::export::{self, ExportFormat, ExportView};
 use crate::core::file_classification::{classify_file_path, FilePathClassificationFilter};
@@ -17,7 +17,9 @@ use crate::storage::queries::StatsEntry;
 
 use super::output;
 
-pub(super) fn project_lifecycle(pm: &ProjectManager) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, CliProjectLifecycle<'_>> {
+pub(super) fn project_lifecycle(
+    pm: &ProjectManager,
+) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, CliProjectLifecycle<'_>> {
     static DAEMON: std::sync::OnceLock<DaemonClient> = std::sync::OnceLock::new();
     let client = DAEMON.get_or_init(DaemonClient::new);
     FallbackLifecycle::new(

@@ -19,47 +19,61 @@ impl MonitorController {
         match request {
             ControlRequest::Ping => ControlResponse::Pong,
             ControlRequest::CreateProject { id, path } => {
-                respond(self.create_project(&id, &path), |info| ControlResponse::ProjectCreated { info })
+                respond(self.create_project(&id, &path), |info| {
+                    ControlResponse::ProjectCreated { info }
+                })
             }
-            ControlRequest::DeleteProject { id } => {
-                respond(self.delete_project(&id), |deleted| ControlResponse::ProjectDeleted { id, deleted })
-            }
-            ControlRequest::ListProjects => {
-                respond(self.list_projects(), |projects| ControlResponse::Projects { projects })
-            }
-            ControlRequest::GetGlobalConfig => {
-                respond(self.global_config(), |config| ControlResponse::GlobalConfig { config })
-            }
+            ControlRequest::DeleteProject { id } => respond(self.delete_project(&id), |deleted| {
+                ControlResponse::ProjectDeleted { id, deleted }
+            }),
+            ControlRequest::ListProjects => respond(self.list_projects(), |projects| {
+                ControlResponse::Projects { projects }
+            }),
+            ControlRequest::GetGlobalConfig => respond(self.global_config(), |config| {
+                ControlResponse::GlobalConfig { config }
+            }),
             ControlRequest::GetProjectConfig { id } => {
-                respond(self.project_config_view(&id), |view| ControlResponse::ProjectConfig { view })
+                respond(self.project_config_view(&id), |view| {
+                    ControlResponse::ProjectConfig { view }
+                })
             }
             ControlRequest::UpdateGlobalConfig(patch) => {
-                respond(self.update_global_config(patch), |result| ControlResponse::GlobalConfigUpdated { result })
+                respond(self.update_global_config(patch), |result| {
+                    ControlResponse::GlobalConfigUpdated { result }
+                })
             }
-            ControlRequest::UpdateProjectConfig(fields) => {
-                respond(
-                    self.update_project_config(&fields.id, fields.patch),
-                    |result| ControlResponse::ProjectConfigUpdated { result },
-                )
-            }
+            ControlRequest::UpdateProjectConfig(fields) => respond(
+                self.update_project_config(&fields.id, fields.patch),
+                |result| ControlResponse::ProjectConfigUpdated { result },
+            ),
             ControlRequest::ReloadProjectConfig { id } => respond(
                 self.reload_project_config(&id).and_then(|reload| {
-                    self.pm.effective_project_config(&id).map(|effective| (reload, effective))
+                    self.pm
+                        .effective_project_config(&id)
+                        .map(|effective| (reload, effective))
                 }),
-                |(reload, effective)| ControlResponse::ProjectConfigReloaded { id, reload, effective },
+                |(reload, effective)| ControlResponse::ProjectConfigReloaded {
+                    id,
+                    reload,
+                    effective,
+                },
             ),
             ControlRequest::ListMonitors => ControlResponse::Monitors {
                 ids: self.monitor_ids(),
             },
             ControlRequest::GetStats { id } => {
-                respond(self.get_stats(&id), |(summary, entries)| ControlResponse::Stats {
-                    id,
-                    summary,
-                    entries,
+                respond(self.get_stats(&id), |(summary, entries)| {
+                    ControlResponse::Stats {
+                        id,
+                        summary,
+                        entries,
+                    }
                 })
             }
             ControlRequest::GetUnusedFiles { id } => {
-                respond(self.get_unused_files(&id), |entries| ControlResponse::UnusedFiles { id, entries })
+                respond(self.get_unused_files(&id), |entries| {
+                    ControlResponse::UnusedFiles { id, entries }
+                })
             }
             ControlRequest::GetTimeWindowReport { id, window, limit } => {
                 let window = match ReportWindow::parse(&window) {
@@ -70,10 +84,9 @@ impl MonitorController {
                         };
                     }
                 };
-                respond(
-                    self.get_time_window_report(&id, window, limit),
-                    |report| ControlResponse::TimeWindowReport { id, report },
-                )
+                respond(self.get_time_window_report(&id, window, limit), |report| {
+                    ControlResponse::TimeWindowReport { id, report }
+                })
             }
             ControlRequest::CompareSnapshots {
                 id,
@@ -93,10 +106,9 @@ impl MonitorController {
                         };
                     }
                 };
-                respond(
-                    self.get_usage_trends(&id, window, limit),
-                    |report| ControlResponse::UsageTrends { id, report },
-                )
+                respond(self.get_usage_trends(&id, window, limit), |report| {
+                    ControlResponse::UsageTrends { id, report }
+                })
             }
             ControlRequest::GetDataRiskCandidates {
                 id,
@@ -105,7 +117,13 @@ impl MonitorController {
                 limit,
                 schema_version,
             } => respond(
-                self.get_data_risk_candidates(&schema_version, &id, &candidate_type, &min_review_priority, limit),
+                self.get_data_risk_candidates(
+                    &schema_version,
+                    &id,
+                    &candidate_type,
+                    &min_review_priority,
+                    limit,
+                ),
                 |payload| ControlResponse::DataRisk { payload },
             ),
             ControlRequest::GetWorkspaceDataRiskOverview {
@@ -114,15 +132,18 @@ impl MonitorController {
                 project_limit,
                 schema_version,
             } => respond(
-                self.get_workspace_data_risk_overview(&schema_version, &candidate_type, &min_review_priority, project_limit),
+                self.get_workspace_data_risk_overview(
+                    &schema_version,
+                    &candidate_type,
+                    &min_review_priority,
+                    project_limit,
+                ),
                 |payload| ControlResponse::WorkspaceDataRisk { payload },
             ),
-            ControlRequest::GetAgentGuidance { project, top } => {
-                respond(
-                    self.get_agent_guidance(project.as_deref(), top),
-                    |payload| ControlResponse::AgentGuidance { payload },
-                )
-            }
+            ControlRequest::GetAgentGuidance { project, top } => respond(
+                self.get_agent_guidance(project.as_deref(), top),
+                |payload| ControlResponse::AgentGuidance { payload },
+            ),
             ControlRequest::GetDecisionBrief {
                 project,
                 top,
@@ -132,40 +153,42 @@ impl MonitorController {
                 |payload| ControlResponse::DecisionBrief { payload },
             ),
             ControlRequest::GetVerificationStatus { id } => {
-                respond(self.get_verification_status(&id), |runs| ControlResponse::VerificationStatus { id, runs })
+                respond(self.get_verification_status(&id), |runs| {
+                    ControlResponse::VerificationStatus { id, runs }
+                })
             }
-            ControlRequest::CleanupProjectData(fields) => {
-                respond(
-                    self.cleanup_project_data(&fields.id, fields.request),
-                    |result| ControlResponse::CleanupProjectData { id: fields.id, result },
-                )
-            }
-            ControlRequest::RecordVerificationResult(fields) => {
-                respond(
-                    self.record_verification_result(&fields.id, fields.input),
-                    |run| ControlResponse::VerificationRecorded { id: fields.id, run },
-                )
-            }
-            ControlRequest::ExecuteVerification(fields) => {
-                respond(
-                    self.execute_verification(&fields.id, fields.input),
-                    |result| ControlResponse::VerificationExecuted { id: fields.id, result },
-                )
-            }
-            ControlRequest::StartMonitor { id } => {
-                respond(self.start_monitor(&id), |outcome| ControlResponse::Started {
+            ControlRequest::CleanupProjectData(fields) => respond(
+                self.cleanup_project_data(&fields.id, fields.request),
+                |result| ControlResponse::CleanupProjectData {
+                    id: fields.id,
+                    result,
+                },
+            ),
+            ControlRequest::RecordVerificationResult(fields) => respond(
+                self.record_verification_result(&fields.id, fields.input),
+                |run| ControlResponse::VerificationRecorded { id: fields.id, run },
+            ),
+            ControlRequest::ExecuteVerification(fields) => respond(
+                self.execute_verification(&fields.id, fields.input),
+                |result| ControlResponse::VerificationExecuted {
+                    id: fields.id,
+                    result,
+                },
+            ),
+            ControlRequest::StartMonitor { id } => respond(self.start_monitor(&id), |outcome| {
+                ControlResponse::Started {
                     id,
                     already_running: outcome.already_running,
                     snapshot_taken: outcome.snapshot_taken,
-                })
-            }
+                }
+            }),
             ControlRequest::StopMonitor { id } => ControlResponse::Stopped {
                 was_running: self.stop_monitor(&id),
                 id,
             },
-            ControlRequest::TakeSnapshot { id } => {
-                respond(self.take_snapshot(&id), |result| ControlResponse::Snapshot { id, result })
-            }
+            ControlRequest::TakeSnapshot { id } => respond(self.take_snapshot(&id), |result| {
+                ControlResponse::Snapshot { id, result }
+            }),
         }
     }
 }

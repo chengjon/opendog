@@ -13,11 +13,12 @@ impl DaemonClient {
         id: &str,
         request: ProjectDataCleanupRequest,
     ) -> Result<ProjectDataCleanupResult> {
-        match self.send(ControlRequest::CleanupProjectData(CleanupProjectDataFields {
-            id: id.to_string(),
-            request,
-        }))?
-        {
+        match self.send(ControlRequest::CleanupProjectData(
+            CleanupProjectDataFields {
+                id: id.to_string(),
+                request,
+            },
+        ))? {
             ControlResponse::CleanupProjectData { result, .. } => Ok(result),
             ControlResponse::Error { message } => Err(OpenDogError::RemoteControl(message)),
             response => Err(OpenDogError::RemoteControl(format!(

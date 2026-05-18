@@ -13,7 +13,9 @@ use super::{
     MCP_REGISTER_PROJECT_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STOP_MONITOR_V1,
 };
 
-pub(super) fn project_lifecycle(server: &OpenDogServer) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, DirectProjectLifecycle<'_>> {
+pub(super) fn project_lifecycle(
+    server: &OpenDogServer,
+) -> FallbackLifecycle<DaemonProjectLifecycle<'static>, DirectProjectLifecycle<'_>> {
     static DAEMON: std::sync::OnceLock<DaemonClient> = std::sync::OnceLock::new();
     let client = DAEMON.get_or_init(DaemonClient::new);
     FallbackLifecycle::new(
@@ -59,7 +61,12 @@ pub(super) fn handle_delete_project(server: &OpenDogServer, id: &str) -> Json<Va
 pub(super) fn handle_take_snapshot(server: &OpenDogServer, id: &str) -> Json<Value> {
     let svc = project_lifecycle(server);
     match svc.take_snapshot(id) {
-        Ok(r) => Json(snapshot_payload(id, r.total_files, r.new_files, r.removed_files)),
+        Ok(r) => Json(snapshot_payload(
+            id,
+            r.total_files,
+            r.new_files,
+            r.removed_files,
+        )),
         Err(e) => error_json_for(MCP_SNAPSHOT_V1, Some(id), &e),
     }
 }
@@ -67,7 +74,11 @@ pub(super) fn handle_take_snapshot(server: &OpenDogServer, id: &str) -> Json<Val
 pub(super) fn handle_start_monitor(server: &OpenDogServer, id: &str) -> Json<Value> {
     let svc = project_lifecycle(server);
     match svc.start_monitor(id) {
-        Ok(outcome) => Json(start_monitor_payload(id, outcome.already_running, outcome.snapshot_taken)),
+        Ok(outcome) => Json(start_monitor_payload(
+            id,
+            outcome.already_running,
+            outcome.snapshot_taken,
+        )),
         Err(e) => error_json_for(MCP_START_MONITOR_V1, Some(id), &e),
     }
 }

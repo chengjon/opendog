@@ -219,16 +219,36 @@ pub(super) fn build_constraints_boundaries_layer(
         cleanup_blockers,
         refactor_blockers,
         requires_shell_verification,
-        projects_not_ready_for_cleanup: workspace_counts.as_ref().map(|c| c.projects_not_ready_for_cleanup),
-        projects_not_ready_for_refactor: workspace_counts.as_ref().map(|c| c.projects_not_ready_for_refactor),
-        projects_with_hardcoded_data_candidates: workspace_counts.as_ref().map(|c| c.projects_with_hardcoded_data_candidates),
-        projects_missing_snapshot: workspace_counts.as_ref().map(|c| c.projects_missing_snapshot),
-        projects_with_stale_snapshot: workspace_counts.as_ref().map(|c| c.projects_with_stale_snapshot),
-        projects_missing_activity: workspace_counts.as_ref().map(|c| c.projects_missing_activity),
-        projects_with_stale_activity: workspace_counts.as_ref().map(|c| c.projects_with_stale_activity),
-        projects_missing_verification: workspace_counts.as_ref().map(|c| c.projects_missing_verification),
-        projects_with_stale_verification: workspace_counts.as_ref().map(|c| c.projects_with_stale_verification),
-        projects_with_storage_maintenance_candidates: workspace_counts.as_ref().map(|c| c.projects_with_storage_maintenance_candidates),
+        projects_not_ready_for_cleanup: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_not_ready_for_cleanup),
+        projects_not_ready_for_refactor: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_not_ready_for_refactor),
+        projects_with_hardcoded_data_candidates: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_with_hardcoded_data_candidates),
+        projects_missing_snapshot: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_missing_snapshot),
+        projects_with_stale_snapshot: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_with_stale_snapshot),
+        projects_missing_activity: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_missing_activity),
+        projects_with_stale_activity: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_with_stale_activity),
+        projects_missing_verification: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_missing_verification),
+        projects_with_stale_verification: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_with_stale_verification),
+        projects_with_storage_maintenance_candidates: workspace_counts
+            .as_ref()
+            .map(|c| c.projects_with_storage_maintenance_candidates),
     })
     .expect("ConstraintsBoundariesLayer serialization")
 }

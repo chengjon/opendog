@@ -7,7 +7,8 @@ use crate::storage::queries::StatsEntry;
 use super::{
     augment_entrypoints_for_storage_maintenance, decision_action_profile,
     decision_entrypoints_payload, decision_execution_templates, decision_risk_profile,
-    detect_mock_data_report, guidance_types::{DecisionBrief, DecisionSignals},
+    detect_mock_data_report,
+    guidance_types::{DecisionBrief, DecisionSignals},
     workspace_data_risk_overview_payload,
 };
 
@@ -272,9 +273,7 @@ pub(crate) fn decision_brief_payload(
             hardcoded_candidate_count: top_candidate["hardcoded_candidate_count"]
                 .as_u64()
                 .unwrap_or(0),
-            mock_candidate_count: top_candidate["mock_candidate_count"]
-                .as_u64()
-                .unwrap_or(0),
+            mock_candidate_count: top_candidate["mock_candidate_count"].as_u64().unwrap_or(0),
             mixed_review_file_count: matched_overview["mock_data_summary"]
                 ["mixed_review_file_count"]
                 .as_u64()

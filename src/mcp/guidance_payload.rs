@@ -14,8 +14,7 @@ use super::{
     },
     review_focus_projection_for_top_project, sort_project_recommendations,
     storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
-    workspace_toolchain_layer, workspace_verification_evidence_layer,
-    WorkspaceCounts,
+    workspace_toolchain_layer, workspace_verification_evidence_layer, WorkspaceCounts,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -163,7 +162,9 @@ fn execution_strategy_repo_risk_coupling(
     })
 }
 
-fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -> StabilizationSummary {
+fn execution_strategy_stabilization_summary(
+    project_recommendations: &[Value],
+) -> StabilizationSummary {
     let mut project_ids = Vec::new();
 
     for recommendation in project_recommendations {
@@ -182,7 +183,9 @@ fn execution_strategy_stabilization_summary(project_recommendations: &[Value]) -
     }
 }
 
-fn execution_strategy_verification_summary(project_recommendations: &[Value]) -> VerificationSummary {
+fn execution_strategy_verification_summary(
+    project_recommendations: &[Value],
+) -> VerificationSummary {
     let projects_requiring_verification_run = project_recommendations
         .iter()
         .filter(|recommendation| {
@@ -467,10 +470,18 @@ pub(crate) fn agent_guidance_payload(
             projects_with_vacuum_candidates,
             total_storage_reclaimable_bytes: storage_maintenance["total_approx_reclaimable_bytes"]
                 .clone(),
-            data_risk_focus_distribution: data_risk_focus_summary.data_risk_focus_distribution.clone(),
-            projects_requiring_hardcoded_review: json!(data_risk_focus_summary.projects_requiring_hardcoded_review),
-            projects_requiring_mock_review: json!(data_risk_focus_summary.projects_requiring_mock_review),
-            projects_requiring_mixed_file_review: json!(data_risk_focus_summary.projects_requiring_mixed_file_review),
+            data_risk_focus_distribution: data_risk_focus_summary
+                .data_risk_focus_distribution
+                .clone(),
+            projects_requiring_hardcoded_review: json!(
+                data_risk_focus_summary.projects_requiring_hardcoded_review
+            ),
+            projects_requiring_mock_review: json!(
+                data_risk_focus_summary.projects_requiring_mock_review
+            ),
+            projects_requiring_mixed_file_review: json!(
+                data_risk_focus_summary.projects_requiring_mixed_file_review
+            ),
             notes: notes.to_vec(),
         })
         .expect("WorkspaceObservationLayer serialization");
