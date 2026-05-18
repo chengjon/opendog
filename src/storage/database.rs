@@ -2,7 +2,7 @@ use crate::error::Result;
 use rusqlite::{Connection, Params};
 use std::path::Path;
 
-use super::schema::{PROJECT_SCHEMA, REGISTRY_SCHEMA};
+use super::migrations::{self, SchemaKind};
 
 pub struct Database {
     conn: Connection,
@@ -22,13 +22,13 @@ impl Database {
 
     pub fn open_registry(path: &Path) -> Result<Self> {
         let db = Self::open(path)?;
-        db.conn.execute_batch(REGISTRY_SCHEMA)?;
+        migrations::migrate(&db.conn, SchemaKind::Registry)?;
         Ok(db)
     }
 
     pub fn open_project(path: &Path) -> Result<Self> {
         let db = Self::open(path)?;
-        db.conn.execute_batch(PROJECT_SCHEMA)?;
+        migrations::migrate(&db.conn, SchemaKind::Project)?;
         Ok(db)
     }
 

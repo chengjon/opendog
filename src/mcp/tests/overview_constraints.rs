@@ -3,41 +3,11 @@ use super::*;
 #[test]
 fn project_overview_fuses_verification_and_repo_readiness() {
     let verification = verification_status_layer(&[
-        VerificationRun {
-            id: 1,
-            kind: "test".to_string(),
-            status: "passed".to_string(),
-            command: "cargo test".to_string(),
-            exit_code: Some(0),
-            summary: None,
-            source: "cli".to_string(),
-            started_at: None,
-            finished_at: fresh_ts(),
-        },
-        VerificationRun {
-            id: 2,
-            kind: "build".to_string(),
-            status: "passed".to_string(),
-            command: "cargo check".to_string(),
-            exit_code: Some(0),
-            summary: None,
-            source: "cli".to_string(),
-            started_at: None,
-            finished_at: fresh_ts(),
-        },
+        verification_run(1, "test", "passed", "cargo test", Some(0), fresh_ts()),
+        verification_run(2, "build", "passed", "cargo check", Some(0), fresh_ts()),
     ]);
     let overview = project_overview(
-        &ProjectGuidanceState {
-            id: "demo".to_string(),
-            status: "monitoring".to_string(),
-            root_path: std::path::PathBuf::from("/tmp/demo"),
-            total_files: 20,
-            accessed_files: 8,
-            unused_files: 4,
-            latest_snapshot_captured_at: Some(fresh_ts()),
-            latest_activity_at: Some(fresh_ts()),
-            latest_verification_at: Some(fresh_ts()),
-        },
+        &project_state("demo", 20, 8, 4),
         &json!({
             "status": "available",
             "risk_level": "high",
@@ -96,17 +66,14 @@ fn project_overview_fuses_verification_and_repo_readiness() {
 
 #[test]
 fn build_constraints_boundaries_layer_includes_default_guardrails_and_blockers() {
-    let verification = verification_status_layer(&[VerificationRun {
-        id: 1,
-        kind: "test".to_string(),
-        status: "failed".to_string(),
-        command: "cargo test".to_string(),
-        exit_code: Some(101),
-        summary: None,
-        source: "cli".to_string(),
-        started_at: None,
-        finished_at: "1".to_string(),
-    }]);
+    let verification = verification_status_layer(&[verification_run(
+        1,
+        "test",
+        "failed",
+        "cargo test",
+        Some(101),
+        "1".to_string(),
+    )]);
     let value = build_constraints_boundaries_layer(
         Some(&json!({
             "operation_states": ["rebase"],

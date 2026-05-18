@@ -16,6 +16,7 @@ use self::scoring::score_review_actions;
 use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
 use super::guidance_types::{ProjectOverview, Recommendation};
+use super::serialization::to_value_or_error;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
@@ -67,9 +68,7 @@ pub(crate) fn project_overview(
         strategy_confidence: recommendation["confidence"].clone(),
     };
 
-    enrich_project_overview_with_attention(
-        &serde_json::to_value(overview).expect("ProjectOverview serialization"),
-    )
+    enrich_project_overview_with_attention(&to_value_or_error("ProjectOverview", overview))
 }
 
 pub(crate) fn collect_project_guidance_context<F>(
@@ -494,7 +493,7 @@ pub(crate) fn recommend_project_action(
         }
     };
 
-    let mut payload = serde_json::to_value(rec).expect("Recommendation struct serialization");
+    let mut payload = to_value_or_error("Recommendation", rec);
     let selected_action = payload["recommended_next_action"]
         .as_str()
         .unwrap_or_default()

@@ -36,14 +36,20 @@ mod repo_risk;
 mod resource_handlers;
 pub(crate) mod review_candidates;
 mod risk_handlers;
+mod serialization;
 mod server_core;
 mod storage_maintenance;
 mod strategy;
 mod tool_helpers;
+#[cfg(test)]
+mod tool_inventory;
 mod toolchain;
 mod verification_evidence;
 mod verification_handlers;
 mod workspace_decision;
+
+#[cfg(test)]
+pub(crate) use self::tool_inventory::mcp_tool_inventory;
 
 use self::analysis_handlers::{
     handle_compare_snapshots, handle_get_stats, handle_get_time_window_report,

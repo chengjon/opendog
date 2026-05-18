@@ -12,6 +12,7 @@ pub(super) fn open_dog_error_code(error: &OpenDogError) -> &'static str {
         OpenDogError::InvalidProjectId(_) => "invalid_project_id",
         OpenDogError::InvalidPath(_) => "invalid_path",
         OpenDogError::InvalidVerification(_) => "invalid_verification",
+        OpenDogError::VerificationRecordMissing(_) => "verification_record_missing",
         OpenDogError::InvalidInput(_) => "invalid_input",
         OpenDogError::DaemonAlreadyRunning(_) => "daemon_already_running",
         OpenDogError::MonitorAlreadyRunning(_) => "monitor_already_running",
@@ -19,9 +20,12 @@ pub(super) fn open_dog_error_code(error: &OpenDogError) -> &'static str {
         OpenDogError::DaemonControlUnavailable => "daemon_control_unavailable",
         OpenDogError::DaemonResponseIntegrity(_) => "daemon_response_integrity_error",
         OpenDogError::RemoteControl(_) => "remote_control_error",
+        OpenDogError::Mcp(_) => "mcp_error",
+        OpenDogError::LockPoisoned(_) => "lock_poisoned",
         OpenDogError::Database(_) => "database_error",
         OpenDogError::Io(_) => "io_error",
         OpenDogError::Serialization(_) => "serialization_error",
+        OpenDogError::SchemaMigration(_) => "schema_migration_error",
         OpenDogError::Walk(_) => "walk_error",
     }
 }

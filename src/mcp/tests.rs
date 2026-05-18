@@ -1,3 +1,4 @@
+use super::mcp_tool_inventory;
 use super::repo_risk::{
     detect_lockfile_anomalies, parse_status_porcelain, repo_risk_findings, GitStatusEntry,
     RepoRiskSnapshot,
@@ -46,6 +47,10 @@ use crate::storage::queries::{StatsEntry, VerificationRun};
 use rmcp::handler::server::wrapper::Json;
 use serde_json::json;
 use tempfile::TempDir;
+
+#[path = "tests/fixtures.rs"]
+mod fixtures;
+use self::fixtures::{project_state, stats_entry, unused_stats_entry, verification_run};
 
 #[path = "tests/data_risk_cases.rs"]
 mod data_risk_cases;

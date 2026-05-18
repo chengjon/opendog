@@ -123,7 +123,10 @@ pub(super) fn handle_get_workspace_data_risk_overview(
         Err(e) => return error_json_for(MCP_WORKSPACE_DATA_RISK_V1, None, &e),
     }
 
-    let inner = server.inner.lock().unwrap();
+    let inner = match server.lock_inner() {
+        Ok(inner) => inner,
+        Err(e) => return error_json_for(MCP_WORKSPACE_DATA_RISK_V1, None, &e),
+    };
     match inner.list_projects() {
         Ok(projects) => Json(workspace_data_risk_payload(
             MCP_WORKSPACE_DATA_RISK_V1,

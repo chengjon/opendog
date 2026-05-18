@@ -17,6 +17,9 @@ pub enum OpenDogError {
     #[error("Invalid verification input: {0}")]
     InvalidVerification(String),
 
+    #[error("Verification record missing after insert: {0}")]
+    VerificationRecordMissing(String),
+
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
@@ -38,6 +41,12 @@ pub enum OpenDogError {
     #[error("Remote control error: {0}")]
     RemoteControl(String),
 
+    #[error("MCP error: {0}")]
+    Mcp(String),
+
+    #[error("Lock poisoned: {0}")]
+    LockPoisoned(String),
+
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
 
@@ -46,6 +55,9 @@ pub enum OpenDogError {
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+
+    #[error("Schema migration error: {0}")]
+    SchemaMigration(String),
 
     #[error("Walk error: {0}")]
     Walk(#[from] walkdir::Error),

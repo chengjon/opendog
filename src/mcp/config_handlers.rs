@@ -18,7 +18,10 @@ pub(super) fn handle_get_global_config(server: &OpenDogServer) -> Json<Value> {
         Err(e) => return error_json_for(MCP_GLOBAL_CONFIG_V1, None, &e),
     }
 
-    let inner = server.inner.lock().unwrap();
+    let inner = match server.lock_inner() {
+        Ok(inner) => inner,
+        Err(e) => return error_json_for(MCP_GLOBAL_CONFIG_V1, None, &e),
+    };
     match inner.project_manager().global_config() {
         Ok(config) => Json(global_config_payload(MCP_GLOBAL_CONFIG_V1, &config)),
         Err(e) => error_json_for(MCP_GLOBAL_CONFIG_V1, None, &e),
@@ -32,7 +35,10 @@ pub(super) fn handle_get_project_config(server: &OpenDogServer, id: &str) -> Jso
         Err(e) => return error_json_for(MCP_PROJECT_CONFIG_V1, Some(id), &e),
     }
 
-    let inner = server.inner.lock().unwrap();
+    let inner = match server.lock_inner() {
+        Ok(inner) => inner,
+        Err(e) => return error_json_for(MCP_PROJECT_CONFIG_V1, Some(id), &e),
+    };
     match inner.project_manager().project_config_view(id) {
         Ok(view) => Json(project_config_payload(MCP_PROJECT_CONFIG_V1, &view)),
         Err(e) => error_json_for(MCP_PROJECT_CONFIG_V1, Some(id), &e),

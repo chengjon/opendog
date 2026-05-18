@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use crate::config::{ProjectConfig, ProjectInfo};
 use crate::control::MonitorController;
@@ -10,27 +10,34 @@ pub struct OpenDogServer {
 }
 
 pub fn run_stdio() {
-    crate::daemon::ensure_running_for_mcp().expect("Failed to ensure OPENDOG daemon is running");
+    if let Err(e) = try_run_stdio() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+pub fn try_run_stdio() -> Result<(), OpenDogError> {
+    crate::daemon::ensure_running_for_mcp()?;
 
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
-        .build()
-        .expect("Failed to create tokio runtime");
+        .build()?;
 
     rt.block_on(async {
         use rmcp::ServiceExt;
 
-        let server = OpenDogServer::new().expect("Failed to create OpenDogServer");
+        let server = OpenDogServer::new()?;
         let transport = (tokio::io::stdin(), tokio::io::stdout());
         let running = server
             .serve(transport)
             .await
-            .expect("MCP server exited with error");
+            .map_err(|e| OpenDogError::Mcp(format!("MCP server exited with error: {}", e)))?;
         running
             .waiting()
             .await
-            .expect("MCP server task join failed");
-    });
+            .map_err(|e| OpenDogError::Mcp(format!("MCP server task join failed: {}", e)))?;
+        Ok::<(), OpenDogError>(())
+    })
 }
 
 impl OpenDogServer {
@@ -41,7 +48,7 @@ impl OpenDogServer {
     }
 
     pub(super) fn get_project(&self, id: &str) -> Result<(Database, ProjectInfo), OpenDogError> {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.lock_inner()?;
         let info = inner
             .project_manager()
             .get(id)?
@@ -55,7 +62,7 @@ impl OpenDogServer {
         &self,
         id: &str,
     ) -> Result<(ProjectInfo, ProjectConfig), OpenDogError> {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.lock_inner()?;
         let info = inner
             .project_manager()
             .get(id)?
@@ -63,5 +70,37 @@ impl OpenDogServer {
         let config = inner.project_manager().resolve_project_config(&info)?;
         drop(inner);
         Ok((info, config))
+    }
+
+    pub(super) fn lock_inner(&self) -> Result<MutexGuard<'_, MonitorController>, OpenDogError> {
+        self.inner
+            .lock()
+            .map_err(|e| OpenDogError::LockPoisoned(format!("OpenDogServer controller: {}", e)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OpenDogServer;
+    use crate::error::OpenDogError;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    #[test]
+    fn poisoned_controller_lock_returns_structured_error() {
+        let server = OpenDogServer::new().expect("server should initialize");
+
+        let panic_result = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = server.inner.lock().expect("initial lock should succeed");
+            panic!("poison controller lock");
+        }));
+        assert!(panic_result.is_err());
+
+        match server.lock_inner() {
+            Err(OpenDogError::LockPoisoned(message)) => {
+                assert!(message.contains("OpenDogServer controller"));
+            }
+            Err(err) => panic!("expected lock poison error, got {err}"),
+            Ok(_) => panic!("expected poisoned lock to return an error"),
+        };
     }
 }

@@ -106,7 +106,7 @@ fn record_verification_result_at(
     let recorded = latest
         .drain(..)
         .find(|r| r.kind == kind)
-        .expect("recorded verification run should be queryable immediately");
+        .ok_or_else(|| OpenDogError::VerificationRecordMissing(kind.to_string()))?;
     Ok(recorded)
 }
 
