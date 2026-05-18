@@ -1,0 +1,2 @@
+test_name,start_time,end_time,duration_seconds,result
+unit/contract/test_legacy_contract_tree_inventory.py::test_legacy_contract_tree_keeps_only_support_modules,2026-05-14 21:46:20.281366,2026-05-14 21:46:20.313499,0.032,P
