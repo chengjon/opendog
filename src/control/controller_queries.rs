@@ -31,7 +31,7 @@ impl MonitorController {
     }
 
     pub fn get_unused_files(&self, id: &str) -> Result<Vec<StatsEntry>> {
-        self.with_project_db(id, |db| stats::get_unused_files(db))
+        self.with_project_db(id, stats::get_unused_files)
     }
 
     pub fn get_time_window_report(
@@ -197,7 +197,7 @@ impl MonitorController {
     }
 
     pub fn get_verification_status(&self, id: &str) -> Result<Vec<VerificationRun>> {
-        self.with_project_db(id, |db| verification::get_latest_verification_runs(db))
+        self.with_project_db(id, verification::get_latest_verification_runs)
     }
 
     pub fn record_verification_result(

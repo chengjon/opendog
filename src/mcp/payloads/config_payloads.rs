@@ -18,9 +18,10 @@ pub(crate) fn build_info_payload(
     needs_rebuild: Option<bool>,
 ) -> Value {
     let rebuild_hint = match needs_rebuild {
-        Some(true) => Some(format!(
+        Some(true) => Some(
             "Running binary is older than source code. Run `opendog self-update build --source /opt/claude/opendog`, then restart this MCP session."
-        )),
+                .to_string(),
+        ),
         _ => None,
     };
 
