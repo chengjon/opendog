@@ -1,19 +1,6 @@
 use super::*;
 use crate::core::file_classification::FilePathClassificationFilter;
 
-fn stats_entry(path: &str, access_count: i64, modification_count: i64) -> StatsEntry {
-    StatsEntry {
-        file_path: path.to_string(),
-        size: 42,
-        file_type: path.rsplit('.').next().unwrap_or("").to_string(),
-        access_count,
-        estimated_duration_ms: 1000,
-        modification_count,
-        last_access_time: Some("1".to_string()),
-        first_seen_time: None,
-    }
-}
-
 #[test]
 fn export_project_evidence_payload_has_versioned_contract() {
     let summary = ProjectSummary {
@@ -54,16 +41,7 @@ fn stats_payload_has_versioned_contract() {
         accessed_files: 2,
         unused_files: 3,
     };
-    let entries = vec![StatsEntry {
-        file_path: "src/main.rs".to_string(),
-        size: 42,
-        file_type: "rs".to_string(),
-        access_count: 7,
-        estimated_duration_ms: 12,
-        modification_count: 1,
-        last_access_time: Some("1".to_string()),
-        first_seen_time: None,
-    }];
+    let entries = vec![stats_entry("src/main.rs", 7, 1)];
     let value = stats_payload(
         "demo",
         &summary,
@@ -82,16 +60,7 @@ fn stats_payload_has_versioned_contract() {
 
 #[test]
 fn unused_files_payload_has_versioned_contract() {
-    let unused = vec![StatsEntry {
-        file_path: "old/module.rs".to_string(),
-        size: 11,
-        file_type: "rs".to_string(),
-        access_count: 0,
-        estimated_duration_ms: 0,
-        modification_count: 0,
-        last_access_time: None,
-        first_seen_time: None,
-    }];
+    let unused = vec![unused_stats_entry("old/module.rs")];
     let value = unused_files_payload("demo", &unused, std::path::Path::new("/tmp/demo"), &[]);
     assert_eq!(value["schema_version"], MCP_UNUSED_FILES_V1);
     assert_eq!(value["project_id"], "demo");
@@ -110,16 +79,7 @@ fn stats_payload_is_bounded_by_default_for_large_result_sets() {
         unused_files: 0,
     };
     let entries: Vec<StatsEntry> = (0..55)
-        .map(|idx| StatsEntry {
-            file_path: format!("src/file_{idx}.rs"),
-            size: 42,
-            file_type: "rs".to_string(),
-            access_count: 55 - idx,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: Some("1".to_string()),
-            first_seen_time: None,
-        })
+        .map(|idx| stats_entry(&format!("src/file_{idx}.rs"), 55 - idx, 0))
         .collect();
 
     let value = stats_payload(
@@ -140,16 +100,7 @@ fn stats_payload_is_bounded_by_default_for_large_result_sets() {
 #[test]
 fn unused_files_payload_is_bounded_by_default_for_large_result_sets() {
     let unused: Vec<StatsEntry> = (0..55)
-        .map(|idx| StatsEntry {
-            file_path: format!("old/file_{idx}.rs"),
-            size: 11,
-            file_type: "rs".to_string(),
-            access_count: 0,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        })
+        .map(|idx| unused_stats_entry(&format!("old/file_{idx}.rs")))
         .collect();
 
     let value = unused_files_payload("demo", &unused, std::path::Path::new("/tmp/demo"), &[]);
@@ -170,16 +121,7 @@ fn stats_payload_honors_explicit_limit() {
         unused_files: 0,
     };
     let entries: Vec<StatsEntry> = (0..5)
-        .map(|idx| StatsEntry {
-            file_path: format!("src/file_{idx}.rs"),
-            size: 42,
-            file_type: "rs".to_string(),
-            access_count: 5 - idx,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: Some("1".to_string()),
-            first_seen_time: None,
-        })
+        .map(|idx| stats_entry(&format!("src/file_{idx}.rs"), 5 - idx, 0))
         .collect();
 
     let value = stats_payload_with_limit(
@@ -202,16 +144,7 @@ fn stats_payload_honors_explicit_limit() {
 #[test]
 fn unused_files_payload_honors_explicit_limit() {
     let unused: Vec<StatsEntry> = (0..5)
-        .map(|idx| StatsEntry {
-            file_path: format!("old/file_{idx}.rs"),
-            size: 11,
-            file_type: "rs".to_string(),
-            access_count: 0,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        })
+        .map(|idx| unused_stats_entry(&format!("old/file_{idx}.rs")))
         .collect();
 
     let value = unused_files_payload_with_limit(
@@ -251,16 +184,7 @@ fn stats_payload_classifies_infrastructure_and_source_files() {
     let entries: Vec<StatsEntry> = paths
         .iter()
         .enumerate()
-        .map(|(idx, path)| StatsEntry {
-            file_path: (*path).to_string(),
-            size: 42,
-            file_type: path.rsplit('.').next().unwrap_or("").to_string(),
-            access_count: 8 - idx as i64,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: Some("1".to_string()),
-            first_seen_time: None,
-        })
+        .map(|(idx, path)| stats_entry(path, 8 - idx as i64, 0))
         .collect();
 
     let value = stats_payload(
@@ -411,19 +335,7 @@ fn unused_payload_prefers_source_candidates_over_infrastructure_noise() {
         "web/frontend/src/App.vue",
         "notes/tmp.txt~",
     ];
-    let unused: Vec<StatsEntry> = paths
-        .iter()
-        .map(|path| StatsEntry {
-            file_path: (*path).to_string(),
-            size: 11,
-            file_type: path.rsplit('.').next().unwrap_or("").to_string(),
-            access_count: 0,
-            estimated_duration_ms: 0,
-            modification_count: 0,
-            last_access_time: None,
-            first_seen_time: None,
-        })
-        .collect();
+    let unused: Vec<StatsEntry> = paths.iter().map(|path| unused_stats_entry(path)).collect();
 
     let value = unused_files_payload("demo", &unused, std::path::Path::new("/tmp/demo"), &[]);
 

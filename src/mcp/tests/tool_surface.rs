@@ -1,11 +1,70 @@
-use super::{mcp_resource_templates, mcp_resources, read_resource_kind, ResourceKind};
+use std::collections::BTreeSet;
+
+use super::{
+    mcp_resource_templates, mcp_resources, mcp_tool_inventory, read_resource_kind, ResourceKind,
+};
+
+fn registered_tool_names() -> BTreeSet<String> {
+    let mcp_router_source = include_str!("../mod.rs");
+
+    mcp_router_source
+        .lines()
+        .filter_map(|line| {
+            line.split("name = \"")
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .map(ToString::to_string)
+        })
+        .collect()
+}
+
+#[test]
+fn mcp_tool_surface_matches_inventory() {
+    let registered = registered_tool_names();
+    let inventory: BTreeSet<String> = mcp_tool_inventory()
+        .iter()
+        .map(|tool| tool.name.to_string())
+        .collect();
+
+    assert_eq!(
+        registered, inventory,
+        "MCP #[tool] registrations must match the central inventory"
+    );
+
+    for tool in mcp_tool_inventory() {
+        assert!(!tool.contract.is_empty(), "{} missing contract", tool.name);
+        assert!(
+            tool.params_type.is_none_or(|params| !params.is_empty()),
+            "{} has an empty params_type",
+            tool.name
+        );
+        assert!(
+            !tool.payload_builder.is_empty(),
+            "{} missing payload builder",
+            tool.name
+        );
+        assert!(
+            !tool.handler_module.is_empty(),
+            "{} missing handler module",
+            tool.name
+        );
+        assert!(!tool.handler.is_empty(), "{} missing handler", tool.name);
+        assert!(
+            !tool.test_owner.is_empty(),
+            "{} missing test owner",
+            tool.name
+        );
+    }
+}
 
 #[test]
 fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
     let mcp_router_source = include_str!("../mod.rs");
+    let inventory_names: BTreeSet<&str> =
+        mcp_tool_inventory().iter().map(|tool| tool.name).collect();
 
     assert!(
-        mcp_router_source.contains("name = \"get_guidance\""),
+        inventory_names.contains("get_guidance"),
         "expected merged MCP guidance entrypoint to be exposed"
     );
     for removed in ["get_agent_guidance", "get_decision_brief", "create_project"] {
@@ -15,7 +74,7 @@ fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
         );
     }
     assert!(
-        mcp_router_source.contains("name = \"register_project\""),
+        inventory_names.contains("register_project"),
         "expected project registration entrypoint to be exposed"
     );
 
@@ -26,6 +85,10 @@ fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
         "export_project_evidence",
         "cleanup_project_data",
     ] {
+        assert!(
+            !inventory_names.contains(removed),
+            "unexpected MCP tool in inventory: {removed}"
+        );
         assert!(
             !mcp_router_source.contains(&format!("name = \"{removed}\"")),
             "unexpected MCP tool still exposed: {removed}"
@@ -44,9 +107,10 @@ fn observation_tool_params_expose_path_classification_filter() {
 
 #[test]
 fn orphan_detection_tools_are_exposed() {
-    let mcp_router_source = include_str!("../mod.rs");
-    assert!(mcp_router_source.contains("name = \"scan_orphans\""));
-    assert!(mcp_router_source.contains("name = \"verify_deletion_plan\""));
+    let inventory_names: BTreeSet<&str> =
+        mcp_tool_inventory().iter().map(|tool| tool.name).collect();
+    assert!(inventory_names.contains("scan_orphans"));
+    assert!(inventory_names.contains("verify_deletion_plan"));
 }
 
 #[test]

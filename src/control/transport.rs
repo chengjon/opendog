@@ -45,10 +45,16 @@ pub fn spawn_control_server_at(
                     }
 
                     let response = match serde_json::from_slice::<ControlRequest>(&request_bytes) {
-                        Ok(request) => {
-                            let mut controller = controller.lock().unwrap();
-                            controller.handle_request(request)
-                        }
+                        Ok(request) => match controller.lock() {
+                            Ok(mut controller) => controller.handle_request(request),
+                            Err(e) => ControlResponse::Error {
+                                message: OpenDogError::LockPoisoned(format!(
+                                    "daemon control controller: {}",
+                                    e
+                                ))
+                                .to_string(),
+                            },
+                        },
                         Err(e) => ControlResponse::Error {
                             message: format!("Invalid control request: {}", e),
                         },

@@ -9,6 +9,7 @@ pub(crate) use self::external_truth::external_truth_boundary_for_top_project;
 pub(crate) use self::repo_truth::repo_truth_gap_projection;
 pub(crate) use self::review_focus::review_focus_projection_for_top_project;
 use super::guidance_types::ConstraintsBoundariesLayer;
+use super::serialization::to_value_or_error;
 
 pub(super) struct WorkspaceCounts {
     pub(super) projects_not_ready_for_cleanup: usize,
@@ -208,49 +209,51 @@ pub(super) fn build_constraints_boundaries_layer(
             .push("Dependency manifest/lockfile mismatch signals.".to_string());
     }
 
-    serde_json::to_value(ConstraintsBoundariesLayer {
-        status: "available".to_string(),
-        direct_observations,
-        inferences,
-        blind_spots,
-        guardrails: default_boundary_guardrails(),
-        destructive_operations_requiring_confirmation: default_destructive_operations(),
-        human_review_required_for,
-        cleanup_blockers,
-        refactor_blockers,
-        requires_shell_verification,
-        projects_not_ready_for_cleanup: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_not_ready_for_cleanup),
-        projects_not_ready_for_refactor: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_not_ready_for_refactor),
-        projects_with_hardcoded_data_candidates: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_with_hardcoded_data_candidates),
-        projects_missing_snapshot: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_missing_snapshot),
-        projects_with_stale_snapshot: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_with_stale_snapshot),
-        projects_missing_activity: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_missing_activity),
-        projects_with_stale_activity: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_with_stale_activity),
-        projects_missing_verification: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_missing_verification),
-        projects_with_stale_verification: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_with_stale_verification),
-        projects_with_storage_maintenance_candidates: workspace_counts
-            .as_ref()
-            .map(|c| c.projects_with_storage_maintenance_candidates),
-    })
-    .expect("ConstraintsBoundariesLayer serialization")
+    to_value_or_error(
+        "ConstraintsBoundariesLayer",
+        ConstraintsBoundariesLayer {
+            status: "available".to_string(),
+            direct_observations,
+            inferences,
+            blind_spots,
+            guardrails: default_boundary_guardrails(),
+            destructive_operations_requiring_confirmation: default_destructive_operations(),
+            human_review_required_for,
+            cleanup_blockers,
+            refactor_blockers,
+            requires_shell_verification,
+            projects_not_ready_for_cleanup: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_not_ready_for_cleanup),
+            projects_not_ready_for_refactor: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_not_ready_for_refactor),
+            projects_with_hardcoded_data_candidates: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_with_hardcoded_data_candidates),
+            projects_missing_snapshot: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_missing_snapshot),
+            projects_with_stale_snapshot: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_with_stale_snapshot),
+            projects_missing_activity: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_missing_activity),
+            projects_with_stale_activity: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_with_stale_activity),
+            projects_missing_verification: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_missing_verification),
+            projects_with_stale_verification: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_with_stale_verification),
+            projects_with_storage_maintenance_candidates: workspace_counts
+                .as_ref()
+                .map(|c| c.projects_with_storage_maintenance_candidates),
+        },
+    )
 }
 
 pub(super) fn common_boundary_hints(root: &Path) -> Value {

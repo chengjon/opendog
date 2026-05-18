@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
 use super::guidance_types::{AttentionPriorityBasis, AttentionSummary, WorkspacePortfolioLayer};
+use super::serialization::to_value_or_error;
 
 fn repo_risk_priority(score: &str) -> i32 {
     match score {
@@ -260,8 +261,8 @@ pub(super) fn enrich_project_overview_with_attention(overview: &Value) -> Value 
     enriched["attention_band"] = json!(attention.attention_band);
     enriched["attention_reasons"] = json!(attention.attention_reasons);
     enriched["evidence_quality"] = json!(attention.evidence_quality);
-    enriched["priority_basis"] = serde_json::to_value(attention.priority_basis)
-        .expect("AttentionPriorityBasis serialization");
+    enriched["priority_basis"] =
+        to_value_or_error("AttentionPriorityBasis", attention.priority_basis);
     enriched
 }
 

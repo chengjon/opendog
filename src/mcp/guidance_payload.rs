@@ -12,9 +12,11 @@ use super::{
         DataRiskFocusSummary, ExecutionStrategyLayer, ObservationSummary, RepoTruthSummary,
         StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
-    review_focus_projection_for_top_project, sort_project_recommendations,
-    storage_maintenance_layer, workspace_portfolio_layer, workspace_strategy_profile,
-    workspace_toolchain_layer, workspace_verification_evidence_layer, WorkspaceCounts,
+    review_focus_projection_for_top_project,
+    serialization::to_value_or_error,
+    sort_project_recommendations, storage_maintenance_layer, workspace_portfolio_layer,
+    workspace_strategy_profile, workspace_toolchain_layer, workspace_verification_evidence_layer,
+    WorkspaceCounts,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -454,8 +456,9 @@ pub(crate) fn agent_guidance_payload(
         "ready"
     };
 
-    value["guidance"]["layers"]["workspace_observation"] =
-        serde_json::to_value(WorkspaceObservationLayer {
+    value["guidance"]["layers"]["workspace_observation"] = to_value_or_error(
+        "WorkspaceObservationLayer",
+        WorkspaceObservationLayer {
             status: "available".to_string(),
             project_count,
             monitoring_count,
@@ -483,10 +486,10 @@ pub(crate) fn agent_guidance_payload(
                 data_risk_focus_summary.projects_requiring_mixed_file_review
             ),
             notes: notes.to_vec(),
-        })
-        .expect("WorkspaceObservationLayer serialization");
+        },
+    );
     value["guidance"]["layers"]["execution_strategy"] =
-        serde_json::to_value(ExecutionStrategyLayer {
+        to_value_or_error("ExecutionStrategyLayer", ExecutionStrategyLayer {
             status: "available".to_string(),
             recommended_flow,
             project_recommendations: sorted_project_recommendations.clone(),
@@ -537,17 +540,17 @@ pub(crate) fn agent_guidance_payload(
             projects_requiring_failing_verification_repair: json!(verification_summary.projects_requiring_failing_verification_repair),
             projects_requiring_repo_stabilization: json!(stabilization_summary.projects_requiring_repo_stabilization),
             repo_stabilization_priority_projects: json!(stabilization_summary.repo_stabilization_priority_projects),
-        })
-        .expect("ExecutionStrategyLayer serialization");
-    value["guidance"]["layers"]["multi_project_portfolio"] =
-        serde_json::to_value(workspace_portfolio_layer(
+        });
+    value["guidance"]["layers"]["multi_project_portfolio"] = to_value_or_error(
+        "WorkspacePortfolioLayer",
+        workspace_portfolio_layer(
             project_overviews,
             monitoring_count,
             monitored_projects,
             sorted_project_recommendations,
             projects_with_hardcoded_data,
-        ))
-        .expect("WorkspacePortfolioLayer serialization");
+        ),
+    );
     value["guidance"]["layers"]["storage_maintenance"] = storage_maintenance;
     value["guidance"]["layers"]["verification_evidence"] =
         workspace_verification_evidence_layer(project_overviews, project_count, monitoring_count);

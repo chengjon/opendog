@@ -43,7 +43,9 @@ async fn run_daemon() -> crate::error::Result<()> {
     write_pid_file()?;
     let controller = std::sync::Arc::new(std::sync::Mutex::new(MonitorController::new()?));
     let projects = {
-        let controller = controller.lock().unwrap();
+        let controller = controller.lock().map_err(|e| {
+            crate::error::OpenDogError::LockPoisoned(format!("daemon controller: {}", e))
+        })?;
         controller.list_projects()?
     };
 
@@ -56,7 +58,9 @@ async fn run_daemon() -> crate::error::Result<()> {
             );
         }
 
-        let mut controller_guard = controller.lock().unwrap();
+        let mut controller_guard = controller.lock().map_err(|e| {
+            crate::error::OpenDogError::LockPoisoned(format!("daemon controller: {}", e))
+        })?;
         match controller_guard.start_monitor(&project.id) {
             Ok(outcome) => {
                 info!(
@@ -101,11 +105,15 @@ async fn run_daemon() -> crate::error::Result<()> {
     }
 
     let monitor_ids = {
-        let controller = controller.lock().unwrap();
+        let controller = controller.lock().map_err(|e| {
+            crate::error::OpenDogError::LockPoisoned(format!("daemon controller: {}", e))
+        })?;
         controller.monitor_ids()
     };
     {
-        let mut controller = controller.lock().unwrap();
+        let mut controller = controller.lock().map_err(|e| {
+            crate::error::OpenDogError::LockPoisoned(format!("daemon controller: {}", e))
+        })?;
         for project_id in &monitor_ids {
             info!(project_id = %project_id, "Stopping background monitor");
         }
