@@ -8,10 +8,11 @@ use super::resource_handlers::{
 };
 use super::{
     agent_guidance_payload, build_constraints_boundaries_layer, cleanup_project_data_payload,
-    collect_workspace_data_risk_summaries, data_risk_guidance, decision_brief_payload,
-    decision_entrypoints_payload, default_governance_layer, delete_project_payload,
-    detect_mock_data_report, detect_project_commands, error_json_for,
-    export_project_evidence_payload, global_config_payload, list_projects_payload,
+    close_governance_lane_payload, collect_workspace_data_risk_summaries, create_governance_lane_payload,
+    data_risk_guidance, decision_brief_payload, decision_entrypoints_payload,
+    default_governance_layer, delete_project_payload, detect_mock_data_report,
+    detect_project_commands, error_json_for, export_project_evidence_payload,
+    get_governance_state_payload, global_config_payload, list_projects_payload,
     normalize_candidate_type, normalize_min_review_priority, now_unix_secs,
     orphan_deletion_plan_payload, orphan_scan_payload, project_config_payload,
     project_config_reload_payload, project_config_update_payload, project_overview,
@@ -21,22 +22,24 @@ use super::{
     start_monitor_guidance, start_monitor_payload, stats_guidance, stats_payload,
     stats_payload_with_limit, stop_monitor_payload, tool_guidance, unused_files_payload,
     unused_files_payload_with_limit, unused_guidance, update_global_config_payload,
-    validation_error_json, verification_status_layer, verification_status_payload,
-    workspace_data_risk_overview_payload, workspace_portfolio_layer,
-    workspace_strategy_profile, AgentGuidanceParams, DataCandidate, GuidanceParams,
-    MockDataReport, ProjectGuidanceState,
+    upsert_governance_node_payload, validation_error_json, verification_status_layer,
+    verification_status_payload, workspace_data_risk_overview_payload,
+    workspace_portfolio_layer, workspace_strategy_profile, AgentGuidanceParams,
+    DataCandidate, GuidanceParams, MockDataReport, ProjectGuidanceState,
 };
 use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigOverrides, ProjectConfigReload,
     ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo, ProjectReloadStatus,
 };
 use crate::contracts::{
-    MCP_CLEANUP_PROJECT_DATA_V1, MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
-    MCP_EXPORT_PROJECT_EVIDENCE_V1, MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1,
-    MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1, MCP_PROJECT_CONFIG_V1,
-    MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1, MCP_RELOAD_PROJECT_CONFIG_V1,
-    MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STATS_V1,
-    MCP_STOP_MONITOR_V1, MCP_UNUSED_FILES_V1, MCP_UPDATE_GLOBAL_CONFIG_V1,
+    MCP_CLEANUP_PROJECT_DATA_V1, MCP_CLOSE_GOVERNANCE_LANE_V1, MCP_CREATE_GOVERNANCE_LANE_V1,
+    MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
+    MCP_EXPORT_PROJECT_EVIDENCE_V1, MCP_GET_GOVERNANCE_STATE_V1, MCP_GLOBAL_CONFIG_V1,
+    MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1,
+    MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1,
+    MCP_RELOAD_PROJECT_CONFIG_V1, MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_V1,
+    MCP_START_MONITOR_V1, MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_UNUSED_FILES_V1,
+    MCP_UPSERT_GOVERNANCE_NODE_V1, MCP_UPDATE_GLOBAL_CONFIG_V1,
     MCP_UPDATE_PROJECT_CONFIG_V1, MCP_VERIFICATION_STATUS_V1,
 };
 use crate::core::retention::{

@@ -4,6 +4,8 @@ use super::*;
 mod analysis_payloads;
 #[path = "payload_contracts/config_payloads.rs"]
 mod config_payloads;
+#[path = "payload_contracts/governance_payloads.rs"]
+mod governance_payloads;
 #[path = "payload_contracts/orphan_payloads.rs"]
 mod orphan_payloads;
 #[path = "payload_contracts/project_payloads.rs"]
