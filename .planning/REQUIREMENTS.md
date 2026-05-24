@@ -219,6 +219,19 @@ Maps to FT: `FT-03.08.01`, `FT-03.08.02`
 - **MOCK-09**: System flags mixed files that contain both business logic and mock or hardcoded pseudo-data, because these files need extra review
 - **MOCK-10**: Detection output is structured and reusable across projects for governance, auditing, and AI-assisted refactoring workflows
 
+### Governance State Observation (GOV)
+
+Maps to FT: `FT-03.09.01`
+
+- **GOV-01**: Projects can create governance work lanes with unique IDs, titles, and descriptions. Maps to FT: FT-03.09.01
+- **GOV-02**: Projects can create and update governance nodes within lanes, with free-text state, summaries, evidence/artifact references, git head anchors, suggested next steps, forbidden scope descriptions, and external anchors. Maps to FT: FT-03.09.01
+- **GOV-03**: Node state is required on create, optional on update. OPENDOG never rejects a state value. Maps to FT: FT-03.09.01
+- **GOV-04**: Projects can read governance state filtered by lane, node, or active-only flag. Maps to FT: FT-03.09.01
+- **GOV-05**: get_governance_state response includes observation hints (snapshot freshness, verification status, unused files, data risk candidates) derived from existing OPENDOG evidence. Maps to FT: FT-03.09.01
+- **GOV-06**: Projects can close (complete/defer) or hard-delete entire lanes and their nodes. Maps to FT: FT-03.09.01
+- **GOV-07**: Governance state appears as a guidance layer cross-referenced with observation evidence in get_guidance responses. Maps to FT: FT-03.09.01
+- **GOV-08**: All governance data is stored per-project in SQLite with no cross-project leakage. OPENDOG does not enforce governance rules — it observes and recommends. Maps to FT: FT-03.09.01
+
 ### Data Export
 
 Maps to FT: `FT-01.04.03`
@@ -298,6 +311,7 @@ Maps to FT: `FT-01.04.05`
 | STACKX-01 through STACKX-04 | Phase 6 | Planned |
 | BOUND-01 through BOUND-04 | Phase 6 | Planned |
 | MOCK-01 through MOCK-10 | Phase 6 | Planned |
+| GOV-01 through GOV-08 | Phase 6 | Planned |
 | EXPORT-01 through EXPORT-02 | Phase 3/4 Hardening | Complete |
 | RPT-01 through RPT-03 | Phase 3/4/5 Hardening | Complete |
 | CONF-01 through CONF-03 | Phase 4/5 Hardening | Complete |
@@ -306,12 +320,12 @@ Maps to FT: `FT-01.04.05`
 
 **Coverage:**
 - v1 requirements: 53 total
-- v2+ requirements drafted: 61
-- Mapped to FT leaves: 114
-- Mapped to phases: 114
+- v2+ requirements drafted: 69
+- Mapped to FT leaves: 122
+- Mapped to phases: 122
 - Backlog / unscheduled: 0
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-24*
-*Last updated: 2026-04-27 after formalizing control-plane coordination and retained-evidence cleanup as first-class requirement families*
+*Last updated: 2026-05-24 after adding GOV-01..08 governance state observation requirement family*
