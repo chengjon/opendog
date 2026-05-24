@@ -30,6 +30,10 @@ pub const MCP_CLEANUP_PROJECT_DATA_V1: &str = "opendog.mcp.cleanup-project-data.
 pub const MCP_BUILD_INFO_V1: &str = "opendog.mcp.build-info.v1";
 pub const MCP_ORPHAN_SCAN_V1: &str = "opendog.mcp.orphan-scan.v1";
 pub const MCP_ORPHAN_DELETION_PLAN_V1: &str = "opendog.mcp.orphan-deletion-plan.v1";
+pub const MCP_CREATE_GOVERNANCE_LANE_V1: &str = "opendog.mcp.create-governance-lane.v1";
+pub const MCP_UPSERT_GOVERNANCE_NODE_V1: &str = "opendog.mcp.upsert-governance-node.v1";
+pub const MCP_GET_GOVERNANCE_STATE_V1: &str = "opendog.mcp.get-governance-state.v1";
+pub const MCP_CLOSE_GOVERNANCE_LANE_V1: &str = "opendog.mcp.close-governance-lane.v1";
 
 pub const OPENDOG_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const OPENDOG_GIT_HASH: &str = env!("OPENDOG_GIT_HASH");
@@ -51,6 +55,10 @@ pub const CLI_RECORD_VERIFICATION_V1: &str = "opendog.cli.record-verification.v1
 pub const CLI_VERIFICATION_STATUS_V1: &str = "opendog.cli.verification-status.v1";
 pub const CLI_RUN_VERIFICATION_V1: &str = "opendog.cli.run-verification.v1";
 pub const CLI_CLEANUP_PROJECT_DATA_V1: &str = "opendog.cli.cleanup-project-data.v1";
+pub const CLI_CREATE_GOVERNANCE_LANE_V1: &str = "opendog.cli.create-governance-lane.v1";
+pub const CLI_UPSERT_GOVERNANCE_NODE_V1: &str = "opendog.cli.upsert-governance-node.v1";
+pub const CLI_GET_GOVERNANCE_STATE_V1: &str = "opendog.cli.get-governance-state.v1";
+pub const CLI_CLOSE_GOVERNANCE_LANE_V1: &str = "opendog.cli.close-governance-lane.v1";
 
 pub fn versioned_payload<I>(schema_version: &str, fields: I) -> Value
 where
