@@ -238,7 +238,7 @@ pub fn get_governance_nodes(
     }
     if node_id.is_some() {
         sql.push_str(&format!(" AND node_id = ?{}", idx));
-        idx += 1;
+        let _ = idx;
     }
     sql.push_str(" ORDER BY created_at");
 
