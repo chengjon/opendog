@@ -63,6 +63,12 @@ pub(crate) fn get_governance_state_payload(id: &str, state: &GovernanceState) ->
                     obj
                 }).collect::<Vec<_>>()),
             ),
+            ("observation_hints", json!({
+                "snapshot_freshness": state.observation_hints.snapshot_freshness,
+                "verification_status": state.observation_hints.verification_status,
+                "data_risk_candidates": state.observation_hints.data_risk_candidates,
+                "unused_files": state.observation_hints.unused_files,
+            })),
         ],
     )
 }

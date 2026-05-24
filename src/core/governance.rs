@@ -41,9 +41,18 @@ pub struct CloseLaneInput {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ObservationHints {
+    pub snapshot_freshness: String,
+    pub verification_status: String,
+    pub data_risk_candidates: usize,
+    pub unused_files: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct GovernanceState {
     pub lanes: Vec<GovernanceLaneSummary>,
     pub nodes: Vec<GovernanceNode>,
+    pub observation_hints: ObservationHints,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -80,6 +89,40 @@ fn json_to_string(val: &Option<serde_json::Value>) -> Option<String> {
 
 fn string_list_to_json(list: &Option<Vec<String>>) -> Option<String> {
     list.as_ref().map(|items| serde_json::to_string(items).unwrap_or_else(|_| "[]".to_string()))
+}
+
+fn compute_observation_hints(db: &Database) -> ObservationHints {
+    // Snapshot freshness — check if any snapshot data exists
+    let snapshot_freshness =
+        if let Ok(entries) = queries::get_snapshot_paths(db) {
+            if !entries.is_empty() {
+                "fresh"
+            } else {
+                "unknown"
+            }
+        } else {
+            "unknown"
+        };
+
+    // Verification status
+    let verification_status = match queries::get_latest_verification_runs(db) {
+        Ok(runs) if runs.iter().all(|r| r.status == "passed") => "passed",
+        Ok(runs) if runs.is_empty() => "not_recorded",
+        _ => "failed",
+    };
+
+    // Unused files count
+    let unused_files = queries::count_unused(db).unwrap_or(0) as usize;
+
+    // Data risk candidates — not yet available from queries, default 0
+    let data_risk_candidates: usize = 0;
+
+    ObservationHints {
+        snapshot_freshness: snapshot_freshness.to_string(),
+        verification_status: verification_status.to_string(),
+        data_risk_candidates,
+        unused_files,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +227,13 @@ pub fn get_governance_state(db: &Database, input: GetGovernanceStateInput) -> Re
         }
     }
 
-    Ok(GovernanceState { lanes, nodes })
+    let observation_hints = compute_observation_hints(db);
+
+    Ok(GovernanceState {
+        lanes,
+        nodes,
+        observation_hints,
+    })
 }
 
 /// Close a lane. Actions: "complete", "defer", "delete".
