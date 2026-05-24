@@ -3,6 +3,7 @@ use crate::core::governance::{
     self, CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, GovernanceState,
     UpsertNodeInput, UpsertNodeResult,
 };
+use crate::core::orphan::{self, DeletionPlanInput, DeletionPlanVerification, ScanOrphansInput, ScanOrphansResult};
 use crate::core::report::{
     self, ReportWindow, SnapshotComparison, TimeWindowReport, UsageTrendReport,
 };
@@ -256,5 +257,27 @@ impl MonitorController {
         input: CloseLaneInput,
     ) -> Result<(String, usize)> {
         self.with_project_db(id, |db| governance::close_lane(db, input))
+    }
+
+    pub fn scan_orphans(
+        &self,
+        id: &str,
+        input: ScanOrphansInput,
+    ) -> Result<ScanOrphansResult> {
+        self.with_project_info_db(id, |info, _| {
+            let config = self.pm.effective_project_config(id)?;
+            orphan::scan_project_orphans(&info.root_path, &config, input)
+        })
+    }
+
+    pub fn verify_deletion_plan(
+        &self,
+        id: &str,
+        input: DeletionPlanInput,
+    ) -> Result<DeletionPlanVerification> {
+        self.with_project_info_db(id, |info, _| {
+            let config = self.pm.effective_project_config(id)?;
+            orphan::verify_deletion_plan(&info.root_path, &config, input)
+        })
     }
 }

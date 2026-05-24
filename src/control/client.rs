@@ -8,6 +8,7 @@ use super::{ControlRequest, ControlResponse};
 mod config_ops;
 mod governance_ops;
 mod guidance_ops;
+mod orphan_ops;
 mod project_ops;
 mod report_ops;
 mod verification_ops;

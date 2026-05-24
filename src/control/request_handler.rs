@@ -214,6 +214,14 @@ impl MonitorController {
                     }
                 })
             }
+            ControlRequest::ScanOrphans { id, input } => respond(
+                self.scan_orphans(&id, input),
+                |result| ControlResponse::OrphansScanned { id, result },
+            ),
+            ControlRequest::VerifyDeletionPlan { id, input } => respond(
+                self.verify_deletion_plan(&id, input),
+                |result| ControlResponse::DeletionPlanVerified { id, result },
+            ),
         }
     }
 }

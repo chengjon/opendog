@@ -6,6 +6,9 @@ use crate::core::governance::{
     CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, GovernanceState, UpsertNodeInput,
     UpsertNodeResult,
 };
+use crate::core::orphan::{
+    DeletionPlanInput, DeletionPlanVerification, ScanOrphansInput, ScanOrphansResult,
+};
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::{ProjectDataCleanupRequest, ProjectDataCleanupResult};
 use crate::core::snapshot::SnapshotResult;
@@ -141,6 +144,14 @@ pub enum ControlRequest {
         id: String,
         input: CloseLaneInput,
     },
+    ScanOrphans {
+        id: String,
+        input: ScanOrphansInput,
+    },
+    VerifyDeletionPlan {
+        id: String,
+        input: DeletionPlanInput,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -256,6 +267,14 @@ pub enum ControlResponse {
         action_taken: String,
         status: String,
         nodes_affected: usize,
+    },
+    OrphansScanned {
+        id: String,
+        result: ScanOrphansResult,
+    },
+    DeletionPlanVerified {
+        id: String,
+        result: DeletionPlanVerification,
     },
     Error {
         message: String,
