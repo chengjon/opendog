@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use crate::storage::database::Database;
-use crate::storage::queries;
+use crate::storage::queries::{self, get_data_risk_cache};
 
 pub(crate) fn build_governance_layer(
     project_dbs: &[(&String, &Database)],
@@ -67,7 +67,11 @@ pub(crate) fn build_governance_layer(
         };
 
         let unused_files_total = queries::count_unused(db).unwrap_or(0) as usize;
-        let data_risk_candidates_total: usize = 0; // not yet available from queries surface
+        let data_risk_candidates_total: usize = get_data_risk_cache(db)
+            .ok()
+            .flatten()
+            .map(|c| c.mock_candidate_count + c.hardcoded_candidate_count)
+            .unwrap_or(0);
 
         project_governance.push(json!({
             "project_id": project_id,

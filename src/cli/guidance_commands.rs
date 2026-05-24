@@ -99,6 +99,7 @@ pub(super) fn cmd_data_risk(
         limit,
         &info.root_path,
         &entries,
+        Some(&db),
     );
     if json_output {
         println!("{}", serde_json::to_string_pretty(&payload)?);
@@ -169,6 +170,7 @@ pub(super) fn cmd_workspace_data_risk(
                 .and_then(|db| stats::get_stats(&db).ok())
                 .unwrap_or_default()
         },
+        |project_id: &str| pm.open_project_db(project_id).ok(),
     );
     if json_output {
         println!("{}", serde_json::to_string_pretty(&payload)?);

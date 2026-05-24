@@ -1,3 +1,4 @@
+mod data_risk;
 mod governance;
 mod project_registry;
 mod retention;
@@ -5,6 +6,9 @@ mod snapshots;
 mod stats;
 mod verification;
 
+pub use self::data_risk::{
+    get_data_risk_cache, upsert_data_risk_cache, DataRiskCache,
+};
 pub use self::governance::{
     count_active_nodes_for_lane, count_all_active_lanes, count_all_active_nodes,
     count_nodes_for_lane, delete_governance_lane, delete_governance_nodes_by_lane,

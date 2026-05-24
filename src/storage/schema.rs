@@ -111,6 +111,14 @@ CREATE TABLE IF NOT EXISTS governance_nodes (
 
 CREATE INDEX IF NOT EXISTS idx_governance_nodes_lane ON governance_nodes(lane_id);
 CREATE INDEX IF NOT EXISTS idx_governance_nodes_state ON governance_nodes(state);
+
+CREATE TABLE IF NOT EXISTS data_risk_cache (
+    id                      INTEGER PRIMARY KEY CHECK (id = 1),
+    mock_candidate_count    INTEGER NOT NULL DEFAULT 0,
+    hardcoded_candidate_count INTEGER NOT NULL DEFAULT 0,
+    mixed_review_file_count INTEGER NOT NULL DEFAULT 0,
+    updated_at              TEXT NOT NULL
+);
 "#;
 
-pub const SCHEMA_VERSION: u32 = 5;
+pub const SCHEMA_VERSION: u32 = 6;

@@ -2,7 +2,8 @@ use serde_json::{json, Value};
 
 use crate::config::ProjectInfo;
 use crate::contracts::versioned_payload;
-use crate::storage::queries::StatsEntry;
+use crate::storage::database::Database;
+use crate::storage::queries::{upsert_data_risk_cache, StatsEntry};
 
 use super::{
     augment_entrypoints_for_storage_maintenance, decision_action_profile,
@@ -13,16 +14,18 @@ use super::{
     workspace_data_risk_overview_payload,
 };
 
-pub(crate) fn workspace_data_risk_payload<F>(
+pub(crate) fn workspace_data_risk_payload<F, D>(
     schema_version: &str,
     projects: &[ProjectInfo],
     candidate_type: &str,
     min_review_priority: &str,
     project_limit: usize,
     load_entries: F,
+    get_db: D,
 ) -> Value
 where
     F: FnMut(&ProjectInfo) -> Vec<StatsEntry>,
+    D: Fn(&str) -> Option<Database>,
 {
     let total_registered_projects = projects.len();
     let mut summaries = collect_workspace_data_risk_summaries(
@@ -30,6 +33,7 @@ where
         candidate_type,
         min_review_priority,
         load_entries,
+        get_db,
     );
     summaries.truncate(project_limit.max(1));
 
@@ -53,19 +57,38 @@ where
     )
 }
 
-pub(crate) fn collect_workspace_data_risk_summaries<F>(
+pub(crate) fn collect_workspace_data_risk_summaries<F, D>(
     projects: &[ProjectInfo],
     candidate_type: &str,
     min_review_priority: &str,
     mut load_entries: F,
+    get_db: D,
 ) -> Vec<Value>
 where
     F: FnMut(&ProjectInfo) -> Vec<StatsEntry>,
+    D: Fn(&str) -> Option<Database>,
 {
     let mut summaries = Vec::new();
     for project in projects {
         let entries = load_entries(project);
         let report = detect_mock_data_report(&project.root_path, &entries);
+
+        // Cache unfiltered counts for governance observation hints
+        if let Some(db) = get_db(&project.id) {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+                .to_string();
+            let _ = upsert_data_risk_cache(
+                &db,
+                report.mock_candidates.len(),
+                report.hardcoded_candidates.len(),
+                report.mixed_review_files.len(),
+                &now,
+            );
+        }
+
         let filtered = report.filtered(candidate_type, Some(min_review_priority));
         let summary = filtered.to_value(5);
         let rendered = json!({

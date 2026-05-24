@@ -61,7 +61,7 @@ fn collect_workspace_data_risk_summaries_sorts_by_hardcoded_priority() {
                 first_seen_time: None,
             }]
         }
-    });
+    }, |_| None);
 
     assert_eq!(summaries[0]["project_id"], "beta");
     assert_eq!(summaries[1]["project_id"], "alpha");

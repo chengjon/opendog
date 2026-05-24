@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 use std::path::Path;
 
-use crate::storage::queries::StatsEntry;
+use crate::storage::database::Database;
+use crate::storage::queries::{upsert_data_risk_cache, StatsEntry};
 
 use super::super::detect_mock_data_report;
 use super::super::versioned_project_payload;
@@ -101,8 +102,26 @@ pub(crate) fn project_data_risk_payload(
     limit: usize,
     root_path: &Path,
     entries: &[StatsEntry],
+    db: Option<&Database>,
 ) -> Value {
     let report = detect_mock_data_report(root_path, entries);
+
+    // Cache unfiltered counts for governance observation hints
+    if let Some(db) = db {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            .to_string();
+        let _ = upsert_data_risk_cache(
+            db,
+            report.mock_candidates.len(),
+            report.hardcoded_candidates.len(),
+            report.mixed_review_files.len(),
+            &now,
+        );
+    }
+
     let filtered = report.filtered(candidate_type, Some(min_review_priority));
     let rendered = filtered.to_value(limit.max(1));
     versioned_project_payload(

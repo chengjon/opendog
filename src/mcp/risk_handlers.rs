@@ -61,11 +61,11 @@ pub(super) fn handle_get_data_risk_candidates(
     let result = (|| -> crate::error::Result<_> {
         let (db, info) = server.get_project(&id)?;
         let entries = stats::get_stats(&db)?;
-        Ok((info.root_path, entries))
+        Ok((db, info.root_path, entries))
     })();
 
     match result {
-        Ok((root_path, entries)) => Json(project_data_risk_payload(
+        Ok((db, root_path, entries)) => Json(project_data_risk_payload(
             MCP_DATA_RISK_V1,
             &id,
             &candidate_type,
@@ -73,6 +73,7 @@ pub(super) fn handle_get_data_risk_candidates(
             limit,
             &root_path,
             &entries,
+            Some(&db),
         )),
         Err(e) => error_json_for(MCP_DATA_RISK_V1, Some(&id), &e),
     }
@@ -141,6 +142,9 @@ pub(super) fn handle_get_workspace_data_risk_overview(
                     .ok()
                     .and_then(|db| stats::get_stats(&db).ok())
                     .unwrap_or_default()
+            },
+            |project_id: &str| {
+                inner.project_manager().open_project_db(project_id).ok()
             },
         )),
         Err(e) => error_json_for(MCP_WORKSPACE_DATA_RISK_V1, None, &e),

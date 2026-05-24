@@ -105,6 +105,7 @@ impl MonitorController {
                 limit.max(1),
                 &info.root_path,
                 &entries,
+                Some(db),
             ))
         })
     }
@@ -141,6 +142,7 @@ impl MonitorController {
                     .and_then(|db| stats::get_stats(&db).ok())
                     .unwrap_or_default()
             },
+            |project_id: &str| self.pm.open_project_db(project_id).ok(),
         ))
     }
 

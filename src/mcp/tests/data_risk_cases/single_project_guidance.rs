@@ -32,6 +32,7 @@ fn data_risk_guidance_surfaces_counts_and_candidates() {
         10,
         dir.path(),
         &entries,
+        None,
     );
     assert_eq!(
         guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
@@ -112,6 +113,7 @@ fn data_risk_guidance_runtime_shared_thin_combo_with_weak_path_token_stays_none(
         10,
         dir.path(),
         &entries,
+        None,
     );
 
     assert_eq!(
@@ -163,6 +165,7 @@ fn data_risk_guidance_runtime_shared_weak_literal_pair_stays_none() {
         10,
         dir.path(),
         &entries,
+        None,
     );
 
     assert_eq!(

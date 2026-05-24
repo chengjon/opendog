@@ -1,6 +1,6 @@
 use crate::error::{OpenDogError, Result};
 use crate::storage::database::Database;
-use crate::storage::queries::{self, GovernanceLane, GovernanceNode, NewGovernanceLane, UpsertGovernanceNode};
+use crate::storage::queries::{self, get_data_risk_cache, GovernanceLane, GovernanceNode, NewGovernanceLane, UpsertGovernanceNode};
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -115,8 +115,12 @@ fn compute_observation_hints(db: &Database) -> ObservationHints {
     // Unused files count
     let unused_files = queries::count_unused(db).unwrap_or(0) as usize;
 
-    // Data risk candidates — not yet available from queries, default 0
-    let data_risk_candidates: usize = 0;
+    // Data risk candidates — read from cache populated by data-risk detection
+    let data_risk_candidates: usize = get_data_risk_cache(db)
+        .ok()
+        .flatten()
+        .map(|c| c.mock_candidate_count + c.hardcoded_candidate_count)
+        .unwrap_or(0);
 
     ObservationHints {
         snapshot_freshness: snapshot_freshness.to_string(),

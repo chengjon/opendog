@@ -123,8 +123,11 @@ where
     G: FnMut(&ProjectInfo) -> Vec<StatsEntry>,
 {
     let agent_guidance = build_agent_guidance_for_projects(pm, projects, top, load_project_state);
+    let pm_ref = pm;
     let mut summaries =
-        collect_workspace_data_risk_summaries(projects, "all", "low", load_workspace_entries);
+        collect_workspace_data_risk_summaries(projects, "all", "low", load_workspace_entries, |project_id: &str| {
+            pm_ref.open_project_db(project_id).ok()
+        });
     summaries.truncate(top.max(1));
     let workspace_data_guidance = workspace_data_risk_overview_payload(&summaries, projects.len());
 
