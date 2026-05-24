@@ -805,6 +805,69 @@ Version markers:
 3. Read `nodes_affected` to understand cascade scope.
 4. Treat `status = closed` as terminal; `deferred` lanes may be reopened later.
 
+## MCP `scan_orphans`
+
+Schema versions:
+
+- MCP: `schema_version = opendog.mcp.orphan-scan.v1`
+
+Top-level contract:
+
+```json
+{
+  "schema_version": "opendog.mcp.orphan-scan.v1",
+  "project_id": "demo",
+  "status": "ok",
+  "scan_run_id": null,
+  "scanner_health": [...],
+  "summary": {
+    "total_candidates": 0,
+    "remove_candidate_count": 0,
+    "review_required_count": 0,
+    "blocked_count": 0
+  },
+  "candidates": [],
+  "warnings": [],
+  "recommended_next_actions": []
+}
+```
+
+Consumption notes:
+
+1. Check `status` first: `"ok"` or `"partial"`.
+2. Read `scanner_health` to understand which scanners ran and their health.
+3. Each candidate has `classification` (remove / review / blocked), `confidence`, and `reasons`.
+4. Use `recommended_next_actions` for workflow guidance after the scan.
+
+## MCP `verify_deletion_plan`
+
+Schema versions:
+
+- MCP: `schema_version = opendog.mcp.orphan-deletion-plan.v1`
+
+Top-level contract:
+
+```json
+{
+  "schema_version": "opendog.mcp.orphan-deletion-plan.v1",
+  "project_id": "demo",
+  "status": "blocked",
+  "safe_to_plan_deletion": false,
+  "blocked_targets": [],
+  "review_required_targets": [],
+  "remove_candidates": [],
+  "required_project_verification_commands": [],
+  "evidence_gaps": []
+}
+```
+
+Consumption notes:
+
+1. Check `safe_to_plan_deletion` first — only `true` means the evidence supports a deletion plan.
+2. `blocked_targets` have vetoes or strong counter-evidence.
+3. `required_project_verification_commands` lists commands that should pass before deletion.
+4. Treat the result as decision-support evidence, not as authority to delete files.
+
 ## MCP Service Contracts
 
 Use this section for contract-level MCP rules, not per-tool request/response walkthroughs.
