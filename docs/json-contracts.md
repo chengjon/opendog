@@ -692,6 +692,119 @@ Version marker:
 - `executed.run.command`
 - `executed.run.finished_at`
 
+## `opendog create-governance-lane --json` / MCP `create_governance_lane`
+
+Version markers:
+
+- CLI: `schema_version = opendog.cli.create-governance-lane.v1`
+- MCP: `schema_version = opendog.mcp.create-governance-lane.v1`
+
+### Primary decision fields
+
+- `lane_id`
+- `title`
+- `status`
+- `created_at`
+
+### Explanatory fields
+
+- `description`
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Confirm `status = active`.
+3. Use `lane_id` in subsequent `upsert_governance_node` and `get_governance_state` calls.
+
+## `opendog upsert-governance-node --json` / MCP `upsert_governance_node`
+
+Version markers:
+
+- CLI: `schema_version = opendog.cli.upsert-governance-node.v1`
+- MCP: `schema_version = opendog.mcp.upsert-governance-node.v1`
+
+### Primary decision fields
+
+- `node_id`
+- `lane_id`
+- `state`
+- `created`
+
+### Explanatory fields
+
+- `summary`
+- `evidence_refs`
+- `artifact_refs`
+- `reported_git_head`
+- `suggested_next`
+- `forbidden_scope`
+- `external_anchors`
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Read `created` to distinguish insert versus update.
+3. Use `state` to confirm the node landed in the intended lifecycle state.
+4. Read `forbidden_scope` back to verify safety boundaries are persisted.
+
+## `opendog get-governance-state --json` / MCP `get_governance_state`
+
+Version markers:
+
+- CLI: `schema_version = opendog.cli.get-governance-state.v1`
+- MCP: `schema_version = opendog.mcp.get-governance-state.v1`
+
+### Primary decision fields
+
+- `lanes`
+- `nodes`
+- `observation_hints`
+
+### Explanatory fields
+
+- `lanes[*].title`
+- `lanes[*].status`
+- `nodes[*].state`
+- `nodes[*].summary`
+- `nodes[*].suggested_next`
+- `observation_hints.stale_snapshot`
+- `observation_hints.missing_verification`
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Filter by `lane_id` or `node_id` when the query scope is narrow.
+3. Use `active_only` to exclude closed or deferred lanes.
+4. Read `observation_hints` before trusting governance state as current.
+
+## `opendog close-governance-lane --json` / MCP `close_governance_lane`
+
+Version markers:
+
+- CLI: `schema_version = opendog.cli.close-governance-lane.v1`
+- MCP: `schema_version = opendog.mcp.close-governance-lane.v1`
+
+### Primary decision fields
+
+- `lane_id`
+- `action_taken`
+- `status`
+- `nodes_affected`
+
+### Explanatory fields
+
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Confirm `action_taken` matches the requested `action`.
+3. Read `nodes_affected` to understand cascade scope.
+4. Treat `status = closed` as terminal; `deferred` lanes may be reopened later.
+
 ## MCP Service Contracts
 
 Use this section for contract-level MCP rules, not per-tool request/response walkthroughs.

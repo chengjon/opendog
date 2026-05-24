@@ -775,6 +775,153 @@ Useful response fields:
 - `guidance.layers.multi_project_portfolio.priority_projects[*].data_risk_focus`
 - `projects`
 
+## `create_governance_lane`
+
+Purpose:
+
+- create a governance work lane for tracking an AI session's intentions and boundaries
+- establish a named scope before upserting governance nodes
+
+Request shape:
+
+```json
+{
+  "id": "demo",
+  "lane_id": "refactor-auth-2026w21",
+  "title": "Refactor auth module",
+  "description": "Track the auth refactor governance boundary for week 21"
+}
+```
+
+`id` and `lane_id` and `title` are required. `description` is optional.
+
+Useful response fields:
+
+- `schema_version`
+- `project_id`
+- `lane_id`
+- `title`
+- `description`
+- `status`
+- `created_at`
+
+## `upsert_governance_node`
+
+Purpose:
+
+- create or update a governance node within a lane
+- persist session state, evidence references, safety boundaries, and suggested next steps
+
+Request shape (create):
+
+```json
+{
+  "id": "demo",
+  "lane_id": "refactor-auth-2026w21",
+  "node_id": "pre-edit-checkpoint",
+  "state": "planned",
+  "summary": "Verify tests pass before starting auth refactor",
+  "evidence_refs": ["verification:cargo-test:passed"],
+  "artifact_refs": ["src/auth/mod.rs"],
+  "reported_git_head": "a1b2c3d",
+  "suggested_next": "run cargo clippy before editing",
+  "forbidden_scope": ["src/auth/legacy.rs"],
+  "external_anchors": ["CI pipeline #4521"]
+}
+```
+
+`id`, `lane_id`, and `node_id` are required. `state` is required on create. Optional fields: `summary`, `evidence_refs`, `artifact_refs`, `reported_git_head`, `suggested_next`, `forbidden_scope`, `external_anchors`.
+
+Useful response fields:
+
+- `schema_version`
+- `project_id`
+- `node_id`
+- `lane_id`
+- `state`
+- `created`
+
+## `get_governance_state`
+
+Purpose:
+
+- read governance lanes and nodes for one project
+- support narrow queries by lane or node, or broad queries across all active lanes
+
+Minimum request shape:
+
+```json
+{
+  "id": "demo"
+}
+```
+
+Filtered request shape:
+
+```json
+{
+  "id": "demo",
+  "lane_id": "refactor-auth-2026w21",
+  "active_only": true
+}
+```
+
+Single-node request shape:
+
+```json
+{
+  "id": "demo",
+  "lane_id": "refactor-auth-2026w21",
+  "node_id": "pre-edit-checkpoint"
+}
+```
+
+`id` is required. Optional: `lane_id`, `node_id`, `active_only`.
+
+Useful response fields:
+
+- `schema_version`
+- `project_id`
+- `lanes`
+- `lanes[*].lane_id`
+- `lanes[*].title`
+- `lanes[*].status`
+- `nodes`
+- `nodes[*].node_id`
+- `nodes[*].state`
+- `nodes[*].summary`
+- `nodes[*].suggested_next`
+- `nodes[*].forbidden_scope`
+- `observation_hints`
+
+## `close_governance_lane`
+
+Purpose:
+
+- close, defer, or delete a governance lane
+- cascade the action to all nodes within the lane
+
+Request shape:
+
+```json
+{
+  "id": "demo",
+  "lane_id": "refactor-auth-2026w21",
+  "action": "complete"
+}
+```
+
+`id`, `lane_id`, and `action` are required. Accepted action values: `complete`, `defer`, `delete`.
+
+Useful response fields:
+
+- `schema_version`
+- `project_id`
+- `lane_id`
+- `action_taken`
+- `status`
+- `nodes_affected`
+
 ## Runtime behavior
 
 - MCP tools should be understood as the AI-facing entry surface over shared OPENDOG capabilities, not as a separate ownership layer.
