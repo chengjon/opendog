@@ -1,5 +1,6 @@
 mod analysis_payloads;
 mod config_payloads;
+mod governance_payloads;
 mod orphan_payloads;
 mod project_payloads;
 
@@ -14,6 +15,10 @@ pub(crate) use self::config_payloads::{
     build_info_payload, export_project_evidence_payload, global_config_payload,
     project_config_payload, project_config_reload_payload, project_config_update_payload,
     update_global_config_payload,
+};
+pub(crate) use self::governance_payloads::{
+    close_governance_lane_payload, create_governance_lane_payload, get_governance_state_payload,
+    upsert_governance_node_payload,
 };
 pub(crate) use self::orphan_payloads::{orphan_deletion_plan_payload, orphan_scan_payload};
 pub(crate) use self::project_payloads::{
