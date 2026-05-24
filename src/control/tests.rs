@@ -5,6 +5,7 @@ use crate::control::client::decode_control_response;
 use crate::core::governance::{
     CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, UpsertNodeInput,
 };
+use crate::core::orphan::{DeletionPlanInput, OrphanSubject, OrphanSubjectKind, ScanOrphansInput};
 use crate::error::OpenDogError;
 use serde_json::json;
 use tempfile::TempDir;
@@ -434,5 +435,54 @@ fn handle_request_returns_governance_payloads() {
             assert_eq!(nodes_affected, 1);
         }
         other => panic!("unexpected close response: {:?}", other),
+    }
+}
+
+#[test]
+fn handle_request_returns_orphan_scan_and_deletion_plan_payloads() {
+    let (_dir, mut controller) = test_controller();
+
+    // Scan orphans (default input, no external reports)
+    let scan = controller.handle_request(ControlRequest::ScanOrphans {
+        id: "demo".to_string(),
+        input: ScanOrphansInput {
+            subjects: None,
+            external_reports: Vec::new(),
+            include_internal_scanners: true,
+            required_scanners: None,
+            max_age_secs: None,
+            limit: Some(10),
+            include_evidence: false,
+        },
+    });
+    match scan {
+        ControlResponse::OrphansScanned { id, result } => {
+            assert_eq!(id, "demo");
+            assert_eq!(result.status, "ok");
+        }
+        other => panic!("unexpected scan response: {:?}", other),
+    }
+
+    // Verify deletion plan (empty targets should return safe=false)
+    let plan = controller.handle_request(ControlRequest::VerifyDeletionPlan {
+        id: "demo".to_string(),
+        input: DeletionPlanInput {
+            targets: vec![OrphanSubject {
+                subject_kind: OrphanSubjectKind::File,
+                subject: "nonexistent.rs".to_string(),
+                path: Some("nonexistent.rs".to_string()),
+                display_name: None,
+            }],
+            external_reports: Vec::new(),
+            required_project_verification_commands: Vec::new(),
+            max_age_secs: None,
+        },
+    });
+    match plan {
+        ControlResponse::DeletionPlanVerified { id, result } => {
+            assert_eq!(id, "demo");
+            assert!(!result.safe_to_plan_deletion);
+        }
+        other => panic!("unexpected plan response: {:?}", other),
     }
 }
