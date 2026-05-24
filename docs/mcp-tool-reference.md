@@ -20,7 +20,7 @@ Primary role of this page:
 
 Current inventory note:
 
-- OPENDOG currently ships 19 MCP tools
+- OPENDOG currently ships 26 MCP tools
 - OPENDOG also exposes read-only MCP Resources for stable low-parameter state reads
 - this file is the practical request/response registry for that current inventory
 - if an AI only needs one first entrypoint, prefer `get_guidance`
@@ -58,10 +58,12 @@ Start from the tool that matches the decision you need now, then drill into lowe
 ## Reading By Cluster
 
 - Decision and prioritization: [`get_guidance`](#get_guidance), [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview)
-- Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates)
+- Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates), [`scan_orphans`](#scan_orphans), [`verify_deletion_plan`](#verify_deletion_plan)
 - Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
+- Governance state: [`create_governance_lane`](#create_governance_lane), [`upsert_governance_node`](#upsert_governance_node), [`get_governance_state`](#get_governance_state), [`close_governance_lane`](#close_governance_lane)
 - Setup and lifecycle: [`register_project`](#register_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
 - Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
+- Verification recording: [`record_verification_result`](#record_verification_result), [`run_verification_command`](#run_verification_command)
 
 ## Read-Only Resources
 
@@ -921,6 +923,69 @@ Useful response fields:
 - `action_taken`
 - `status`
 - `nodes_affected`
+
+## `scan_orphans`
+
+Purpose:
+
+- classify orphan cleanup candidates for one project
+- combine Rust-internal scanners with optional normalized external scanner reports
+- return classified candidates with remove/review/blocked verdicts
+
+Request shape:
+
+```json
+{
+  "id": "demo",
+  "include_internal_scanners": true,
+  "limit": 20
+}
+```
+
+Response fields:
+
+- `schema_version`
+- `project_id`
+- `status`
+- `scanner_health`
+- `summary` (total_candidates, remove_candidate_count, review_required_count, blocked_count)
+- `candidates`
+- `warnings`
+- `recommended_next_actions`
+
+## `verify_deletion_plan`
+
+Purpose:
+
+- verify whether proposed deletion targets have enough orphan-detection evidence
+- return a safety verdict before human-reviewed deletion
+
+Request shape:
+
+```json
+{
+  "id": "demo",
+  "targets": [
+    {
+      "subject_kind": "file",
+      "subject": "src/deprecated.rs",
+      "path": "src/deprecated.rs"
+    }
+  ]
+}
+```
+
+Response fields:
+
+- `schema_version`
+- `project_id`
+- `status`
+- `safe_to_plan_deletion`
+- `blocked_targets`
+- `review_required_targets`
+- `remove_candidates`
+- `required_project_verification_commands`
+- `evidence_gaps`
 
 ## Runtime behavior
 
