@@ -1,9 +1,17 @@
+mod governance;
 mod project_registry;
 mod retention;
 mod snapshots;
 mod stats;
 mod verification;
 
+pub use self::governance::{
+    count_active_nodes_for_lane, count_all_active_lanes, count_all_active_nodes,
+    count_nodes_for_lane, delete_governance_lane, delete_governance_nodes_by_lane,
+    get_governance_lane_by_id, get_governance_lanes, get_governance_nodes, has_governance_data,
+    insert_governance_lane, update_lane_status, upsert_governance_node, GovernanceLane,
+    GovernanceNode, NewGovernanceLane, UpsertGovernanceNode,
+};
 pub use self::project_registry::{
     delete_project, get_project, insert_project, list_projects, update_project_config,
 };
