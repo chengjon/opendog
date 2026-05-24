@@ -13,6 +13,8 @@ pub(super) fn open_dog_error_code(error: &OpenDogError) -> &'static str {
         OpenDogError::InvalidPath(_) => "invalid_path",
         OpenDogError::InvalidVerification(_) => "invalid_verification",
         OpenDogError::VerificationRecordMissing(_) => "verification_record_missing",
+        OpenDogError::GovernanceLaneNotFound(_) => "governance_lane_not_found",
+        OpenDogError::GovernanceNodeStateRequired(_) => "governance_node_state_required",
         OpenDogError::InvalidInput(_) => "invalid_input",
         OpenDogError::DaemonAlreadyRunning(_) => "daemon_already_running",
         OpenDogError::MonitorAlreadyRunning(_) => "monitor_already_running",

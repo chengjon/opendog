@@ -20,6 +20,12 @@ pub enum OpenDogError {
     #[error("Verification record missing after insert: {0}")]
     VerificationRecordMissing(String),
 
+    #[error("Governance lane '{0}' not found")]
+    GovernanceLaneNotFound(String),
+
+    #[error("Governance node state is required on create: {0}")]
+    GovernanceNodeStateRequired(String),
+
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
