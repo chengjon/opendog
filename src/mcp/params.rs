@@ -280,11 +280,13 @@ pub struct GetGovernanceStateParams {
     pub lane_id: Option<String>,
     /// Optional specific node filter
     pub node_id: Option<String>,
+    /// When true, filter out closed/completed lanes and closed nodes
+    pub active_only: Option<bool>,
 }
 
 impl GetGovernanceStateParams {
     pub(super) fn into_parts(self) -> (String, GetGovernanceStateInput) {
-        (self.id, GetGovernanceStateInput { lane_id: self.lane_id, node_id: self.node_id })
+        (self.id, GetGovernanceStateInput { lane_id: self.lane_id, node_id: self.node_id, active_only: self.active_only })
     }
 }
 

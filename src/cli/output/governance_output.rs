@@ -15,7 +15,14 @@ pub fn print_node_upserted(id: &str, result: &UpsertNodeResult) {
 }
 
 pub fn print_governance_state(id: &str, state: &GovernanceState) {
-    println!("Governance: {}\n", id);
+    println!("Governance: {}", id);
+    println!("  Observation: snapshot={} | verification={} | unused={} | data_risk={}",
+        state.observation_hints.snapshot_freshness,
+        state.observation_hints.verification_status,
+        state.observation_hints.unused_files,
+        state.observation_hints.data_risk_candidates,
+    );
+    println!();
     for lane in &state.lanes {
         println!("Lane: {}", lane.lane_id);
         println!("  Title: {} | Status: {}", lane.title, lane.status);
@@ -45,5 +52,9 @@ pub fn print_lane_closed(id: &str, lane_id: &str, action: &str, status: &str, no
 }
 
 fn truncate_str(s: &str, max: usize) -> String {
-    if s.len() <= max { s.to_string() } else { format!("{}...", &s[..max - 3]) }
+    if s.chars().count() <= max {
+        s.to_string()
+    } else {
+        s.chars().take(max - 3).collect::<String>() + "..."
+    }
 }

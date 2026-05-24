@@ -32,6 +32,7 @@ pub struct UpsertNodeInput {
 pub struct GetGovernanceStateInput {
     pub lane_id: Option<String>,
     pub node_id: Option<String>,
+    pub active_only: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -212,9 +213,20 @@ pub fn get_governance_state(db: &Database, input: GetGovernanceStateInput) -> Re
         all_lanes.iter().map(|l| l.lane_id.clone()).collect()
     };
 
-    let mut lanes = Vec::with_capacity(lane_ids_to_include.len());
-    for lid in &lane_ids_to_include {
-        if let Some(lane) = all_lanes.iter().find(|l| &l.lane_id == lid) {
+    let active_only = input.active_only.unwrap_or(false);
+
+    // Filter out non-active lanes when active_only is set
+    let lanes_to_show: Vec<&crate::storage::queries::GovernanceLane> = if active_only {
+        all_lanes.iter()
+            .filter(|l| l.status == "active")
+            .collect()
+    } else {
+        all_lanes.iter().collect()
+    };
+
+    let mut lanes = Vec::with_capacity(lanes_to_show.len());
+    for lane in &lanes_to_show {
+        if lane_ids_to_include.contains(&lane.lane_id) {
             let node_count = queries::count_nodes_for_lane(db, &lane.lane_id)?;
             let active_nodes = queries::count_active_nodes_for_lane(db, &lane.lane_id)?;
             lanes.push(GovernanceLaneSummary {
@@ -228,6 +240,13 @@ pub fn get_governance_state(db: &Database, input: GetGovernanceStateInput) -> Re
     }
 
     let observation_hints = compute_observation_hints(db);
+
+    // Filter out closed nodes when active_only is set
+    let nodes = if active_only {
+        nodes.into_iter().filter(|n| n.state != "closed").collect()
+    } else {
+        nodes
+    };
 
     Ok(GovernanceState {
         lanes,
@@ -353,6 +372,7 @@ mod tests {
             GetGovernanceStateInput {
                 lane_id: Some("lane-flow".to_string()),
                 node_id: None,
+                active_only: None,
             },
         )
         .unwrap();

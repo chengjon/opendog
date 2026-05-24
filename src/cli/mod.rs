@@ -69,6 +69,8 @@ enum GovernanceCommand {
         #[arg(long)]
         node_id: Option<String>,
         #[arg(long)]
+        active_only: Option<bool>,
+        #[arg(long)]
         json: bool,
     },
     /// Close a governance lane (complete, defer, or delete)
@@ -353,9 +355,9 @@ pub fn run() {
                         external_anchors: parse_json_value(external_anchors),
                     }, json)
             }
-            GovernanceCommand::Show { id, lane_id, node_id, json } => {
+            GovernanceCommand::Show { id, lane_id, node_id, active_only, json } => {
                 governance_commands::cmd_show(&pm, &id,
-                    crate::core::governance::GetGovernanceStateInput { lane_id, node_id }, json)
+                    crate::core::governance::GetGovernanceStateInput { lane_id, node_id, active_only }, json)
             }
             GovernanceCommand::CloseLane { id, lane_id, action, json } => {
                 governance_commands::cmd_close_lane(&pm, &id,

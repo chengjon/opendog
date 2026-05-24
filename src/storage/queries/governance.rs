@@ -274,7 +274,8 @@ pub fn get_governance_nodes(
     )
 }
 
-/// Count nodes for a lane where state != 'closed'.
+/// Counts nodes not in 'closed' state. Projects define their own state vocabulary;
+/// this uses 'closed' as the default inactive-state convention.
 pub fn count_active_nodes_for_lane(db: &Database, lane_id: &str) -> Result<usize> {
     let count: i64 = db.query_row(
         "SELECT COUNT(*) FROM governance_nodes WHERE lane_id = ?1 AND state != 'closed'",
@@ -304,7 +305,8 @@ pub fn count_all_active_lanes(db: &Database) -> Result<usize> {
     Ok(count as usize)
 }
 
-/// Count all nodes across all lanes where state != 'closed'.
+/// Counts all nodes across all lanes where state != 'closed'. Projects define their
+/// own state vocabulary; this uses 'closed' as the default inactive-state convention.
 pub fn count_all_active_nodes(db: &Database) -> Result<usize> {
     let count: i64 = db.query_row(
         "SELECT COUNT(*) FROM governance_nodes WHERE state != 'closed'",
