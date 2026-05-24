@@ -1,4 +1,8 @@
 use crate::config::ProjectInfo;
+use crate::core::governance::{
+    self, CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, GovernanceState,
+    UpsertNodeInput, UpsertNodeResult,
+};
 use crate::core::report::{
     self, ReportWindow, SnapshotComparison, TimeWindowReport, UsageTrendReport,
 };
@@ -16,7 +20,7 @@ use crate::mcp::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,
     workspace_data_risk_payload,
 };
-use crate::storage::queries::{StatsEntry, VerificationRun};
+use crate::storage::queries::{GovernanceLane, StatsEntry, VerificationRun};
 use serde_json::Value;
 
 use super::MonitorController;
@@ -220,5 +224,37 @@ impl MonitorController {
         self.with_project_info_db(id, |info, db| {
             verification::execute_verification_command(db, &info.root_path, input)
         })
+    }
+
+    pub fn create_governance_lane(
+        &self,
+        id: &str,
+        input: CreateLaneInput,
+    ) -> Result<GovernanceLane> {
+        self.with_project_db(id, |db| governance::create_lane(db, input))
+    }
+
+    pub fn upsert_governance_node(
+        &self,
+        id: &str,
+        input: UpsertNodeInput,
+    ) -> Result<UpsertNodeResult> {
+        self.with_project_db(id, |db| governance::upsert_node(db, input))
+    }
+
+    pub fn get_governance_state(
+        &self,
+        id: &str,
+        input: GetGovernanceStateInput,
+    ) -> Result<GovernanceState> {
+        self.with_project_db(id, |db| governance::get_governance_state(db, input))
+    }
+
+    pub fn close_governance_lane(
+        &self,
+        id: &str,
+        input: CloseLaneInput,
+    ) -> Result<(String, usize)> {
+        self.with_project_db(id, |db| governance::close_lane(db, input))
     }
 }

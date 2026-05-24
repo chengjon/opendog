@@ -2,6 +2,10 @@ use crate::config::{
     ConfigPatch, GlobalConfigUpdateResult, ProjectConfig, ProjectConfigPatch, ProjectConfigReload,
     ProjectConfigUpdateResult, ProjectConfigView, ProjectInfo,
 };
+use crate::core::governance::{
+    CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, GovernanceState, UpsertNodeInput,
+    UpsertNodeResult,
+};
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::{ProjectDataCleanupRequest, ProjectDataCleanupResult};
 use crate::core::snapshot::SnapshotResult;
@@ -9,7 +13,7 @@ use crate::core::stats::ProjectSummary;
 use crate::core::verification::{
     ExecuteVerificationInput, ExecutedVerificationResult, RecordVerificationInput,
 };
-use crate::storage::queries::{StatsEntry, VerificationRun};
+use crate::storage::queries::{GovernanceLane, StatsEntry, VerificationRun};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -121,6 +125,22 @@ pub enum ControlRequest {
     TakeSnapshot {
         id: String,
     },
+    CreateGovernanceLane {
+        id: String,
+        input: CreateLaneInput,
+    },
+    UpsertGovernanceNode {
+        id: String,
+        input: UpsertNodeInput,
+    },
+    GetGovernanceState {
+        id: String,
+        input: GetGovernanceStateInput,
+    },
+    CloseGovernanceLane {
+        id: String,
+        input: CloseLaneInput,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -217,6 +237,25 @@ pub enum ControlResponse {
     Snapshot {
         id: String,
         result: SnapshotResult,
+    },
+    GovernanceLaneCreated {
+        id: String,
+        lane: GovernanceLane,
+    },
+    GovernanceNodeUpserted {
+        id: String,
+        result: UpsertNodeResult,
+    },
+    GovernanceState {
+        id: String,
+        state: GovernanceState,
+    },
+    GovernanceLaneClosed {
+        id: String,
+        lane_id: String,
+        action_taken: String,
+        status: String,
+        nodes_affected: usize,
     },
     Error {
         message: String,

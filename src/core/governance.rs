@@ -41,7 +41,7 @@ pub struct CloseLaneInput {
     pub action: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObservationHints {
     pub snapshot_freshness: String,
     pub verification_status: String,
@@ -49,14 +49,14 @@ pub struct ObservationHints {
     pub unused_files: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GovernanceState {
     pub lanes: Vec<GovernanceLaneSummary>,
     pub nodes: Vec<GovernanceNode>,
     pub observation_hints: ObservationHints,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GovernanceLaneSummary {
     pub lane_id: String,
     pub title: String,
@@ -65,7 +65,7 @@ pub struct GovernanceLaneSummary {
     pub active_nodes: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpsertNodeResult {
     pub node_id: String,
     pub lane_id: String,

@@ -189,6 +189,31 @@ impl MonitorController {
             ControlRequest::TakeSnapshot { id } => respond(self.take_snapshot(&id), |result| {
                 ControlResponse::Snapshot { id, result }
             }),
+            ControlRequest::CreateGovernanceLane { id, input } => respond(
+                self.create_governance_lane(&id, input),
+                |lane| ControlResponse::GovernanceLaneCreated { id, lane },
+            ),
+            ControlRequest::UpsertGovernanceNode { id, input } => respond(
+                self.upsert_governance_node(&id, input),
+                |result| ControlResponse::GovernanceNodeUpserted { id, result },
+            ),
+            ControlRequest::GetGovernanceState { id, input } => respond(
+                self.get_governance_state(&id, input),
+                |state| ControlResponse::GovernanceState { id, state },
+            ),
+            ControlRequest::CloseGovernanceLane { id, input } => {
+                let lane_id = input.lane_id.clone();
+                let action = input.action.clone();
+                respond(self.close_governance_lane(&id, input), move |(status, nodes_affected)| {
+                    ControlResponse::GovernanceLaneClosed {
+                        id,
+                        lane_id,
+                        action_taken: action,
+                        status,
+                        nodes_affected,
+                    }
+                })
+            }
         }
     }
 }
