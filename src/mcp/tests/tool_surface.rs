@@ -114,6 +114,16 @@ fn orphan_detection_tools_are_exposed() {
 }
 
 #[test]
+fn governance_tools_are_exposed() {
+    let inventory_names: BTreeSet<&str> =
+        mcp_tool_inventory().iter().map(|tool| tool.name).collect();
+    assert!(inventory_names.contains("create_governance_lane"));
+    assert!(inventory_names.contains("upsert_governance_node"));
+    assert!(inventory_names.contains("get_governance_state"));
+    assert!(inventory_names.contains("close_governance_lane"));
+}
+
+#[test]
 fn mcp_resource_templates_expose_readonly_project_state_uris() {
     let templates = mcp_resource_templates();
     let uris: Vec<&str> = templates
