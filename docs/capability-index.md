@@ -14,9 +14,9 @@ Use it when you need to answer one of these questions quickly:
 Current scope at a glance:
 
 - 3 capability layers
-- 19 MCP tools
-- 22 CLI top-level commands
-- 26 `FT-*` leaf capabilities
+- 26 MCP tools + 2 read-only Resources
+- 23 CLI top-level commands
+- 27 `FT-*` leaf capabilities
 
 Primary role of this page:
 
@@ -69,6 +69,8 @@ Use these docs by intent:
 | Multi-project prioritization | `FT-03.04.01` | Which project deserves attention first across the workspace, and why? | `get_workspace_data_risk_overview`, `get_guidance` | `opendog workspace-data-risk`, `opendog agent-guidance` | [AI Playbook](./ai-playbook.md), [JSON Contracts](./json-contracts.md) |
 | Cleanup/refactor review and data-risk | `FT-03.05.01`, `FT-03.08.01`, `FT-03.08.02` | Which files need review for unused, mixed, mock, or hardcoded-data reasons? | `get_data_risk_candidates` | `opendog data-risk` | [MCP Tool Reference](./mcp-tool-reference.md), [AI Playbook](./ai-playbook.md) |
 | Toolchain guidance and authority boundaries | `FT-03.06.01`, `FT-03.07.01` | When should I trust OPENDOG, and when should I switch to shell or tests? | `get_guidance` | `opendog agent-guidance`, `opendog decision-brief` | [AI Playbook](./ai-playbook.md), [JSON Contracts](./json-contracts.md) |
+| Governance state observation | `FT-03.09` | Is there active governance work, and what observation hints cross-reference? | `create_governance_lane`, `upsert_governance_node`, `get_governance_state`, `close_governance_lane` | `opendog governance create-lane|upsert-node|show|close-lane` | [MCP Tool Reference](./mcp-tool-reference.md), [JSON Contracts](./json-contracts.md) |
+| Orphan file detection and deletion planning | `FT-03.05.01` | Are there unused files safe to remove, and what evidence supports the plan? | `scan_orphans`, `verify_deletion_plan` | `opendog data-risk`, `opendog workspace-data-risk` | [MCP Tool Reference](./mcp-tool-reference.md), [AI Playbook](./ai-playbook.md) |
 
 ## Entry Surface Map
 
@@ -118,6 +120,8 @@ Use this when you want the shortest practical route from question to action.
 | Need snapshot delta or inventory change | `compare_snapshots` / `opendog report compare` | `get_time_window_report` for recency context | You need the actual code diff instead of baseline inventory delta |
 | Need heating/cooling signals | `get_usage_trends` / `opendog report trend` | `get_stats` or `get_data_risk_candidates` on rising files | The trend is interesting but you still need code-level evidence |
 | Need storage cleanup only | `opendog cleanup-data --dry-run` | Re-run without `--dry-run`, optionally with `--vacuum` | You are unsure whether the target is OPENDOG-retained evidence or source data |
+| Need to track work intent and boundaries | `create_governance_lane` / `opendog governance create-lane` | `upsert_governance_node` to record progress, `get_governance_state` to review | You need repo-native validation instead of governance tracking |
+| Need orphan or unused-file safety signals | `scan_orphans` | `verify_deletion_plan` before acting | You need `git diff`, tests, or manual review instead of OPENDOG evidence alone |
 
 ## Related Docs
 
