@@ -18,3 +18,6 @@ mod daemon_process_cli;
 #[cfg(unix)]
 #[path = "integration_test/mcp_session_reuse.rs"]
 mod mcp_session_reuse;
+#[cfg(unix)]
+#[path = "integration_test/cli_governance.rs"]
+mod cli_governance;
