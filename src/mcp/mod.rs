@@ -5,13 +5,14 @@ use serde_json::Value;
 
 use crate::contracts::{
     versioned_error_payload, versioned_project_error_payload, versioned_project_payload,
-    MCP_BUILD_INFO_V1, MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
+    MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1, MCP_CREATE_GOVERNANCE_LANE_V1,
+    MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1, MCP_GET_GOVERNANCE_STATE_V1,
     MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_ORPHAN_DELETION_PLAN_V1,
     MCP_ORPHAN_SCAN_V1, MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1,
     MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1,
     MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
-    MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1, MCP_WORKSPACE_DATA_RISK_V1,
-    OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
+    MCP_UPSERT_GOVERNANCE_NODE_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
+    MCP_WORKSPACE_DATA_RISK_V1, OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
 };
 
 mod analysis_handlers;
@@ -20,6 +21,7 @@ mod config_handlers;
 mod constraints;
 mod data_risk;
 mod decision_support;
+mod governance_handlers;
 mod guidance_handlers;
 mod guidance_payload;
 mod guidance_scaffold;
@@ -77,6 +79,10 @@ use self::decision_support::{
     decision_action_profile, decision_entrypoints_payload, decision_execution_templates,
     decision_risk_profile,
 };
+use self::governance_handlers::{
+    handle_close_governance_lane, handle_create_governance_lane, handle_get_governance_state,
+    handle_upsert_governance_node,
+};
 use self::guidance_handlers::handle_get_guidance;
 pub(crate) use self::guidance_payload::{
     agent_guidance_payload, latest_verification_runs_for_project, now_unix_secs,
@@ -92,19 +98,23 @@ use self::observation::{
 };
 use self::orphan_handlers::{handle_scan_orphans, handle_verify_deletion_plan};
 pub use self::params::{
-    AgentGuidanceParams, CompareSnapshotsParams, DataRiskParams, DecisionBriefParams,
-    ExecuteVerificationParams, GlobalConfigParams, GuidanceParams, ObservationRowsParams,
+    AgentGuidanceParams, CloseGovernanceLaneParams, CompareSnapshotsParams,
+    CreateGovernanceLaneParams, DataRiskParams, DecisionBriefParams, ExecuteVerificationParams,
+    GetGovernanceStateParams, GlobalConfigParams, GuidanceParams, ObservationRowsParams,
     ProjectIdParams, RecordVerificationParams, RegisterProjectParams, ScanOrphansParams,
-    TimeWindowReportParams, UsageTrendParams, VerifyDeletionPlanParams, WorkspaceDataRiskParams,
+    TimeWindowReportParams, UpsertGovernanceNodeParams, UsageTrendParams,
+    VerifyDeletionPlanParams, WorkspaceDataRiskParams,
 };
 pub(crate) use self::payloads::{
-    build_info_payload, cleanup_project_data_payload, delete_project_payload,
-    export_project_evidence_payload, global_config_payload, list_projects_payload,
+    build_info_payload, cleanup_project_data_payload, close_governance_lane_payload,
+    create_governance_lane_payload, delete_project_payload, export_project_evidence_payload,
+    get_governance_state_payload, global_config_payload, list_projects_payload,
     orphan_deletion_plan_payload, orphan_scan_payload, project_config_payload,
     project_config_reload_payload, project_config_update_payload, register_project_payload,
     snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload_with_limit,
     stop_monitor_payload, time_window_report_payload, unused_files_payload_with_limit,
-    update_global_config_payload, usage_trends_payload, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
+    update_global_config_payload, upsert_governance_node_payload, usage_trends_payload,
+    DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
 };
 #[cfg(test)]
 pub(crate) use self::payloads::{stats_payload, unused_files_payload};
@@ -410,6 +420,54 @@ impl OpenDogServer {
         Parameters(ProjectIdParams { id }): Parameters<ProjectIdParams>,
     ) -> ToolResult {
         structured_tool_output(handle_delete_project(self, &id))
+    }
+
+    #[tool(
+        name = "create_governance_lane",
+        description = "Create a governance work lane for the project. Required params: id, lane_id, title. Optional: description."
+    )]
+    fn create_governance_lane(
+        &self,
+        Parameters(params): Parameters<CreateGovernanceLaneParams>,
+    ) -> ToolResult {
+        let (id, input) = params.into_parts();
+        structured_tool_output(handle_create_governance_lane(self, &id, input))
+    }
+
+    #[tool(
+        name = "upsert_governance_node",
+        description = "Create or update a governance node within a lane. Required params: id, lane_id, node_id. State is required on create, optional on update."
+    )]
+    fn upsert_governance_node(
+        &self,
+        Parameters(params): Parameters<UpsertGovernanceNodeParams>,
+    ) -> ToolResult {
+        let (id, input) = params.into_parts();
+        structured_tool_output(handle_upsert_governance_node(self, &id, input))
+    }
+
+    #[tool(
+        name = "get_governance_state",
+        description = "Read governance state for a project. Required param: id. Optional params: lane_id, node_id to filter results."
+    )]
+    fn get_governance_state(
+        &self,
+        Parameters(params): Parameters<GetGovernanceStateParams>,
+    ) -> ToolResult {
+        let (id, input) = params.into_parts();
+        structured_tool_output(handle_get_governance_state(self, &id, input))
+    }
+
+    #[tool(
+        name = "close_governance_lane",
+        description = "Close, defer, or hard-delete an entire lane and its nodes. Required params: id, lane_id, action (complete|defer|delete)."
+    )]
+    fn close_governance_lane(
+        &self,
+        Parameters(params): Parameters<CloseGovernanceLaneParams>,
+    ) -> ToolResult {
+        let (id, input) = params.into_parts();
+        structured_tool_output(handle_close_governance_lane(self, &id, input))
     }
 }
 

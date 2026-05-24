@@ -1,10 +1,12 @@
 use crate::contracts::{
-    MCP_BUILD_INFO_V1, MCP_DATA_RISK_V1, MCP_DELETE_PROJECT_V1, MCP_GLOBAL_CONFIG_V1,
+    MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1, MCP_CREATE_GOVERNANCE_LANE_V1,
+    MCP_DATA_RISK_V1, MCP_DELETE_PROJECT_V1, MCP_GET_GOVERNANCE_STATE_V1, MCP_GLOBAL_CONFIG_V1,
     MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1,
     MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1,
     MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1,
     MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
-    MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1, MCP_WORKSPACE_DATA_RISK_V1,
+    MCP_UPSERT_GOVERNANCE_NODE_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
+    MCP_WORKSPACE_DATA_RISK_V1,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -216,6 +218,42 @@ pub(crate) const MCP_TOOL_INVENTORY: &[McpToolSpec] = &[
         handler_module: "project_handlers",
         handler: "handle_delete_project",
         test_owner: "mcp::tests::payload_contracts::project_payloads",
+    },
+    McpToolSpec {
+        name: "create_governance_lane",
+        contract: MCP_CREATE_GOVERNANCE_LANE_V1,
+        params_type: Some("CreateGovernanceLaneParams"),
+        payload_builder: "create_governance_lane_payload",
+        handler_module: "governance_handlers",
+        handler: "handle_create_governance_lane",
+        test_owner: "mcp::tests::payload_contracts::governance_payloads",
+    },
+    McpToolSpec {
+        name: "upsert_governance_node",
+        contract: MCP_UPSERT_GOVERNANCE_NODE_V1,
+        params_type: Some("UpsertGovernanceNodeParams"),
+        payload_builder: "upsert_governance_node_payload",
+        handler_module: "governance_handlers",
+        handler: "handle_upsert_governance_node",
+        test_owner: "mcp::tests::payload_contracts::governance_payloads",
+    },
+    McpToolSpec {
+        name: "get_governance_state",
+        contract: MCP_GET_GOVERNANCE_STATE_V1,
+        params_type: Some("GetGovernanceStateParams"),
+        payload_builder: "get_governance_state_payload",
+        handler_module: "governance_handlers",
+        handler: "handle_get_governance_state",
+        test_owner: "mcp::tests::payload_contracts::governance_payloads",
+    },
+    McpToolSpec {
+        name: "close_governance_lane",
+        contract: MCP_CLOSE_GOVERNANCE_LANE_V1,
+        params_type: Some("CloseGovernanceLaneParams"),
+        payload_builder: "close_governance_lane_payload",
+        handler_module: "governance_handlers",
+        handler: "handle_close_governance_lane",
+        test_owner: "mcp::tests::payload_contracts::governance_payloads",
     },
 ];
 
