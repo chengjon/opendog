@@ -242,6 +242,20 @@ Typical shell follow-ups:
 6. If storage maintenance is flagged, review retained-evidence cleanup first.
 7. Only then inspect unused files and draft cleanup candidates.
 
+### Pattern: track work intent with governance
+
+1. Run `create_governance_lane` or `opendog governance create-lane` to open a work lane.
+2. Use `upsert_governance_node` or `opendog governance upsert-node` to record progress, boundaries, and forbidden scope.
+3. Use `get_governance_state` or `opendog governance show` to review active lanes and observation hints.
+4. Close with `close_governance_lane(action=complete)` or `opendog governance close-lane` when done.
+
+### Pattern: assess orphan files before deletion
+
+1. Run `scan_orphans` to classify candidates.
+2. Review `classification` and `confidence` for each candidate.
+3. Run `verify_deletion_plan` with proposed targets to check evidence sufficiency.
+4. Only proceed with deletion if `safe_to_plan_deletion = true` and project verification passes.
+
 ## CLI Workflow Entry Points
 
 - `opendog agent-guidance`
