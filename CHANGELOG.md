@@ -2,6 +2,29 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-05-25
+
+### Added
+
+- Governance state observation feature (GOV-01..08, FT-03.09): 4 MCP tools (`create_governance_lane`, `upsert_governance_node`, `get_governance_state`, `close_governance_lane`) and 4 matching CLI commands (`opendog governance create-lane|upsert-node|show|close-lane`).
+- Governance observation hints: `get_governance_state` cross-references snapshot freshness, verification status, unused file count, and data-risk candidate count from cache.
+- `data_risk_cache` table (schema v6): persistent single-row cache for mock/hardcoded candidate counts, populated by `get_data_risk_candidates` and `get_workspace_data_risk_overview`.
+- Daemon control plane support for governance operations: all 4 governance MCP handlers use daemon-first pattern via Unix socket IPC, falling back to direct DB when daemon is unavailable.
+- Daemon control plane support for orphan operations: `scan_orphans` and `verify_deletion_plan` MCP handlers now use daemon-first pattern.
+- Control plane roundtrip tests for governance operations (create lane → upsert node → get state → close lane).
+- Governance design spec and implementation plan.
+
+### Changed
+
+- All MCP tool handlers now consistently use daemon-first pattern. When the daemon is running, requests route through Unix socket IPC; when the daemon is unavailable, handlers fall back to direct DB access.
+- FT leaf count: 22 → 27 (added FT-03.09 Governance State Observation).
+- MCP tool count: 20 → 26 (added 4 governance + 2 orphan tools).
+- CLI command count: 22 → 23 (added `opendog governance` subcommand).
+- Schema version: v5 → v6 (added `data_risk_cache` table).
+- Test count: 298 → 300 (added control plane roundtrip test, data-risk cache test).
+- `GovernanceState`, `UpsertNodeResult`, `ObservationHints`, `GovernanceLaneSummary` now implement `Deserialize` for control plane protocol serialization.
+- README updated with accurate counts, daemon-first architecture note, governance and orphan tool tables, and governance CLI commands.
+
 ## 2026-05-11
 
 ### Added
