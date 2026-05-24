@@ -54,12 +54,20 @@ pub(crate) fn get_governance_state_payload(id: &str, state: &GovernanceState) ->
                         "updated_at": n.updated_at,
                     });
                     if n.summary.is_some() { obj["summary"] = json!(n.summary); }
-                    if n.evidence_refs.is_some() { obj["evidence_refs"] = json!(n.evidence_refs); }
-                    if n.artifact_refs.is_some() { obj["artifact_refs"] = json!(n.artifact_refs); }
+                    if let Some(ref s) = n.evidence_refs {
+                        obj["evidence_refs"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
+                    }
+                    if let Some(ref s) = n.artifact_refs {
+                        obj["artifact_refs"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
+                    }
                     if n.reported_git_head.is_some() { obj["reported_git_head"] = json!(n.reported_git_head); }
                     if n.suggested_next.is_some() { obj["suggested_next"] = json!(n.suggested_next); }
-                    if n.forbidden_scope.is_some() { obj["forbidden_scope"] = json!(n.forbidden_scope); }
-                    if n.external_anchors.is_some() { obj["external_anchors"] = json!(n.external_anchors); }
+                    if let Some(ref s) = n.forbidden_scope {
+                        obj["forbidden_scope"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
+                    }
+                    if let Some(ref s) = n.external_anchors {
+                        obj["external_anchors"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
+                    }
                     obj
                 }).collect::<Vec<_>>()),
             ),
