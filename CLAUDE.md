@@ -108,7 +108,7 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 ## MCP Tools
 
-Current MCP surface: 20 tools total.
+Current MCP surface: 26 tools total.
 
 Baseline control tools:
 
@@ -142,6 +142,13 @@ AI-facing guidance, verification, and data-risk tools:
 - `get_data_risk_candidates`
 - `get_workspace_data_risk_overview`
 
+Governance state observation:
+
+- `create_governance_lane`
+- `upsert_governance_node`
+- `get_governance_state`
+- `close_governance_lane`
+
 MCP parameter hints:
 
 - `get_guidance` accepts optional `project_id`, `top`, and `detail`
@@ -152,7 +159,7 @@ MCP parameter hints:
 
 ## CLI Commands
 
-Current CLI surface: 21 top-level entry commands.
+Current CLI surface: 23 top-level entry commands.
 
 Core control and runtime:
 
@@ -192,6 +199,13 @@ Guidance, verification, and data-risk:
 - `opendog run-verification --id <ID> --kind <test|lint|build> --command <CMD> [--json]`
 - `opendog data-risk --id <ID> [--candidate-type all|mock|hardcoded] [--min-review-priority low|medium|high] [--json]`
 - `opendog workspace-data-risk [--candidate-type all|mock|hardcoded] [--min-review-priority low|medium|high] [--project-limit N] [--json]`
+
+Governance state observation:
+
+- `opendog governance create-lane --id <ID> --lane-id <LANE> --title <TITLE> [--description <DESC>] [--json]`
+- `opendog governance upsert-node --id <ID> --lane-id <LANE> --node-id <NODE> --state <STATE> [options] [--json]`
+- `opendog governance show --id <ID> [--lane-id <LANE>] [--node-id <NODE>] [--active-only] [--json]`
+- `opendog governance close-lane --id <ID> --lane-id <LANE> --action <complete|defer|delete> [--json]`
 
 ## Quick Start for AI Agents
 

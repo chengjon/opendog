@@ -1,7 +1,7 @@
 use crate::config::ProjectInfo;
 use crate::core::project::ProjectManager;
 use crate::mcp::{
-    agent_guidance_payload, collect_project_guidance_context,
+    agent_guidance_payload, build_governance_layer, collect_project_guidance_context,
     collect_workspace_data_risk_summaries, decision_brief_payload,
     workspace_data_risk_overview_payload, ProjectGuidanceData,
 };
@@ -73,6 +73,7 @@ pub(crate) fn load_project_guidance_data(
 }
 
 pub(crate) fn build_agent_guidance_for_projects<F>(
+    pm: &ProjectManager,
     projects: &[ProjectInfo],
     top: usize,
     load_project_state: F,
@@ -83,6 +84,17 @@ where
     let (monitored_projects, recommendations, project_overviews) =
         collect_project_guidance_context(projects, load_project_state);
     let notes = guidance_notes(&monitored_projects);
+
+    let governance = {
+        let dbs: Vec<(String, crate::storage::database::Database)> = projects
+            .iter()
+            .filter_map(|p| pm.open_project_db(&p.id).ok().map(|db| (p.id.clone(), db)))
+            .collect();
+        let refs: Vec<(&String, &crate::storage::database::Database)> =
+            dbs.iter().map(|(id, db)| (id, db)).collect();
+        build_governance_layer(&refs)
+    };
+
     let mut payload = agent_guidance_payload(
         projects.len(),
         monitored_projects.len(),
@@ -90,12 +102,14 @@ where
         &notes,
         &recommendations,
         &project_overviews,
+        governance,
     );
     trim_agent_guidance_payload(&mut payload, top.max(1));
     payload
 }
 
 pub(crate) fn build_decision_brief_for_projects<F, G>(
+    pm: &ProjectManager,
     schema_version: &str,
     scope: &str,
     selected_project_id: Option<&str>,
@@ -108,7 +122,7 @@ where
     F: FnMut(&ProjectInfo) -> ProjectGuidanceData,
     G: FnMut(&ProjectInfo) -> Vec<StatsEntry>,
 {
-    let agent_guidance = build_agent_guidance_for_projects(projects, top, load_project_state);
+    let agent_guidance = build_agent_guidance_for_projects(pm, projects, top, load_project_state);
     let mut summaries =
         collect_workspace_data_risk_summaries(projects, "all", "low", load_workspace_entries);
     summaries.truncate(top.max(1));

@@ -104,6 +104,7 @@ fn agent_guidance_summarizes_observation_sequences() {
             workspace_verification_overview("verify", "not_recorded", "missing", &[], false, false),
             workspace_verification_overview("stabilize", "available", "fresh", &[], false, false),
         ],
+        default_governance_layer(),
     );
 
     assert_eq!(

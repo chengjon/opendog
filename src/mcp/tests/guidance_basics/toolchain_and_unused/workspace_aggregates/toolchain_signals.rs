@@ -49,6 +49,7 @@ fn agent_guidance_aggregates_workspace_toolchain_signals() {
             ),
             workspace_toolchain_overview("mystery", "unknown", "low", &[], &[], &[]),
         ],
+        default_governance_layer(),
     );
 
     let layer = &value["guidance"]["layers"]["project_toolchain"];
@@ -100,6 +101,7 @@ fn workspace_toolchain_aggregation_treats_medium_high_as_trusted() {
             ),
             workspace_toolchain_overview("mystery", "unknown", "low", &[], &[], &[]),
         ],
+        default_governance_layer(),
     );
 
     let layer = &value["guidance"]["layers"]["project_toolchain"];
@@ -142,6 +144,7 @@ fn workspace_toolchain_aggregation_treats_docs_only_as_trusted() {
             workspace_toolchain_overview("docs", "docs_only", "medium-high", &[], &[], &[]),
             workspace_toolchain_overview("mystery", "unknown", "low", &[], &[], &[]),
         ],
+        default_governance_layer(),
     );
 
     let layer = &value["guidance"]["layers"]["project_toolchain"];

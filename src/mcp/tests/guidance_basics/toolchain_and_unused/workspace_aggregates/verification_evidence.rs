@@ -42,6 +42,7 @@ fn agent_guidance_aggregates_workspace_verification_evidence() {
                 false,
             ),
         ],
+        default_governance_layer(),
     );
 
     let layer = &value["guidance"]["layers"]["verification_evidence"];

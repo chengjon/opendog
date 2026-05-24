@@ -97,5 +97,8 @@ pub(super) fn base_guidance_layers() -> Value {
         "constraints_boundaries": {
             "status": "not_assessed",
         },
+        "governance": {
+            "status": "not_assessed",
+        },
     })
 }

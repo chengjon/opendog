@@ -18,6 +18,7 @@ fn assert_selected_execution_sequence(
         &[],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -57,6 +58,7 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
     let workspace_data_guidance = fixtures::demo_workspace_data_guidance();
 
@@ -235,6 +237,7 @@ fn decision_brief_payload_projects_selected_execution_sequence() {
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -284,6 +287,7 @@ fn decision_brief_payload_projects_selected_verification_sequence() {
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -333,6 +337,7 @@ fn decision_brief_payload_exposes_external_truth_boundary_for_verification_only(
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -380,6 +385,7 @@ fn decision_brief_payload_keeps_not_git_repository_advisory_for_external_truth_b
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -409,7 +415,7 @@ fn decision_brief_payload_keeps_not_git_repository_advisory_for_external_truth_b
 
 #[test]
 fn decision_brief_payload_marks_external_truth_boundary_absent_when_no_priority_project() {
-    let agent_guidance = agent_guidance_payload(0, 0, &[], &[], &[], &[]);
+    let agent_guidance = agent_guidance_payload(0, 0, &[], &[], &[], &[], default_governance_layer());
 
     let brief = decision_brief_payload(
         MCP_DECISION_BRIEF_V1,
@@ -494,6 +500,7 @@ fn decision_brief_review_focus_projection_mirrors_review_focus_for_unused_review
         &["demo".to_string()],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -583,6 +590,7 @@ fn decision_brief_review_focus_projection_keeps_review_focus_null_for_non_review
         &[],
         std::slice::from_ref(&recommendation),
         std::slice::from_ref(&project_overview),
+        default_governance_layer(),
     );
 
     let brief = decision_brief_payload(
@@ -608,7 +616,7 @@ fn decision_brief_review_focus_projection_keeps_review_focus_null_for_non_review
 
 #[test]
 fn decision_brief_marks_review_focus_projection_absent_when_no_priority_project() {
-    let agent_guidance = agent_guidance_payload(0, 0, &[], &[], &[], &[]);
+    let agent_guidance = agent_guidance_payload(0, 0, &[], &[], &[], &[], default_governance_layer());
 
     let brief = decision_brief_payload(
         MCP_DECISION_BRIEF_V1,

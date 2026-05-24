@@ -287,6 +287,20 @@ fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> Da
     }
 }
 
+#[cfg(test)]
+pub(crate) fn default_governance_layer() -> Value {
+    serde_json::json!({
+        "has_governance_state": false,
+        "project_governance": [],
+        "workspace_summary": {
+            "total_active_lanes": 0,
+            "total_active_nodes": 0,
+            "projects_with_governance": 0,
+            "projects_without_governance": 0,
+        }
+    })
+}
+
 pub(crate) fn agent_guidance_payload(
     project_count: usize,
     monitoring_count: usize,
@@ -294,6 +308,7 @@ pub(crate) fn agent_guidance_payload(
     notes: &[String],
     project_recommendations: &[Value],
     project_overviews: &[Value],
+    governance: Value,
 ) -> Value {
     let has_failing_verification = project_overviews.iter().any(|p| {
         p["verification_evidence"]["failing_runs"]
@@ -582,5 +597,6 @@ pub(crate) fn agent_guidance_payload(
             projects_with_storage_maintenance_candidates,
         }),
     );
+    value["guidance"]["layers"]["governance"] = governance;
     value
 }

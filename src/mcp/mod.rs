@@ -22,6 +22,7 @@ mod constraints;
 mod data_risk;
 mod decision_support;
 mod governance_handlers;
+mod governance_layer;
 mod guidance_handlers;
 mod guidance_payload;
 mod guidance_scaffold;
@@ -83,11 +84,14 @@ use self::governance_handlers::{
     handle_close_governance_lane, handle_create_governance_lane, handle_get_governance_state,
     handle_upsert_governance_node,
 };
+pub(crate) use self::governance_layer::build_governance_layer;
 use self::guidance_handlers::handle_get_guidance;
 pub(crate) use self::guidance_payload::{
-    agent_guidance_payload, latest_verification_runs_for_project, now_unix_secs,
-    ProjectGuidanceData, ProjectGuidanceState,
+    agent_guidance_payload, latest_verification_runs_for_project,
+    now_unix_secs, ProjectGuidanceData, ProjectGuidanceState,
 };
+#[cfg(test)]
+pub(crate) use self::guidance_payload::default_governance_layer;
 use self::guidance_scaffold::{
     base_guidance_layers, default_shell_verification_commands, set_recommended_flow, tool_guidance,
 };

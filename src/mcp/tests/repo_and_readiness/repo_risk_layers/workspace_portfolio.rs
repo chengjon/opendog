@@ -42,6 +42,7 @@ fn workspace_portfolio_prioritizes_high_risk_dirty_projects() {
                 }
             }),
         ],
+        default_governance_layer(),
     );
 
     assert_eq!(

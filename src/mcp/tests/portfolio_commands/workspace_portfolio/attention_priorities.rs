@@ -77,6 +77,7 @@ fn workspace_portfolio_prioritizes_attention_urgency_over_data_risk_volume() {
                 "safe_for_refactor": true
             }),
         ],
+        default_governance_layer(),
     );
 
     assert_eq!(

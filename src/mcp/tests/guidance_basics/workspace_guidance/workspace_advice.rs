@@ -79,6 +79,7 @@ fn agent_guidance_includes_shell_and_tool_advice() {
                 }
             }
         })],
+        default_governance_layer(),
     );
 
     assert_eq!(value["guidance"]["schema_version"], MCP_GUIDANCE_V1);
@@ -263,6 +264,7 @@ fn agent_guidance_exposes_external_truth_boundary_for_repo_state_and_verificatio
                 }
             }
         })],
+        default_governance_layer(),
     );
 
     assert_eq!(
@@ -349,6 +351,7 @@ fn agent_guidance_exposes_review_focus_projection_for_hot_file_review() {
                 }
             }
         })],
+        default_governance_layer(),
     );
 
     assert_eq!(

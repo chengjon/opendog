@@ -472,6 +472,25 @@ nodes:
     requirement_ranges: [MOCK-02, MOCK-04, MOCK-05, MOCK-08, MOCK-09, MOCK-10]
     roadmap_phases: [6]
     summary: Flag risky business-like literals and mixed logic-plus-data files for review while down-ranking documentation and template-placeholder noise.
+
+  - id: FT-03.09
+    title: Governance State Observation
+    level: L2
+    parent: FT-03
+    lifecycle: shipped
+    summary: Record, read, and cross-reference project governance work state with OPENDOG observation evidence.
+
+  - id: FT-03.09.01
+    title: Store and surface governance lanes and nodes
+    level: L3
+    parent: FT-03.09
+    lifecycle: shipped
+    requirement_ranges: [GOV-01..08]
+    summary: >
+      Let projects record and read their own governance work state
+      (lanes and nodes), then cross-reference it with OPENDOG's
+      observation evidence in guidance payloads. OPENDOG does not
+      enforce governance rules — it observes and recommends.
 ```
 
 ## Human Tree
@@ -523,6 +542,8 @@ FT-03 AI Decision Support and Governance
   FT-03.08 Mock and Hardcoded Data Review
     FT-03.08.01 Detect mock and test-only data artifacts
     FT-03.08.02 Detect and prioritize hardcoded pseudo-business data
+  FT-03.09 Governance State Observation
+    FT-03.09.01 Store and surface governance lanes and nodes
 ```
 
 ## Current Implementation Distribution
@@ -579,6 +600,7 @@ Current CLI top-level commands:
 - `run-verification`
 - `delete`
 - `daemon`
+- `governance`
 
 Current CLI subcommands:
 
@@ -591,6 +613,11 @@ Current CLI subcommands:
   - `window`
   - `compare`
   - `trend`
+- `governance`
+  - `create-lane`
+  - `upsert-node`
+  - `show`
+  - `close-lane`
 
 Re-grouped by intent, the CLI currently covers:
 
@@ -600,6 +627,7 @@ Re-grouped by intent, the CLI currently covers:
 - AI guidance: `agent-guidance`, `decision-brief`, `data-risk`, `workspace-data-risk`
 - verification: `verification`, `record-verification`, `run-verification`
 - operations/runtime: `config *`, `cleanup-data`, `self-update`, `daemon`, `mcp`
+- governance: `governance create-lane`, `governance upsert-node`, `governance show`, `governance close-lane`
 
 ### MCP Tool Distribution
 

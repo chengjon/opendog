@@ -74,6 +74,7 @@ fn agent_guidance_summarizes_repo_stabilization_sequences() {
                 }
             }),
         ],
+        default_governance_layer(),
     );
 
     assert_eq!(

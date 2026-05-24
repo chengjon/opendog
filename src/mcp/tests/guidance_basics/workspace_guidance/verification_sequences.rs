@@ -80,6 +80,7 @@ fn agent_guidance_summarizes_verification_sequences() {
             ),
             workspace_verification_overview("stabilizing", "available", "fresh", &[], false, false),
         ],
+        default_governance_layer(),
     );
 
     assert_eq!(

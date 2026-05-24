@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn agent_guidance_adapts_when_no_projects_exist() {
-    let value = agent_guidance_payload(0, 0, &[], &[], &[], &[]);
+    let value = agent_guidance_payload(0, 0, &[], &[], &[], &[], default_governance_layer());
 
     assert!(value["guidance"]["recommended_flow"][0]
         .as_str()
@@ -41,6 +41,7 @@ fn agent_guidance_prefers_snapshot_flow_when_top_project_lacks_baseline() {
                 "operation_states": []
             }
         })],
+        default_governance_layer(),
     );
 
     assert!(value["guidance"]["recommended_flow"][0]

@@ -54,6 +54,7 @@ fn agent_guidance_reports_storage_maintenance_candidates() {
                 }
             }
         })],
+        default_governance_layer(),
     );
 
     assert_eq!(
