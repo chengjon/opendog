@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_steward_nodes_lane ON steward_nodes(lane_id);
 CREATE INDEX IF NOT EXISTS idx_steward_nodes_state ON steward_nodes(state);
 ```
 
-Schema version: 4 → 5. Migration adds these tables to existing project databases.
+Schema version: 4 → 5. Migration follows the existing `CREATE TABLE IF NOT EXISTS` pattern in `src/storage/schema.rs` — adding the new DDL statements to `PROJECT_SCHEMA` is sufficient because `migrate()` in `src/storage/migrations.rs` calls `conn.execute_batch(kind.schema_sql())`, which runs all `CREATE TABLE IF NOT EXISTS` statements idempotently. No separate versioned migration function is needed.
 
 ### Storage Location
 
@@ -90,7 +90,7 @@ No files are created in the observed project's source directory.
 
 ## MCP Tools
 
-4 new tools, following existing `McpToolSpec` pattern. Total MCP tools: 22 → 26 (+18%).
+4 new tools, following existing `McpToolSpec` pattern. Total MCP tools: 22 → 26 (+18.2%).
 
 ### `create_governance_lane`
 
@@ -132,7 +132,18 @@ Create or update a governance node within a lane. All non-key fields are optiona
   "forbidden_scope": ["backend source", "tests", "compatibility getter retirement"],
   "external_anchors": { "pr": "#186", "issue": "#79" }
 }
+
+// Response
+{
+  "node_id": "G2.46",
+  "lane_id": "service-lifecycle-di",
+  "state": "evidence-prepared",
+  "created": false,
+  "updated_at": "2026-05-24T10:30:00Z"
+}
 ```
+
+`created` is `true` when a new node was inserted, `false` when an existing node was updated.
 
 ### `get_governance_state`
 
@@ -181,9 +192,9 @@ Read governance state for a project. Optionally filter by lane, specific node, o
 
 `observation_hints` is automatically derived from existing OPENDOG evidence (snapshot freshness, verification status, stats, data-risk). This is the core integration value: governance state and observation evidence presented together.
 
-### `delete_governance_lane`
+### `close_governance_lane`
 
-Delete or archive an entire lane and its nodes.
+Close, defer, or hard-delete an entire lane and its nodes.
 
 ```json
 // Params
@@ -192,19 +203,31 @@ Delete or archive an entire lane and its nodes.
   "lane_id": "service-lifecycle-di",
   "action": "complete"   // "delete" (hard delete) | "complete" (mark completed) | "defer" (mark deferred)
 }
+
+// Response
+{
+  "lane_id": "service-lifecycle-di",
+  "action_taken": "complete",
+  "status": "completed",
+  "nodes_affected": 5
+}
 ```
 
 ## Guidance Integration
 
 ### New `governance` Layer in `get_guidance(detail=summary)`
 
-The existing `get_guidance` response gains a 5th layer. Existing layers are unchanged.
+The existing `get_guidance` response gains an 8th layer. The 7 existing layers (`workspace_observation`, `execution_strategy`, `multi_project_portfolio`, `storage_maintenance`, `verification_evidence`, `project_toolchain`, `constraints_boundaries`) are unchanged.
 
 ```json
 {
   "layers": {
     "workspace_observation": { "... unchanged ..." },
     "execution_strategy": { "... unchanged ..." },
+    "multi_project_portfolio": { "... unchanged ..." },
+    "storage_maintenance": { "... unchanged ..." },
+    "verification_evidence": { "... unchanged ..." },
+    "project_toolchain": { "... unchanged ..." },
     "constraints_boundaries": { "... unchanged ..." },
     "governance": {
       "has_governance_state": true,
@@ -356,7 +379,7 @@ Placed under FT-03 rather than a new FT-04 because:
 | File | Action | Estimated Lines |
 |---|---|---|
 | `src/storage/schema.rs` | Modify (+2 tables, +2 indexes, version bump) | +25 |
-| `src/storage/migrations.rs` | Modify (v4→v5 migration) | +40 |
+| `src/storage/migrations.rs` | Modify (+v4→v5 fixture and test) | +40 |
 | `src/storage/governance_queries.rs` | **New** | ~350 |
 | `src/core/governance.rs` | **New** (lane/node CRUD logic) | ~300 |
 | `src/mcp/governance_handlers.rs` | **New** (4 tool handlers) | ~250 |
@@ -368,7 +391,7 @@ Placed under FT-03 rather than a new FT-04 because:
 | `src/mcp/mod.rs` | Modify (+module registration) | +10 |
 | `src/contracts.rs` | Modify (+4 contract IDs) | +8 |
 | `src/cli/mod.rs` | Modify (+governance subcommands) | +120 |
-| `tests/governance_test.rs` | **New** | ~350 |
+| `tests/integration_test/cli_governance.rs` | **New** | ~350 |
 | **Total** | **7 new + 8 modified** | **~2,100 lines** |
 
 ### Scale Impact
@@ -376,7 +399,7 @@ Placed under FT-03 rather than a new FT-04 because:
 | Metric | Before | After | Change |
 |---|---|---|---|
 | Source lines | ~24,800 | ~26,900 | +8.5% |
-| MCP tools | 22 | 26 | +18% |
+| MCP tools | 22 | 26 | +18.2% |
 | CLI top-level commands | 22 | 23 | +4.5% |
 | FT-* leaf nodes | 26 | 27 | +3.8% |
 | New requirement family | 0 | GOV (~6-8 reqs) | +1 family |
