@@ -171,4 +171,61 @@ mod tests {
 
         assert!(err.to_string().contains("newer than supported"));
     }
+
+    #[test]
+    fn migrates_v4_to_v5_preserving_verification_runs() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("v4_migration.db");
+
+        // Create a v4 database with existing data
+        {
+            let conn = rusqlite::Connection::open(&db_path).unwrap();
+            conn.execute_batch(
+                "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;",
+            )
+            .unwrap();
+
+            // Run v4 schema (all tables except governance)
+            let v4_schema = include_str!("../storage/schema_v4_seed.sql");
+            conn.execute_batch(v4_schema).unwrap();
+
+            // Insert a verification run to preserve
+            conn.execute(
+                "INSERT INTO verification_runs (kind, status, command, exit_code, summary, source, started_at, finished_at)
+                 VALUES ('test', 'passed', 'cargo test', 0, 'all passed', 'migration-test', '1000', '1001')",
+                [],
+            ).unwrap();
+
+            conn.pragma_update(None, "user_version", 4).unwrap();
+        }
+
+        // Open with migration
+        let db = Database::open_project(&db_path).unwrap();
+
+        // Data preserved
+        let count: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM verification_runs WHERE kind='test'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+
+        // New tables exist
+        db.conn()
+            .execute_batch("SELECT * FROM governance_lanes LIMIT 0")
+            .unwrap();
+        db.conn()
+            .execute_batch("SELECT * FROM governance_nodes LIMIT 0")
+            .unwrap();
+
+        // Version bumped
+        let version: i64 = db
+            .conn()
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 5);
+    }
 }

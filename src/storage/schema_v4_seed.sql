@@ -1,15 +1,3 @@
-pub const REGISTRY_SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS projects (
-    id          TEXT PRIMARY KEY,
-    root_path   TEXT NOT NULL,
-    db_path     TEXT NOT NULL,
-    config      TEXT NOT NULL DEFAULT '{}',
-    created_at  TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'active'
-);
-"#;
-
-pub const PROJECT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS snapshot (
     path            TEXT PRIMARY KEY,
     size            INTEGER NOT NULL,
@@ -84,33 +72,3 @@ CREATE INDEX IF NOT EXISTS idx_file_events_time ON file_events(event_time);
 CREATE INDEX IF NOT EXISTS idx_file_events_modify_time_int ON file_events(CAST(event_time AS INTEGER)) WHERE event_type = 'modify';
 CREATE INDEX IF NOT EXISTS idx_verification_runs_kind_time ON verification_runs(kind, finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_verification_runs_finished_time_int ON verification_runs(CAST(finished_at AS INTEGER));
-
-CREATE TABLE IF NOT EXISTS governance_lanes (
-    lane_id     TEXT PRIMARY KEY,
-    title       TEXT NOT NULL,
-    description TEXT,
-    status      TEXT NOT NULL DEFAULT 'active',
-    created_at  TEXT NOT NULL,
-    updated_at  TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS governance_nodes (
-    node_id           TEXT PRIMARY KEY,
-    lane_id           TEXT NOT NULL,
-    state             TEXT NOT NULL,
-    summary           TEXT,
-    evidence_refs     TEXT,
-    artifact_refs     TEXT,
-    reported_git_head TEXT,
-    suggested_next    TEXT,
-    forbidden_scope   TEXT,
-    external_anchors  TEXT,
-    created_at        TEXT NOT NULL,
-    updated_at        TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_governance_nodes_lane ON governance_nodes(lane_id);
-CREATE INDEX IF NOT EXISTS idx_governance_nodes_state ON governance_nodes(state);
-"#;
-
-pub const SCHEMA_VERSION: u32 = 5;
