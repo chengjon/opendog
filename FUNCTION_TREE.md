@@ -658,6 +658,11 @@ Current MCP tool set:
 - data risk and workspace prioritization
   - `get_data_risk_candidates`
   - `get_workspace_data_risk_overview`
+- governance state observation
+  - `create_governance_lane`
+  - `upsert_governance_node`
+  - `get_governance_state`
+  - `close_governance_lane`
 
 Current MCP read-only resources:
 
@@ -703,6 +708,15 @@ From a capability perspective, several public entrypoints are close variants of 
 - read-only state family
   - `opendog://projects`
   - `opendog://project/{id}/verification`
+- governance family
+  - `governance create-lane`
+  - `governance upsert-node`
+  - `governance show`
+  - `governance close-lane`
+  - `create_governance_lane`
+  - `upsert_governance_node`
+  - `get_governance_state`
+  - `close_governance_lane`
 
 Operator-only downscope now applied:
 
