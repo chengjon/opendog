@@ -1,4 +1,5 @@
 mod config_output;
+mod governance_output;
 mod guidance_output;
 mod project_output;
 mod report_output;
@@ -9,12 +10,13 @@ use crate::config::{
     ProjectConfigView, ProjectInfo,
 };
 use crate::core::file_classification::FilePathClassificationFilter;
+use crate::core::governance::{GovernanceState, UpsertNodeResult};
 use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
 use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
 use crate::core::verification::ExecutedVerificationResult;
-use crate::storage::queries::{StatsEntry, VerificationRun};
+use crate::storage::queries::{GovernanceLane, StatsEntry, VerificationRun};
 use serde_json::Value;
 
 pub fn print_registered(info: &ProjectInfo) {
@@ -134,6 +136,22 @@ pub fn print_project_config_reload(
     effective: &ProjectConfig,
 ) {
     config_output::print_project_config_reload(id, reload, effective);
+}
+
+pub fn print_lane_created(id: &str, lane: &GovernanceLane) {
+    governance_output::print_lane_created(id, lane);
+}
+
+pub fn print_node_upserted(id: &str, result: &UpsertNodeResult) {
+    governance_output::print_node_upserted(id, result);
+}
+
+pub fn print_governance_state(id: &str, state: &GovernanceState) {
+    governance_output::print_governance_state(id, state);
+}
+
+pub fn print_lane_closed(id: &str, lane_id: &str, action: &str, status: &str, nodes: usize) {
+    governance_output::print_lane_closed(id, lane_id, action, status, nodes);
 }
 
 pub(super) fn truncate(s: &str, max: usize) -> String {

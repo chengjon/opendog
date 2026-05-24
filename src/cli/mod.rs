@@ -1,6 +1,7 @@
 pub mod output;
 
 mod config_commands;
+mod governance_commands;
 mod guidance_commands;
 mod project_commands;
 mod report_commands;
@@ -11,11 +12,77 @@ use crate::core::project::ProjectManager;
 use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 use crate::error::OpenDogError;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 use self::config_commands::{cmd_config, ConfigCommand};
 use self::report_commands::{cmd_report, ReportCommand};
 use self::self_update_commands::{cmd_self_update, SelfUpdateCommand};
+
+#[derive(Subcommand)]
+enum GovernanceCommand {
+    /// Create a new governance lane
+    CreateLane {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        title: String,
+        #[arg(long)]
+        description: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Insert or update a governance node
+    UpsertNode {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        node_id: String,
+        #[arg(long)]
+        state: Option<String>,
+        #[arg(long)]
+        summary: Option<String>,
+        #[arg(long)]
+        evidence_refs: Option<String>,
+        #[arg(long)]
+        artifact_refs: Option<String>,
+        #[arg(long)]
+        reported_git_head: Option<String>,
+        #[arg(long)]
+        suggested_next: Option<String>,
+        #[arg(long)]
+        forbidden_scope: Option<String>,
+        #[arg(long)]
+        external_anchors: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show governance state for a project
+    Show {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: Option<String>,
+        #[arg(long)]
+        node_id: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Close a governance lane (complete, defer, or delete)
+    CloseLane {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        action: String,
+        #[arg(long)]
+        json: bool,
+    },
+}
 
 #[derive(Parser)]
 #[command(
@@ -96,6 +163,11 @@ enum Cli {
     SelfUpdate {
         #[command(subcommand)]
         command: SelfUpdateCommand,
+    },
+    /// Manage governance lanes and nodes for a project
+    Governance {
+        #[command(subcommand)]
+        command: GovernanceCommand,
     },
     /// Run as stdio MCP server (for AI clients)
     Mcp,
@@ -256,6 +328,40 @@ pub fn run() {
         }),
         Cli::Report { command } => cmd_report(&pm, command),
         Cli::SelfUpdate { command } => cmd_self_update(command),
+        Cli::Governance { command } => match command {
+            GovernanceCommand::CreateLane { id, lane_id, title, description, json } => {
+                governance_commands::cmd_create_lane(&pm, &id,
+                    crate::core::governance::CreateLaneInput { lane_id, title, description }, json)
+            }
+            GovernanceCommand::UpsertNode { id, lane_id, node_id, state, summary,
+                evidence_refs, artifact_refs, reported_git_head, suggested_next,
+                forbidden_scope, external_anchors, json } => {
+                let parse_json_list = |s: Option<String>| -> Option<Vec<String>> {
+                    s.and_then(|v| serde_json::from_str(&v).ok())
+                };
+                let parse_json_value = |s: Option<String>| -> Option<serde_json::Value> {
+                    s.and_then(|v| serde_json::from_str(&v).ok())
+                };
+                governance_commands::cmd_upsert_node(&pm, &id,
+                    crate::core::governance::UpsertNodeInput {
+                        node_id, lane_id, state, summary,
+                        evidence_refs: parse_json_list(evidence_refs),
+                        artifact_refs: parse_json_list(artifact_refs),
+                        reported_git_head,
+                        suggested_next,
+                        forbidden_scope: parse_json_list(forbidden_scope),
+                        external_anchors: parse_json_value(external_anchors),
+                    }, json)
+            }
+            GovernanceCommand::Show { id, lane_id, node_id, json } => {
+                governance_commands::cmd_show(&pm, &id,
+                    crate::core::governance::GetGovernanceStateInput { lane_id, node_id }, json)
+            }
+            GovernanceCommand::CloseLane { id, lane_id, action, json } => {
+                governance_commands::cmd_close_lane(&pm, &id,
+                    crate::core::governance::CloseLaneInput { lane_id, action }, json)
+            }
+        },
         Cli::Mcp => {
             crate::mcp::run_stdio();
             return;
