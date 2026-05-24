@@ -94,6 +94,7 @@ pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> V
     guidance
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn project_data_risk_payload(
     schema_version: &str,
     id: &str,

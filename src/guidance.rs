@@ -108,6 +108,7 @@ where
     payload
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_decision_brief_for_projects<F, G>(
     pm: &ProjectManager,
     schema_version: &str,

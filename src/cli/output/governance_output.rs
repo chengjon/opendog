@@ -30,7 +30,7 @@ pub fn print_governance_state(id: &str, state: &GovernanceState) {
 
         let lane_nodes: Vec<_> = state.nodes.iter().filter(|n| n.lane_id == lane.lane_id).collect();
         if !lane_nodes.is_empty() {
-            println!("  {:8} {:22} {:32} {}", "Node", "State", "Summary", "Suggested Next");
+            println!("  {:8} {:22} {:32} Suggested Next", "Node", "State", "Summary");
             for node in lane_nodes {
                 let summary = node.summary.as_deref().unwrap_or("").chars().take(30).collect::<String>();
                 let suggested = node.suggested_next.as_deref().unwrap_or("").chars().take(30).collect::<String>();
