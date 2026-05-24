@@ -290,6 +290,22 @@ Typical shell follow-ups:
   Use when the question is "which OPENDOG-retained evidence or storage history should I prune?"
   Useful options:
   `--scope activity|snapshots|verification|all`, `--older-than-days`, `--keep-snapshot-runs`, `--dry-run`, `--vacuum`, `--json`
+- `opendog governance create-lane --id <ID> --lane-id <LANE> --title <TITLE>`
+  Use when tracking work intent, boundaries, or forbidden scope for a cleanup or refactor pass
+  Useful options:
+  `--description <DESC>`, `--json`
+- `opendog governance upsert-node --id <ID> --lane-id <LANE> --node-id <NODE> --state <STATE>`
+  Use when recording progress, boundaries, or observations within an active governance lane
+  Useful options:
+  `--label <LABEL>`, `--description <DESC>`, `--progress <PCT>`, `--boundary-type <TYPE>`, `--boundary-scope <SCOPE>`, `--observation-hint <HINT>`, `--json`
+- `opendog governance show --id <ID>`
+  Use when reviewing active lanes, node states, and observation hints before choosing next action
+  Useful options:
+  `--lane-id <LANE>`, `--node-id <NODE>`, `--active-only`, `--json`
+- `opendog governance close-lane --id <ID> --lane-id <LANE> --action <complete|defer|delete>`
+  Use when closing out a governance lane after work completes or is deferred
+  Useful option:
+  `--json`
 
 ## JSON Use For AI
 
@@ -304,6 +320,8 @@ Most useful entrypoints:
 - `opendog verification --id <ID> --json`
 - `opendog report window|compare|trend --json`
 - `opendog cleanup-data --json`
+- `opendog governance create-lane|upsert-node|show|close-lane --json`
+- MCP `scan_orphans` and `verify_deletion_plan` return JSON natively (no CLI entry points)
 
 For exhaustive field-by-field contracts, schema-version guidance, error shapes, and stability rules, use [json-contracts.md](./json-contracts.md).
 
@@ -391,6 +409,38 @@ Read first:
 - `verification.latest_runs`
 
 `record-verification --json` and `run-verification --json` are mainly evidence-write paths; the key fields are `kind`, `status`, `exit_code`, and summary/output metadata.
+
+### `opendog governance show --json` / MCP `get_governance_state`
+
+Read first:
+
+- `schema_version`
+- `lanes[*].lane_id`, `lanes[*].status`, `lanes[*].node_count`, `lanes[*].active_nodes`
+- `nodes[*].state`, `nodes[*].progress`, `nodes[*].observation_hints`
+
+Use `observation_hints` to cross-reference governance state with OPENDOG observation signals before trusting stale lane data.
+
+### MCP `scan_orphans`
+
+Read first:
+
+- `schema_version`
+- `status`
+- `candidates[*].classification`, `candidates[*].confidence`
+- `candidates[*].subject.subject`, `candidates[*].subject.subject_kind`
+- `summary.total_candidates`, `summary.by_classification`
+
+### MCP `verify_deletion_plan`
+
+Read first:
+
+- `schema_version`
+- `status`
+- `safe_to_plan_deletion`
+- `targets[*].verdict`, `targets[*].evidence_summary`
+- `blocking_issues`
+
+Only proceed with deletion when `safe_to_plan_deletion = true` and `blocking_issues` is empty.
 
 ## JSON Interpretation Rules
 
