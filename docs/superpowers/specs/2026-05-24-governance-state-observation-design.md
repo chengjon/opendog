@@ -2,7 +2,7 @@
 
 > Date: 2026-05-24
 > Status: approved
-> Maps to FT: FT-03.09 (new L3 leaf under FT-03 AI Decision Support and Governance)
+> Maps to FT: FT-03.09 (new L2 under FT-03) + FT-03.09.01 (new L3 leaf)
 > Requirement family: GOV (new, ~6-8 requirements)
 
 ## Purpose
@@ -46,14 +46,14 @@ CREATE TABLE IF NOT EXISTS governance_lanes (
     updated_at  TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS steward_nodes (
+CREATE TABLE IF NOT EXISTS governance_nodes (
     node_id           TEXT PRIMARY KEY,
     lane_id           TEXT NOT NULL,
-    state             TEXT NOT NULL,               -- free text, no enforced vocabulary
+    state             TEXT NOT NULL,               -- free text, no enforced vocabulary; required on create
     summary           TEXT,                        -- one-line factual summary
     evidence_refs     TEXT,                        -- JSON array of report/document paths
     artifact_refs     TEXT,                        -- JSON array of generated artifact paths
-    git_head          TEXT,                        -- HEAD commit when node was created/updated
+    reported_git_head TEXT,                        -- caller-reported HEAD anchor; not validated by OPENDOG
     suggested_next    TEXT,                        -- recommended next step
     forbidden_scope   TEXT,                        -- JSON array of semantic scope descriptions
     external_anchors  TEXT,                        -- JSON object: {"pr": "#186", "issue": "#79", "commit": "abc123"}
@@ -61,8 +61,8 @@ CREATE TABLE IF NOT EXISTS steward_nodes (
     updated_at        TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_steward_nodes_lane ON steward_nodes(lane_id);
-CREATE INDEX IF NOT EXISTS idx_steward_nodes_state ON steward_nodes(state);
+CREATE INDEX IF NOT EXISTS idx_governance_nodes_lane ON governance_nodes(lane_id);
+CREATE INDEX IF NOT EXISTS idx_governance_nodes_state ON governance_nodes(state);
 ```
 
 Schema version: 4 → 5. Migration follows the existing `CREATE TABLE IF NOT EXISTS` pattern in `src/storage/schema.rs` — adding the new DDL statements to `PROJECT_SCHEMA` is sufficient because `migrate()` in `src/storage/migrations.rs` calls `conn.execute_batch(kind.schema_sql())`, which runs all `CREATE TABLE IF NOT EXISTS` statements idempotently. No separate versioned migration function is needed.
@@ -79,6 +79,10 @@ $OPENDOG_HOME/data/
 
 No files are created in the observed project's source directory.
 
+### Scope Boundary
+
+Governance state is **local coordination state only**. It lives in the OPENDOG database on the machine where it was created. There is no import/export, no cross-machine sync, and no mechanism for different checkouts to share governance state. If a project needs cross-machine coordination, the project should manage its own steward tree files in its source tree and use OPENDOG's governance tools as a local acceleration layer.
+
 ### Key Design Decisions
 
 | Decision | Rationale |
@@ -87,6 +91,8 @@ No files are created in the observed project's source directory.
 | No `node_transitions` audit table | Lightweight approach; audit history managed in project's own artifacts |
 | No `authorized_paths` / `forbidden_paths` file globs | No path-level gate matching; `forbidden_scope` is semantic description only |
 | Tables live in per-project SQLite | Follows OPENDOG's per-project isolation principle |
+| No foreign keys on `lane_id` | SQLite FK enforcement requires `PRAGMA foreign_keys` per-connection; instead, referential integrity is enforced in `core::governance` application logic: upsert validates lane exists, close-lane deletes nodes in same transaction, get ignores orphan nodes |
+| `reported_git_head` not auto-read | OPENDOG does not read the project's git state; the caller reports it as an anchor string. Renamed from `git_head` to `reported_git_head` to make this explicit |
 
 ## MCP Tools
 
@@ -113,9 +119,13 @@ Create a governance work lane for the project.
 }
 ```
 
-### `upsert_steward_node`
+### `upsert_governance_node`
 
-Create or update a governance node within a lane. All non-key fields are optional.
+Create or update a governance node within a lane.
+
+**Create vs update semantics:**
+- On create (node does not exist): `state` is **required**. All other non-key fields are optional. Returns validation error if `state` is missing or `lane_id` does not reference an existing lane.
+- On update (node exists): all non-key fields are optional; omitted fields retain their current value. `state` may be omitted to keep the current state.
 
 ```json
 // Params
@@ -123,11 +133,11 @@ Create or update a governance node within a lane. All non-key fields are optiona
   "id": "mystocks",
   "lane_id": "service-lifecycle-di",
   "node_id": "G2.46",
-  "state": "evidence-prepared",
+  "state": "evidence-prepared",           // required on create; optional on update
   "summary": "Found 8 singleton candidates, 3 with route dependencies",
   "evidence_refs": ["docs/reports/quality/candidates.md"],
   "artifact_refs": [".planning/codebase/generated/candidates.json"],
-  "git_head": "abc1234",
+  "reported_git_head": "abc1234",
   "suggested_next": "Classify each candidate by ownership type before authorizing implementation",
   "forbidden_scope": ["backend source", "tests", "compatibility getter retirement"],
   "external_anchors": { "pr": "#186", "issue": "#79" }
@@ -190,7 +200,7 @@ Read governance state for a project. Optionally filter by lane, specific node, o
 }
 ```
 
-`observation_hints` is automatically derived from existing OPENDOG evidence (snapshot freshness, verification status, stats, data-risk). This is the core integration value: governance state and observation evidence presented together.
+`observation_hints` is automatically derived from existing OPENDOG project-level evidence (snapshot freshness, verification status, total unused files, total data-risk candidates). These are **project-level totals**, not scoped to the governance node's semantic `forbidden_scope` — OPENDOG does not interpret semantic scope strings into query filters.
 
 ### `close_governance_lane`
 
@@ -253,8 +263,8 @@ The existing `get_guidance` response gains an 8th layer. The 7 existing layers (
           "observation_cross_reference": {
             "snapshot_freshness": "fresh",
             "verification_status": "passed",
-            "unused_files_in_scope": 12,
-            "data_risk_candidates": 8
+            "unused_files_total": 12,
+            "data_risk_candidates_total": 8
           }
         }
       ],
@@ -273,7 +283,7 @@ The existing `get_guidance` response gains an 8th layer. The 7 existing layers (
 
 | Rule | Reason |
 |---|---|
-| `observation_cross_reference` is auto-generated | Extracted from existing snapshot freshness, verification status, stats, data-risk — projects do not fill this in |
+| `observation_cross_reference` uses project-level totals | Fields are `unused_files_total` and `data_risk_candidates_total` — OPENDOG does not interpret `forbidden_scope` semantics into query filters |
 | Projects without governance state | `has_governance_state: false`, `project_governance` is empty array — no impact on existing guidance consumers |
 | `forbidden_scope` passed through verbatim | OPENDOG does not interpret or enforce it — just presents it to AI agents |
 | Only in `detail=summary` mode | `detail=decision` mode is unchanged, keeping the decision brief compact |
@@ -304,7 +314,7 @@ opendog governance upsert-node \
   --summary "Found 8 singleton candidates" \
   [--evidence-refs '["docs/reports/x.md"]'] \
   [--artifact-refs '["generated/x.json"]'] \
-  [--git-head abc1234] \
+  [--reported-git-head abc1234] \
   [--suggested-next "Classify each candidate"] \
   [--forbidden-scope '["backend source","tests"]'] \
   [--external-anchors '{"pr":"#186"}'] \
@@ -352,14 +362,22 @@ opendog governance close-lane \
 
 ## FT-* Mapping
 
-New L3 leaf under existing FT-03:
+New L2 module + L3 leaf under existing FT-03, following the tree structure where FT-03.01..08 are L2 with L3 children:
 
 ```yaml
 - id: FT-03.09
   title: Governance State Observation
-  level: L3
+  level: L2
   parent: FT-03
   lifecycle: designing
+  summary: Record, read, and cross-reference project governance work state with OPENDOG observation evidence.
+
+- id: FT-03.09.01
+  title: Store and surface governance lanes and nodes
+  level: L3
+  parent: FT-03.09
+  lifecycle: designing
+  requirement_ranges: [GOV-01..08]
   summary: >
     Let projects record and read their own governance work state
     (lanes and nodes), then cross-reference it with OPENDOG's
@@ -371,6 +389,19 @@ Placed under FT-03 rather than a new FT-04 because:
 - FT-03 is already defined as "AI Decision Support and Governance"
 - Governance state observation is a form of decision support
 - Does not warrant a new L1 domain
+
+## Contracts
+
+4 new versioned contract IDs in `src/contracts.rs`, following the existing `MCP_*_V1` pattern:
+
+| Tool | Contract ID |
+|---|---|
+| `create_governance_lane` | `MCP_CREATE_GOVERNANCE_LANE_V1` |
+| `upsert_governance_node` | `MCP_UPSERT_GOVERNANCE_NODE_V1` |
+| `get_governance_state` | `MCP_GET_GOVERNANCE_STATE_V1` |
+| `close_governance_lane` | `MCP_CLOSE_GOVERNANCE_LANE_V1` |
+
+All responses use the existing success envelope `{ "status": "ok", "data": { ... } }`. Errors use `{ "status": "error", "message": "..." }`. CLI `--json` output mirrors the MCP response shape. New contract sections will be added to `docs/json-contracts.md` and `docs/mcp-tool-reference.md`.
 
 ## Code Impact
 
@@ -392,7 +423,11 @@ Placed under FT-03 rather than a new FT-04 because:
 | `src/contracts.rs` | Modify (+4 contract IDs) | +8 |
 | `src/cli/mod.rs` | Modify (+governance subcommands) | +120 |
 | `tests/integration_test/cli_governance.rs` | **New** | ~350 |
-| **Total** | **7 new + 8 modified** | **~2,100 lines** |
+| `FUNCTION_TREE.md` | Modify (+FT-03.09 L2 + FT-03.09.01 L3) | +15 |
+| `.planning/REQUIREMENTS.md` | Modify (+GOV-01..08 section) | +80 |
+| `docs/json-contracts.md` | Modify (+4 contract sections) | +60 |
+| `docs/mcp-tool-reference.md` | Modify (+4 tool references) | +80 |
+| **Total** | **7 new + 12 modified** | **~2,335 lines** |
 
 ### Scale Impact
 
