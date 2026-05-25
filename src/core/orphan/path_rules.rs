@@ -89,3 +89,68 @@ pub(super) fn now_unix_secs() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn normalize_path_converts_backslashes() {
+        assert_eq!(normalize_path(r"src\foo\bar.rs"), "src/foo/bar.rs");
+    }
+
+    #[test]
+    fn relative_path_strips_root() {
+        let root = Path::new("/project");
+        let file = Path::new("/project/src/main.rs");
+        assert_eq!(relative_path(root, file), Some("src/main.rs".to_string()));
+    }
+
+    #[test]
+    fn relative_path_returns_none_for_outside() {
+        let root = Path::new("/project");
+        let file = Path::new("/other/main.rs");
+        assert!(relative_path(root, file).is_none());
+    }
+
+    #[test]
+    fn is_docs_path_matches_docs_and_planning() {
+        assert!(is_docs_path("docs/guide.md"));
+        assert!(is_docs_path(".planning/ROADMAP.md"));
+        assert!(is_docs_path("README.md"));
+        assert!(is_docs_path("SPEC.md"));
+        assert!(!is_docs_path("src/main.rs"));
+    }
+
+    #[test]
+    fn is_entrypoint_file_matches_makefile_docker_ci() {
+        assert!(is_entrypoint_file("Makefile"));
+        assert!(is_entrypoint_file("Dockerfile"));
+        assert!(is_entrypoint_file(".github/workflows/ci.yml"));
+        assert!(is_entrypoint_file("scripts/deploy.sh"));
+        assert!(is_entrypoint_file("docker-compose.yml"));
+        assert!(is_entrypoint_file("app.service"));
+        assert!(!is_entrypoint_file("src/main.rs"));
+    }
+
+    #[test]
+    fn is_docs_or_ownership_file_matches_owners_and_docs() {
+        assert!(is_docs_or_ownership_file("OWNERS"));
+        assert!(is_docs_or_ownership_file("CODEOWNERS"));
+        assert!(is_docs_or_ownership_file("src/OWNERS"));
+        assert!(is_docs_or_ownership_file("docs/guide.md"));
+        assert!(is_docs_or_ownership_file("openspec/v1.md"));
+        assert!(!is_docs_or_ownership_file("src/lib.rs"));
+    }
+
+    #[test]
+    fn is_frontend_source_file_matches_ts_js_vue() {
+        assert!(is_frontend_source_file("src/App.tsx"));
+        assert!(is_frontend_source_file("web/index.js"));
+        assert!(is_frontend_source_file("frontend/View.vue"));
+        assert!(is_frontend_source_file("app/main.svelte"));
+        assert!(!is_frontend_source_file("src/util.rs"));
+        assert!(!is_frontend_source_file("src/styles.css"));
+    }
+}

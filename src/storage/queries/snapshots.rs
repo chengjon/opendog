@@ -131,3 +131,85 @@ pub fn count_snapshot(db: &Database) -> Result<i64> {
 pub fn get_snapshot_paths(db: &Database) -> Result<Vec<String>> {
     db.prepare_and_query("SELECT path FROM snapshot", params![], |row| row.get(0))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::database::Database;
+
+    fn test_db() -> Database {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("snapshots_test.db");
+        let db = Database::open_project(&db_path).unwrap();
+        Box::leak(Box::new(dir));
+        db
+    }
+
+    fn entry(path: &str, size: i64) -> SnapshotEntry {
+        SnapshotEntry {
+            path: path.to_string(),
+            size,
+            mtime: 1,
+            file_type: "rs".to_string(),
+            scan_timestamp: "1000".to_string(),
+        }
+    }
+
+    #[test]
+    fn insert_batch_and_query() {
+        let db = test_db();
+        let count = insert_snapshot_batch(&db, &[entry("a.rs", 10), entry("b.rs", 20)]).unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(count_snapshot(&db).unwrap(), 2);
+        let paths = get_snapshot_paths(&db).unwrap();
+        assert_eq!(paths, vec!["a.rs", "b.rs"]);
+    }
+
+    #[test]
+    fn insert_batch_replaces_existing() {
+        let db = test_db();
+        insert_snapshot_batch(&db, &[entry("a.rs", 10)]).unwrap();
+        insert_snapshot_batch(&db, &[entry("a.rs", 99)]).unwrap();
+        assert_eq!(count_snapshot(&db).unwrap(), 1);
+    }
+
+    #[test]
+    fn insert_history_and_query_runs() {
+        let db = test_db();
+        let run1 = insert_snapshot_history(&db, "100", &[entry("x.rs", 5)]).unwrap();
+        let run2 = insert_snapshot_history(&db, "200", &[entry("y.rs", 6), entry("z.rs", 7)]).unwrap();
+        assert_ne!(run1.id, run2.id);
+        assert_eq!(run1.file_count, 1);
+        assert_eq!(run2.file_count, 2);
+
+        // List runs ordered by captured_at DESC
+        let runs = list_snapshot_runs(&db, 10).unwrap();
+        assert_eq!(runs.len(), 2);
+        assert_eq!(runs[0].id, run2.id);
+        assert_eq!(runs[1].id, run1.id);
+    }
+
+    #[test]
+    fn get_snapshot_run_found_and_missing() {
+        let db = test_db();
+        let run = insert_snapshot_history(&db, "300", &[entry("w.rs", 1)]).unwrap();
+        let found = get_snapshot_run(&db, run.id).unwrap().unwrap();
+        assert_eq!(found.captured_at, "300");
+        assert!(get_snapshot_run(&db, 99999).unwrap().is_none());
+    }
+
+    #[test]
+    fn get_history_entries_for_run() {
+        let db = test_db();
+        let run = insert_snapshot_history(
+            &db,
+            "400",
+            &[entry("p.rs", 1), entry("q.rs", 2)],
+        )
+        .unwrap();
+        let entries = get_snapshot_history_entries(&db, run.id).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].path, "p.rs"); // ORDER BY path
+        assert_eq!(entries[1].path, "q.rs");
+    }
+}
