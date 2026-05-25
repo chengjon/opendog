@@ -90,4 +90,35 @@ mod tests {
         assert!(err.to_string().contains("detail must be one of: summary, decision"));
         assert!(err.to_string().contains("detailed"));
     }
+
+    #[test]
+    fn parse_guidance_detail_none_returns_summary() {
+        let result = parse_guidance_detail(None).unwrap();
+        assert!(matches!(result, GuidanceDetail::Summary));
+    }
+
+    #[test]
+    fn parse_guidance_detail_explicit_summary_returns_summary() {
+        let result = parse_guidance_detail(Some("summary")).unwrap();
+        assert!(matches!(result, GuidanceDetail::Summary));
+    }
+
+    #[test]
+    fn parse_guidance_detail_decision_returns_decision() {
+        let result = parse_guidance_detail(Some("decision")).unwrap();
+        assert!(matches!(result, GuidanceDetail::Decision));
+    }
+
+    #[test]
+    fn parse_guidance_detail_invalid_string_returns_error() {
+        let err = parse_guidance_detail(Some("invalid")).unwrap_err();
+        assert!(err.to_string().contains("detail must be one of"));
+        assert!(err.to_string().contains("invalid"));
+    }
+
+    #[test]
+    fn parse_guidance_detail_empty_string_returns_error() {
+        let err = parse_guidance_detail(Some("")).unwrap_err();
+        assert!(err.to_string().contains("detail must be one of"));
+    }
 }
