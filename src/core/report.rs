@@ -128,7 +128,7 @@ pub struct SnapshotComparison {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TrendBucket {
-    pub bucket_start: String,
+    pub bucket_start: i64,
     pub access_count: i64,
     pub modification_count: i64,
 }

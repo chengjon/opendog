@@ -58,7 +58,7 @@ pub fn get_usage_trend_report_at(
         if let Some(bucket) = entry
             .buckets
             .iter_mut()
-            .find(|bucket| bucket.bucket_start == bucket_start.to_string())
+            .find(|bucket| bucket.bucket_start == bucket_start)
         {
             bucket.access_count = access_count;
         }
@@ -78,7 +78,7 @@ pub fn get_usage_trend_report_at(
         if let Some(bucket) = entry
             .buckets
             .iter_mut()
-            .find(|bucket| bucket.bucket_start == bucket_start.to_string())
+            .find(|bucket| bucket.bucket_start == bucket_start)
         {
             bucket.modification_count = modification_count;
         }
@@ -160,7 +160,7 @@ fn bucket_counts(
 fn build_empty_buckets(start_ts: i64, bucket_count: usize, bucket_size: i64) -> Vec<TrendBucket> {
     (0..bucket_count)
         .map(|index| TrendBucket {
-            bucket_start: (start_ts + index as i64 * bucket_size).to_string(),
+            bucket_start: start_ts + index as i64 * bucket_size,
             access_count: 0,
             modification_count: 0,
         })
@@ -170,7 +170,7 @@ fn build_empty_buckets(start_ts: i64, bucket_count: usize, bucket_size: i64) -> 
 fn bucket_access_count(buckets: &[TrendBucket], bucket_start: i64) -> i64 {
     buckets
         .iter()
-        .find(|bucket| bucket.bucket_start == bucket_start.to_string())
+        .find(|bucket| bucket.bucket_start == bucket_start)
         .map(|bucket| bucket.access_count)
         .unwrap_or(0)
 }
