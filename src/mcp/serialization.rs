@@ -37,4 +37,18 @@ mod tests {
             .as_str()
             .is_some_and(|error| error.contains("forced serialization failure")));
     }
+
+    #[test]
+    fn to_value_or_error_returns_json_on_success() {
+        #[derive(serde::Serialize)]
+        struct Simple {
+            name: String,
+            value: i64,
+        }
+        let input = Simple { name: "test".into(), value: 42 };
+        let result = to_value_or_error("Simple", input);
+        assert_eq!(result["name"], "test");
+        assert_eq!(result["value"], 42);
+        assert!(!result.as_object().unwrap().contains_key("status"));
+    }
 }
