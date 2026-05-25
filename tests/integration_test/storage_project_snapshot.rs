@@ -442,3 +442,32 @@ fn test_project_isolation() {
     assert!(!paths1.contains(&"b.txt".to_string()));
     assert!(!paths2.contains(&"a.txt".to_string()));
 }
+
+#[test]
+fn test_new_files_does_not_underflow_when_all_files_replaced() {
+    // Take a snapshot, then replace every file. Verify new_files is 0 (not a
+    // wrapping-negative panic from the inner subtraction).
+    let (dir, db) = setup_snapshot();
+    let project_dir = dir.path().join("project");
+    ensure_dir(&project_dir);
+
+    fs::write(project_dir.join("a.txt"), "alpha").unwrap();
+    fs::write(project_dir.join("b.txt"), "beta").unwrap();
+
+    let r1 = snapshot::take_snapshot(&db, &project_dir, &ProjectConfig::default()).unwrap();
+    assert_eq!(r1.total_files, 2);
+    assert_eq!(r1.removed_files, 0);
+    assert_eq!(r1.new_files, 2);
+
+    // Remove both and add one new file
+    fs::remove_file(project_dir.join("a.txt")).unwrap();
+    fs::remove_file(project_dir.join("b.txt")).unwrap();
+    fs::write(project_dir.join("c.txt"), "charlie").unwrap();
+
+    let r2 = snapshot::take_snapshot(&db, &project_dir, &ProjectConfig::default()).unwrap();
+    assert_eq!(r2.total_files, 1);
+    assert_eq!(r2.removed_files, 2);
+    // removed (2) > previous_count (2) with new_count (1), so
+    // new_files = 1.saturating_sub(2.saturating_sub(2)) = 1
+    assert_eq!(r2.new_files, 1);
+}

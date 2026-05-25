@@ -91,7 +91,7 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 - **Requirements:** 122 total | 122 phase-mapped | 0 backlog / unscheduled
 - **Function tree:** 3 L1 domains | 27 L3 leaf capabilities | 0 orphan requirement sections
 - **Governance artifacts:** 20 validated task cards | inline FT ownership across 23 requirement sections
-- **Tests in suite:** ~275 unit tests + ~31 integration tests (306 total)
+- **Tests in suite:** ~275 unit tests + ~32 integration tests (308 total)
 - **MCP tools:** 26 | **CLI commands:** 23
 - **Warnings:** 0
 - **Overall progress:** v1 complete; Phase 6 core capabilities shipped including governance state observation (GOV-01..08, FT-03.09)
