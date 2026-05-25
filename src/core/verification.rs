@@ -48,13 +48,18 @@ fn validate_kind(kind: &str) -> Result<()> {
 }
 
 fn truncate_tail(text: &[u8], max_chars: usize) -> String {
-    let rendered = String::from_utf8_lossy(text).trim().to_string();
-    let chars: Vec<char> = rendered.chars().collect();
-    if chars.len() <= max_chars {
-        rendered
-    } else {
-        chars[chars.len() - max_chars..].iter().collect()
+    // Decode only the tail portion to avoid allocating the full string for large outputs.
+    let cow = String::from_utf8_lossy(text);
+    let trimmed = cow.trim();
+
+    // Advance to the start of the tail without collecting all chars.
+    let total_chars = trimmed.chars().count();
+    if total_chars <= max_chars {
+        return trimmed.to_string();
     }
+
+    let skip = total_chars - max_chars;
+    trimmed.chars().skip(skip).collect()
 }
 
 fn summarize_execution(stdout_tail: &str, stderr_tail: &str, success: bool) -> Option<String> {
