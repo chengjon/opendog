@@ -2,7 +2,7 @@
 
 **Created:** 2026-04-24
 **Phases:** 6
-**Requirements:** 114 total | 114 phase-mapped | 0 backlog
+**Requirements:** 122 total | 122 phase-mapped | 0 backlog
 **Capability anchor:** `FUNCTION_TREE.md`
 **Mode:** YOLO | Standard granularity | Parallel execution
 

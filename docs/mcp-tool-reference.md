@@ -27,19 +27,7 @@ Current inventory note:
 - operator mutations, export artifacts, and retained-evidence cleanup intentionally live on the CLI surface
 - versioned contract style and stability guidance are documented separately in `docs/json-contracts.md`
 
-Capability clusters covered here:
-
-- baseline control and observation: project creation, snapshotting, monitor lifecycle, stats, unused files, project listing, deletion
-- configuration inspection: global/project config inspection and effective runtime visibility
-- observation and usage evidence: stats, unused files, time windows, snapshot comparison, usage trends
-- decision-support: merged guidance, workspace and project review prioritization
-- storage-maintenance signals: guidance may recommend CLI cleanup flows when retained evidence grows
-- verification and data-risk review: verification status/record/execute plus mock/hardcoded-data review
-- runtime coordination: daemon-backed state reuse through the local control plane when available
-
 ## Recommended First Stops
-
-Most AI clients should not read this file top-to-bottom in storage/setup order.
 
 Start from the tool that matches the decision you need now, then drill into lower-level setup or control tools only when necessary.
 

@@ -486,6 +486,7 @@ nodes:
     parent: FT-03.09
     lifecycle: shipped
     requirement_ranges: [GOV-01..08]
+    roadmap_phases: [6]
     summary: >
       Let projects record and read their own governance work state
       (lanes and nodes), then cross-reference it with OPENDOG's

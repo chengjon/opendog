@@ -1,3 +1,5 @@
+use clap::Subcommand;
+
 use crate::contracts::{
     versioned_project_payload, CLI_CLOSE_GOVERNANCE_LANE_V1, CLI_CREATE_GOVERNANCE_LANE_V1,
     CLI_GET_GOVERNANCE_STATE_V1, CLI_UPSERT_GOVERNANCE_NODE_V1,
@@ -8,6 +10,74 @@ use crate::core::governance::{
 use crate::core::project::ProjectManager;
 use crate::error::OpenDogError;
 use super::output;
+
+#[derive(Subcommand)]
+pub(super) enum GovernanceCommand {
+    /// Create a new governance lane
+    CreateLane {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        title: String,
+        #[arg(long)]
+        description: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Insert or update a governance node
+    UpsertNode {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        node_id: String,
+        #[arg(long)]
+        state: Option<String>,
+        #[arg(long)]
+        summary: Option<String>,
+        #[arg(long)]
+        evidence_refs: Option<String>,
+        #[arg(long)]
+        artifact_refs: Option<String>,
+        #[arg(long)]
+        reported_git_head: Option<String>,
+        #[arg(long)]
+        suggested_next: Option<String>,
+        #[arg(long)]
+        forbidden_scope: Option<String>,
+        #[arg(long)]
+        external_anchors: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show governance state for a project
+    Show {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: Option<String>,
+        #[arg(long)]
+        node_id: Option<String>,
+        #[arg(long)]
+        active_only: Option<bool>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Close a governance lane (complete, defer, or delete)
+    CloseLane {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long)]
+        lane_id: String,
+        #[arg(long)]
+        action: String,
+        #[arg(long)]
+        json: bool,
+    },
+}
 
 pub(super) fn cmd_create_lane(pm: &ProjectManager, id: &str, input: CreateLaneInput, json_output: bool) -> Result<(), OpenDogError> {
     let db = pm.open_project_db(id)?;

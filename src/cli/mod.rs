@@ -12,79 +12,12 @@ use crate::core::project::ProjectManager;
 use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
 use crate::error::OpenDogError;
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
 use self::config_commands::{cmd_config, ConfigCommand};
+use self::governance_commands::GovernanceCommand;
 use self::report_commands::{cmd_report, ReportCommand};
 use self::self_update_commands::{cmd_self_update, SelfUpdateCommand};
-
-#[derive(Subcommand)]
-enum GovernanceCommand {
-    /// Create a new governance lane
-    CreateLane {
-        #[arg(short, long)]
-        id: String,
-        #[arg(long)]
-        lane_id: String,
-        #[arg(long)]
-        title: String,
-        #[arg(long)]
-        description: Option<String>,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Insert or update a governance node
-    UpsertNode {
-        #[arg(short, long)]
-        id: String,
-        #[arg(long)]
-        lane_id: String,
-        #[arg(long)]
-        node_id: String,
-        #[arg(long)]
-        state: Option<String>,
-        #[arg(long)]
-        summary: Option<String>,
-        #[arg(long)]
-        evidence_refs: Option<String>,
-        #[arg(long)]
-        artifact_refs: Option<String>,
-        #[arg(long)]
-        reported_git_head: Option<String>,
-        #[arg(long)]
-        suggested_next: Option<String>,
-        #[arg(long)]
-        forbidden_scope: Option<String>,
-        #[arg(long)]
-        external_anchors: Option<String>,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Show governance state for a project
-    Show {
-        #[arg(short, long)]
-        id: String,
-        #[arg(long)]
-        lane_id: Option<String>,
-        #[arg(long)]
-        node_id: Option<String>,
-        #[arg(long)]
-        active_only: Option<bool>,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Close a governance lane (complete, defer, or delete)
-    CloseLane {
-        #[arg(short, long)]
-        id: String,
-        #[arg(long)]
-        lane_id: String,
-        #[arg(long)]
-        action: String,
-        #[arg(long)]
-        json: bool,
-    },
-}
 
 #[derive(Parser)]
 #[command(

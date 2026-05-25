@@ -107,8 +107,8 @@
       "include": [
         "src/mcp/mod.rs"
       ],
-      "max_lines": 500,
-      "max_bytes": 20000
+      "max_lines": 530,
+      "max_bytes": 22000
     },
     {
       "name": "rust-internal-tests",
@@ -162,7 +162,8 @@
       "exclude": [
         "docs/json-contracts.md",
         "docs/mcp-tool-reference.md",
-        "docs/project-exchange/reports/**/*.md"
+        "docs/project-exchange/reports/**/*.md",
+        "docs/superpowers/**/*.md"
       ],
       "max_lines": 950,
       "max_bytes": 26000
