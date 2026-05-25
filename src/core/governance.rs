@@ -685,4 +685,335 @@ mod tests {
             .unwrap();
         assert_eq!(lane.status, "deferred");
     }
+
+    // -----------------------------------------------------------------------
+    // New integration tests
+    // -----------------------------------------------------------------------
+
+    /// A: get_governance_state with active_only=true filters closed nodes and lanes.
+    #[test]
+    fn get_state_active_only_filters_closed_nodes_and_lanes() {
+        let db = test_db();
+
+        // Create lane with two nodes: one open, one to be closed.
+        create_lane(
+            &db,
+            CreateLaneInput {
+                lane_id: "lane-ao".to_string(),
+                title: "Active-only test".to_string(),
+                description: None,
+            },
+        )
+        .unwrap();
+
+        upsert_node(
+            &db,
+            UpsertNodeInput {
+                node_id: "node-open".to_string(),
+                lane_id: "lane-ao".to_string(),
+                state: Some("open".to_string()),
+                summary: None,
+                evidence_refs: None,
+                artifact_refs: None,
+                reported_git_head: None,
+                suggested_next: None,
+                forbidden_scope: None,
+                external_anchors: None,
+            },
+        )
+        .unwrap();
+
+        upsert_node(
+            &db,
+            UpsertNodeInput {
+                node_id: "node-closed".to_string(),
+                lane_id: "lane-ao".to_string(),
+                state: Some("open".to_string()),
+                summary: None,
+                evidence_refs: None,
+                artifact_refs: None,
+                reported_git_head: None,
+                suggested_next: None,
+                forbidden_scope: None,
+                external_anchors: None,
+            },
+        )
+        .unwrap();
+
+        // Close one node.
+        upsert_node(
+            &db,
+            UpsertNodeInput {
+                node_id: "node-closed".to_string(),
+                lane_id: "lane-ao".to_string(),
+                state: Some("closed".to_string()),
+                summary: None,
+                evidence_refs: None,
+                artifact_refs: None,
+                reported_git_head: None,
+                suggested_next: None,
+                forbidden_scope: None,
+                external_anchors: None,
+            },
+        )
+        .unwrap();
+
+        // active_only should exclude the closed node.
+        let state = get_governance_state(
+            &db,
+            GetGovernanceStateInput {
+                lane_id: None,
+                node_id: None,
+                active_only: Some(true),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            state.nodes.len(),
+            1,
+            "active_only should filter out closed node"
+        );
+        assert_eq!(state.nodes[0].node_id, "node-open");
+        assert_eq!(state.lanes.len(), 1, "lane is still active");
+
+        // Now close the lane.
+        close_lane(
+            &db,
+            CloseLaneInput {
+                lane_id: "lane-ao".to_string(),
+                action: "complete".to_string(),
+            },
+        )
+        .unwrap();
+
+        // active_only should now also filter out the completed lane.
+        let state = get_governance_state(
+            &db,
+            GetGovernanceStateInput {
+                lane_id: None,
+                node_id: None,
+                active_only: Some(true),
+            },
+        )
+        .unwrap();
+        assert!(
+            state.lanes.is_empty(),
+            "completed lane should be filtered out when active_only=true"
+        );
+    }
+
+    /// B: get_governance_state with no filters returns all lanes and nodes.
+    #[test]
+    fn get_state_no_filters_returns_all() {
+        let db = test_db();
+
+        // Create two lanes with multiple nodes each.
+        for lane_idx in 1..=2 {
+            create_lane(
+                &db,
+                CreateLaneInput {
+                    lane_id: format!("lane-multi-{}", lane_idx),
+                    title: format!("Multi lane {}", lane_idx),
+                    description: None,
+                },
+            )
+            .unwrap();
+
+            for node_idx in 1..=3 {
+                upsert_node(
+                    &db,
+                    UpsertNodeInput {
+                        node_id: format!("node-l{}-n{}", lane_idx, node_idx),
+                        lane_id: format!("lane-multi-{}", lane_idx),
+                        state: Some("open".to_string()),
+                        summary: None,
+                        evidence_refs: None,
+                        artifact_refs: None,
+                        reported_git_head: None,
+                        suggested_next: None,
+                        forbidden_scope: None,
+                        external_anchors: None,
+                    },
+                )
+                .unwrap();
+            }
+        }
+
+        let state = get_governance_state(
+            &db,
+            GetGovernanceStateInput {
+                lane_id: None,
+                node_id: None,
+                active_only: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(state.lanes.len(), 2, "should return all lanes");
+        assert_eq!(
+            state.nodes.len(),
+            6,
+            "should return all nodes across both lanes"
+        );
+    }
+
+    /// C: get_governance_state with node_id filter returns only that node.
+    #[test]
+    fn get_state_node_id_filter_returns_single_node() {
+        let db = test_db();
+
+        create_lane(
+            &db,
+            CreateLaneInput {
+                lane_id: "lane-nf".to_string(),
+                title: "Node filter test".to_string(),
+                description: None,
+            },
+        )
+        .unwrap();
+
+        for name in &["alpha", "beta", "gamma"] {
+            upsert_node(
+                &db,
+                UpsertNodeInput {
+                    node_id: format!("node-nf-{}", name),
+                    lane_id: "lane-nf".to_string(),
+                    state: Some("open".to_string()),
+                    summary: Some(format!("Node {}", name)),
+                    evidence_refs: None,
+                    artifact_refs: None,
+                    reported_git_head: None,
+                    suggested_next: None,
+                    forbidden_scope: None,
+                    external_anchors: None,
+                },
+            )
+            .unwrap();
+        }
+
+        let state = get_governance_state(
+            &db,
+            GetGovernanceStateInput {
+                lane_id: None,
+                node_id: Some("node-nf-beta".to_string()),
+                active_only: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(state.nodes.len(), 1, "should return only the filtered node");
+        assert_eq!(state.nodes[0].node_id, "node-nf-beta");
+        assert_eq!(
+            state.nodes[0].summary,
+            Some("Node beta".to_string())
+        );
+    }
+
+    /// D: close_lane on non-existent lane returns GovernanceLaneNotFound.
+    #[test]
+    fn close_lane_nonexistent_returns_not_found() {
+        let db = test_db();
+
+        let err = close_lane(
+            &db,
+            CloseLaneInput {
+                lane_id: "ghost-lane".to_string(),
+                action: "complete".to_string(),
+            },
+        )
+        .unwrap_err();
+
+        match err {
+            OpenDogError::GovernanceLaneNotFound(id) => {
+                assert_eq!(id, "ghost-lane");
+            }
+            other => panic!("expected GovernanceLaneNotFound, got {:?}", other),
+        }
+    }
+
+    /// E: compute_observation_hints coverage — seeds data and verifies hints.
+    #[test]
+    fn observation_hints_reflect_seeded_data() {
+        use crate::storage::queries::{insert_snapshot_batch, insert_verification_run, SnapshotEntry};
+
+        let db = test_db();
+
+        // Seed snapshot data so snapshot_freshness is "fresh".
+        insert_snapshot_batch(
+            &db,
+            &[SnapshotEntry {
+                path: "src/main.rs".to_string(),
+                size: 100,
+                mtime: 1,
+                file_type: "rs".to_string(),
+                scan_timestamp: "1000".to_string(),
+            }],
+        )
+        .unwrap();
+
+        // Seed a verification run so verification_status is "passed".
+        insert_verification_run(
+            &db,
+            &crate::storage::queries::NewVerificationRun {
+                kind: "test".to_string(),
+                status: "passed".to_string(),
+                command: "cargo test".to_string(),
+                exit_code: Some(0),
+                summary: None,
+                source: "test".to_string(),
+                started_at: None,
+                finished_at: "1000".to_string(),
+            },
+        )
+        .unwrap();
+
+        // Create a governance lane so the overall state has structure.
+        create_lane(
+            &db,
+            CreateLaneInput {
+                lane_id: "lane-hints".to_string(),
+                title: "Hints test".to_string(),
+                description: None,
+            },
+        )
+        .unwrap();
+
+        upsert_node(
+            &db,
+            UpsertNodeInput {
+                node_id: "node-hints".to_string(),
+                lane_id: "lane-hints".to_string(),
+                state: Some("open".to_string()),
+                summary: None,
+                evidence_refs: None,
+                artifact_refs: None,
+                reported_git_head: None,
+                suggested_next: None,
+                forbidden_scope: None,
+                external_anchors: None,
+            },
+        )
+        .unwrap();
+
+        let state = get_governance_state(
+            &db,
+            GetGovernanceStateInput {
+                lane_id: None,
+                node_id: None,
+                active_only: None,
+            },
+        )
+        .unwrap();
+
+        let hints = &state.observation_hints;
+        assert_eq!(hints.snapshot_freshness, "fresh");
+        assert_eq!(hints.verification_status, "passed");
+        // The snapshot entry has no matching file_stats row, so it counts as unused.
+        assert_eq!(hints.unused_files, 1, "one snapshot file with no file_stats");
+        assert_eq!(hints.data_risk_candidates, 0, "no data-risk cache seeded");
+
+        // Structural sanity: the lane and node are returned.
+        assert_eq!(state.lanes.len(), 1);
+        assert_eq!(state.nodes.len(), 1);
+    }
 }
