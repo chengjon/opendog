@@ -124,3 +124,121 @@ fn snapshot_run_info(run: SnapshotRunRecord) -> SnapshotRunInfo {
         file_count: run.file_count,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn history_map_empty_entries() {
+        let map = history_map(vec![]);
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn history_map_single_entry() {
+        let entries = vec![HistoricalSnapshotEntry {
+            path: "src/main.rs".to_string(),
+            size: 1024,
+            mtime: 1700000000,
+            file_type: "file".to_string(),
+        }];
+        let map = history_map(entries);
+        assert_eq!(map.len(), 1);
+        let version = &map["src/main.rs"];
+        assert_eq!(version.size, 1024);
+        assert_eq!(version.mtime, 1700000000);
+        assert_eq!(version.file_type, "file");
+    }
+
+    #[test]
+    fn history_map_multiple_entries() {
+        let entries = vec![
+            HistoricalSnapshotEntry {
+                path: "a.rs".to_string(),
+                size: 100,
+                mtime: 1,
+                file_type: "file".to_string(),
+            },
+            HistoricalSnapshotEntry {
+                path: "b.rs".to_string(),
+                size: 200,
+                mtime: 2,
+                file_type: "file".to_string(),
+            },
+        ];
+        let map = history_map(entries);
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key("a.rs"));
+        assert!(map.contains_key("b.rs"));
+    }
+
+    #[test]
+    fn history_map_last_entry_wins_on_duplicate_path() {
+        let entries = vec![
+            HistoricalSnapshotEntry {
+                path: "dup.rs".to_string(),
+                size: 10,
+                mtime: 1,
+                file_type: "file".to_string(),
+            },
+            HistoricalSnapshotEntry {
+                path: "dup.rs".to_string(),
+                size: 20,
+                mtime: 2,
+                file_type: "file".to_string(),
+            },
+        ];
+        let map = history_map(entries);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map["dup.rs"].size, 20);
+    }
+
+    #[test]
+    fn history_map_produces_sorted_keys() {
+        let entries = vec![
+            HistoricalSnapshotEntry {
+                path: "z.rs".to_string(),
+                size: 1,
+                mtime: 1,
+                file_type: "file".to_string(),
+            },
+            HistoricalSnapshotEntry {
+                path: "a.rs".to_string(),
+                size: 1,
+                mtime: 1,
+                file_type: "file".to_string(),
+            },
+        ];
+        let map = history_map(entries);
+        let keys: Vec<&String> = map.keys().collect();
+        assert_eq!(keys[0], "a.rs");
+        assert_eq!(keys[1], "z.rs");
+    }
+
+    #[test]
+    fn snapshot_run_info_converts_fields() {
+        let record = SnapshotRunRecord {
+            id: 42,
+            captured_at: "2025-01-01T00:00:00Z".to_string(),
+            file_count: 150,
+        };
+        let info = snapshot_run_info(record);
+        assert_eq!(info.run_id, 42);
+        assert_eq!(info.captured_at, "2025-01-01T00:00:00Z");
+        assert_eq!(info.file_count, 150);
+    }
+
+    #[test]
+    fn snapshot_run_info_preserves_zero_values() {
+        let record = SnapshotRunRecord {
+            id: 0,
+            captured_at: String::new(),
+            file_count: 0,
+        };
+        let info = snapshot_run_info(record);
+        assert_eq!(info.run_id, 0);
+        assert!(info.captured_at.is_empty());
+        assert_eq!(info.file_count, 0);
+    }
+}
