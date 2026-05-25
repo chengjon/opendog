@@ -361,4 +361,42 @@ mod tests {
             "expected missing-run error, got: {err}"
         );
     }
+
+    #[test]
+    fn time_window_empty_db_returns_zero_counts() {
+        let db = test_db();
+        let report =
+            get_time_window_report_at(&db, ReportWindow::Days7, 1_000_000, 10).unwrap();
+        assert_eq!(report.summary.total_sightings, 0);
+        assert_eq!(report.summary.unique_files_accessed, 0);
+        assert_eq!(report.files.len(), 0);
+    }
+
+    #[test]
+    fn time_window_single_file_at_exact_boundary() {
+        let db = test_db();
+        let end_ts = 2_000_000i64;
+        let start_ts = end_ts - 24 * 60 * 60 + 1; // window_bounds offset
+        // Insert exactly at start boundary — should be included
+        insert_sighting(&db, "boundary.rs", "codex", 1, start_ts);
+        let report =
+            get_time_window_report_at(&db, ReportWindow::Hours24, end_ts, 10).unwrap();
+        assert_eq!(report.summary.total_sightings, 1);
+    }
+
+    #[test]
+    fn usage_trend_empty_db_returns_empty_files() {
+        let db = test_db();
+        let report =
+            get_usage_trend_report_at(&db, ReportWindow::Days7, 1_000_000, 10).unwrap();
+        assert_eq!(report.summary.tracked_files, 0);
+        assert!(report.files.is_empty());
+    }
+
+    #[test]
+    fn window_bounds_calculates_correct_range() {
+        let (start, end) = window_bounds(ReportWindow::Hours24, 100_000);
+        assert_eq!(start, 100_000 - 24 * 60 * 60 + 1);
+        assert_eq!(end, 100_000);
+    }
 }
