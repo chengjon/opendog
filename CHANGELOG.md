@@ -31,6 +31,15 @@ All notable changes to OPENDOG are documented here.
 - Fixed ROADMAP requirement count (114→122) and added missing `roadmap_phases` to FT-03.09.01.
 - All 4 validation scripts pass: governance, structural hygiene, task cards, requirement mappings.
 
+### Fixed
+
+- Governance nodes query `get_governance_nodes` now correctly increments parameter index after the `node_id` WHERE branch (dormant bug — harmless now, would break with additional filters).
+- Added composite index `governance_nodes(lane_id, updated_at DESC)` covering the primary governance state query pattern.
+- Snapshot `new_files` calculation now uses `saturating_sub` for the inner subtraction to prevent panic/wrap when `removed > previous_count`.
+- Project config JSON parse failures in `get_project`/`list_projects` now log a warning instead of silently discarding malformed config.
+- Monitor lock acquisition uses atomic `create_new` to eliminate TOCTOU race between two concurrent `start_monitor` calls.
+- Verification output tail truncation no longer allocates the full string before trimming — streams only the needed tail portion.
+
 ## 2026-05-11
 
 ### Added
