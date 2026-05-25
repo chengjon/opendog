@@ -19,8 +19,7 @@ pub fn get_project(db: &Database, id: &str) -> Result<Option<ProjectInfo>> {
         params![id],
         |row| {
             let config_str: String = row.get(3)?;
-            let config =
-                normalize_project_overrides(serde_json::from_str(&config_str).unwrap_or_default());
+            let config = parse_config_or_warn(&config_str);
             Ok(ProjectInfo {
                 id: row.get(0)?,
                 root_path: Path::new(&row.get::<_, String>(1)?).to_path_buf(),
@@ -44,7 +43,7 @@ pub fn list_projects(db: &Database) -> Result<Vec<ProjectInfo>> {
         params![],
         |row| {
             let config_str: String = row.get(3)?;
-            let config = normalize_project_overrides(serde_json::from_str(&config_str).unwrap_or_default());
+            let config = parse_config_or_warn(&config_str);
             Ok(ProjectInfo {
                 id: row.get(0)?,
                 root_path: Path::new(&row.get::<_, String>(1)?).to_path_buf(),
@@ -55,6 +54,20 @@ pub fn list_projects(db: &Database) -> Result<Vec<ProjectInfo>> {
             })
         },
     )
+}
+
+fn parse_config_or_warn(config_str: &str) -> ProjectConfigOverrides {
+    match serde_json::from_str(config_str) {
+        Ok(overrides) => normalize_project_overrides(overrides),
+        Err(e) => {
+            tracing::warn!(
+                "malformed project config JSON ({}), falling back to defaults: {}",
+                e,
+                config_str.chars().take(80).collect::<String>()
+            );
+            ProjectConfigOverrides::default()
+        }
+    }
 }
 
 pub fn delete_project(db: &Database, id: &str) -> Result<bool> {

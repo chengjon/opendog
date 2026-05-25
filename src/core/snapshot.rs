@@ -31,7 +31,7 @@ pub fn take_snapshot(db: &Database, root: &Path, config: &ProjectConfig) -> Resu
     let new_count = entries.len();
     Ok(SnapshotResult {
         total_files: new_count,
-        new_files: new_count.saturating_sub(previous_count - removed),
+        new_files: new_count.saturating_sub(previous_count.saturating_sub(removed)),
         removed_files: removed,
     })
 }
