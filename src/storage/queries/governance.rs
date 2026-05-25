@@ -240,7 +240,7 @@ pub fn get_governance_nodes(
         sql.push_str(&format!(" AND node_id = ?{}", idx));
         let _ = idx;
     }
-    sql.push_str(" ORDER BY created_at");
+    sql.push_str(" ORDER BY updated_at DESC");
 
     if let Some(lid) = lane_id {
         param_values.push(Box::new(lid.to_string()));
