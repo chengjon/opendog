@@ -264,4 +264,18 @@ mod tests {
         assert_eq!(value["view"], "stats");
         assert_eq!(value["row_count"], 1);
     }
+
+    #[test]
+    fn export_view_parse_rejects_invalid_value() {
+        let err = ExportView::parse("html").unwrap_err();
+        assert!(err.to_string().contains("view must be one of: stats, unused, core"));
+        assert!(err.to_string().contains("html"));
+    }
+
+    #[test]
+    fn export_format_parse_rejects_invalid_value() {
+        let err = ExportFormat::parse("xml").unwrap_err();
+        assert!(err.to_string().contains("format must be one of: json, csv"));
+        assert!(err.to_string().contains("xml"));
+    }
 }

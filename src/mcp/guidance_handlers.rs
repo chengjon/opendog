@@ -10,7 +10,8 @@ use super::{
     MCP_DECISION_BRIEF_V1, MCP_GUIDANCE_V1,
 };
 
-enum GuidanceDetail {
+#[derive(Debug)]
+pub(super) enum GuidanceDetail {
     Summary,
     Decision,
 }
@@ -69,5 +70,24 @@ pub(super) fn handle_get_decision_brief(
     match svc.get_decision_brief(MCP_DECISION_BRIEF_V1, project_id.as_deref(), top) {
         Ok(payload) => Json(payload),
         Err(e) => error_json_for(MCP_DECISION_BRIEF_V1, project_id.as_deref(), &e),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_guidance_detail_accepts_valid_values() {
+        assert!(parse_guidance_detail(None).is_ok());
+        assert!(parse_guidance_detail(Some("summary")).is_ok());
+        assert!(parse_guidance_detail(Some("decision")).is_ok());
+    }
+
+    #[test]
+    fn parse_guidance_detail_rejects_invalid_value() {
+        let err = parse_guidance_detail(Some("detailed")).unwrap_err();
+        assert!(err.to_string().contains("detail must be one of: summary, decision"));
+        assert!(err.to_string().contains("detailed"));
     }
 }

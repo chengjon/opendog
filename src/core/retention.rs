@@ -314,4 +314,11 @@ mod tests {
 
         assert!(error.to_string().contains("vacuum"));
     }
+
+    #[test]
+    fn cleanup_scope_parse_rejects_invalid_value() {
+        let err = CleanupScope::parse("everything").unwrap_err();
+        assert!(err.to_string().contains("cleanup scope must be one of: activity, snapshots, verification, all"));
+        assert!(err.to_string().contains("everything"));
+    }
 }

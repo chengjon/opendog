@@ -626,4 +626,63 @@ mod tests {
         assert_eq!(nodes.len(), 2);
         assert_eq!(nodes[0].node_id, "node-a", "most recently updated node should be first");
     }
+
+    #[test]
+    fn close_lane_rejects_invalid_action() {
+        let db = test_db();
+        create_lane(
+            &db,
+            CreateLaneInput {
+                lane_id: "lane-bad-action".to_string(),
+                title: "Test".to_string(),
+                description: None,
+            },
+        )
+        .unwrap();
+
+        let err = close_lane(
+            &db,
+            CloseLaneInput {
+                lane_id: "lane-bad-action".to_string(),
+                action: "cancel".to_string(),
+            },
+        )
+        .unwrap_err();
+
+        match err {
+            OpenDogError::InvalidInput(msg) => {
+                assert!(msg.contains("invalid close action 'cancel'"));
+            }
+            other => panic!("expected InvalidInput, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn close_lane_defer_marks_deferred() {
+        let db = test_db();
+        create_lane(
+            &db,
+            CreateLaneInput {
+                lane_id: "lane-defer".to_string(),
+                title: "To defer".to_string(),
+                description: None,
+            },
+        )
+        .unwrap();
+
+        let (status, _count) = close_lane(
+            &db,
+            CloseLaneInput {
+                lane_id: "lane-defer".to_string(),
+                action: "defer".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(status, "deferred");
+        let lane = queries::get_governance_lane_by_id(&db, "lane-defer")
+            .unwrap()
+            .unwrap();
+        assert_eq!(lane.status, "deferred");
+    }
 }
