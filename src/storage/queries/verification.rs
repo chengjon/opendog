@@ -128,4 +128,65 @@ mod tests {
         let lint_run = runs.iter().find(|r| r.kind == "lint").unwrap();
         assert_eq!(lint_run.status, "passed");
     }
+
+    #[test]
+    fn empty_db_returns_empty_runs() {
+        let db = test_db();
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert!(runs.is_empty());
+    }
+
+    #[test]
+    fn insert_with_all_optional_fields() {
+        let db = test_db();
+        insert_verification_run(
+            &db,
+            &NewVerificationRun {
+                kind: "build".to_string(),
+                status: "passed".to_string(),
+                command: "cargo build".to_string(),
+                exit_code: Some(0),
+                summary: Some("all targets built".to_string()),
+                source: "mcp".to_string(),
+                started_at: Some("1000".to_string()),
+                finished_at: "2000".to_string(),
+            },
+        )
+        .unwrap();
+
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].exit_code, Some(0));
+        assert_eq!(runs[0].summary, Some("all targets built".to_string()));
+        assert_eq!(runs[0].source, "mcp");
+        assert_eq!(runs[0].started_at, Some("1000".to_string()));
+    }
+
+    #[test]
+    fn three_kinds_return_three_latest() {
+        let db = test_db();
+        insert_run(&db, "test", "passed", "cargo test", "1000");
+        insert_run(&db, "lint", "passed", "cargo clippy", "1100");
+        insert_run(&db, "build", "failed", "cargo build", "1200");
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert_eq!(runs.len(), 3);
+
+        let kinds: std::collections::HashSet<&str> = runs.iter().map(|r| r.kind.as_str()).collect();
+        assert!(kinds.contains("test"));
+        assert!(kinds.contains("lint"));
+        assert!(kinds.contains("build"));
+    }
+
+    #[test]
+    fn older_run_superseded_by_newer_for_same_kind() {
+        let db = test_db();
+        insert_run(&db, "test", "failed", "cargo test v1", "1000");
+        insert_run(&db, "test", "passed", "cargo test v2", "2000");
+        insert_run(&db, "test", "failed", "cargo test v3", "1500"); // middle timestamp
+
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].status, "passed"); // the one with finished_at=2000
+        assert_eq!(runs[0].command, "cargo test v2");
+    }
 }
