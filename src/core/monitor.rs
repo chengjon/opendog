@@ -242,17 +242,43 @@ fn acquire_monitor_lock(lock_path: &Path) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
 
-    if lock_path.exists() {
-        if let Ok(existing) = std::fs::read_to_string(lock_path) {
-            let pid = existing.trim();
-            if !pid.is_empty() && process_exists(pid) {
-                return Err(OpenDogError::MonitorAlreadyRunning(pid.to_string()));
+    // Atomic create-new: succeeds only if the file does not exist.
+    // This eliminates the TOCTOU race between checking existence and writing.
+    use std::fs::OpenOptions;
+    match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(lock_path)
+    {
+        Ok(mut f) => {
+            use std::io::Write;
+            let _ = f.write_all(std::process::id().to_string().as_bytes());
+            Ok(())
+        }
+        Err(_) => {
+            // File already exists — check if the owner process is still alive.
+            if let Ok(existing) = std::fs::read_to_string(lock_path) {
+                let pid = existing.trim();
+                if !pid.is_empty() && process_exists(pid) {
+                    return Err(OpenDogError::MonitorAlreadyRunning(pid.to_string()));
+                }
+            }
+            // Stale lock (owner gone). Remove and retry once.
+            let _ = std::fs::remove_file(lock_path);
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(lock_path)
+            {
+                Ok(mut f) => {
+                    use std::io::Write;
+                    let _ = f.write_all(std::process::id().to_string().as_bytes());
+                    Ok(())
+                }
+                Err(e) => Err(OpenDogError::Io(e)),
             }
         }
     }
-
-    std::fs::write(lock_path, std::process::id().to_string())?;
-    Ok(())
 }
 
 fn release_monitor_lock(lock_path: &Path) {
