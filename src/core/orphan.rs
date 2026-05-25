@@ -193,4 +193,96 @@ mod tests {
             .to_string()
             .contains("required_scanners cannot be empty"));
     }
+
+    #[test]
+    fn none_required_scanners_returns_defaults() {
+        let scanners = validate_required_scanners(None, &[]).unwrap();
+        assert!(!scanners.is_empty());
+        assert!(scanners.contains(&"candidate_collector".to_string()));
+    }
+
+    #[test]
+    fn unknown_scanner_name_is_rejected() {
+        let required = vec!["candidate_collector".to_string(), "fantasy_scanner".to_string()];
+        let error = validate_required_scanners(Some(&required), &[]).unwrap_err();
+        assert!(error.to_string().contains("unknown required scanner 'fantasy_scanner'"));
+    }
+
+    #[test]
+    fn deduplicates_repeated_scanner_names() {
+        let required = vec![
+            "candidate_collector".to_string(),
+            "candidate_collector".to_string(),
+        ];
+        let scanners = validate_required_scanners(Some(&required), &[]).unwrap();
+        assert_eq!(scanners.len(), 1);
+    }
+
+    #[test]
+    fn verify_deletion_plan_rejects_empty_targets() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = crate::config::ProjectConfig::default();
+        let err = verify_deletion_plan(
+            dir.path(),
+            &config,
+            DeletionPlanInput {
+                targets: vec![],
+                external_reports: vec![],
+                required_project_verification_commands: vec!["cargo test".to_string()],
+                max_age_secs: None,
+            },
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("targets cannot be empty"));
+    }
+
+    #[test]
+    fn verify_deletion_plan_flags_nonexistent_target_as_blocked() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = crate::config::ProjectConfig::default();
+        let subject = OrphanSubject {
+            subject_kind: OrphanSubjectKind::File,
+            subject: "nonexistent_file.rs".to_string(),
+            path: Some("nonexistent_file.rs".to_string()),
+            display_name: None,
+        };
+        let result = verify_deletion_plan(
+            dir.path(),
+            &config,
+            DeletionPlanInput {
+                targets: vec![subject],
+                external_reports: vec![ExternalScannerReport {
+                    scanner: "external_veto".to_string(),
+                    version: "1.0".to_string(),
+                    health: ScannerHealth::Passed,
+                    started_at: None,
+                    finished_at: None,
+                    evidence: vec![EvidenceSignal {
+                        source: "external_veto".to_string(),
+                        source_kind: "external".to_string(),
+                        signal_kind: "incoming_ref".to_string(),
+                        polarity: EvidencePolarity::Veto,
+                        confidence: 0.99,
+                        observed_at: None,
+                        subject: OrphanSubject {
+                            subject_kind: OrphanSubjectKind::File,
+                            subject: "nonexistent_file.rs".to_string(),
+                            path: Some("nonexistent_file.rs".to_string()),
+                            display_name: None,
+                        },
+                        detail: json!({"reason": "still referenced"}),
+                    }],
+                    warnings: vec![],
+                    errors: vec![],
+                }],
+                required_project_verification_commands: vec!["cargo test".to_string()],
+                max_age_secs: None,
+            },
+        )
+        .unwrap();
+
+        assert!(!result.safe_to_plan_deletion);
+        assert_eq!(result.status, "blocked");
+        assert!(!result.blocked_targets.is_empty());
+    }
 }

@@ -224,4 +224,60 @@ mod tests {
         assert_eq!(result.run.status, "passed");
         assert!(result.stdout_tail.contains("success-output"));
     }
+
+    #[test]
+    fn record_verification_rejects_invalid_kind() {
+        let db = test_db();
+        let err = record_verification_result(
+            &db,
+            RecordVerificationInput {
+                kind: "deploy".to_string(),
+                status: "passed".to_string(),
+                command: "true".to_string(),
+                exit_code: Some(0),
+                summary: None,
+                source: "mcp".to_string(),
+                started_at: None,
+            },
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err.to_string().contains("deploy"));
+    }
+
+    #[test]
+    fn execute_verification_rejects_invalid_kind() {
+        let db = test_db();
+        let dir = tempfile::tempdir().unwrap();
+        let err = execute_verification_command(
+            &db,
+            dir.path(),
+            ExecuteVerificationInput {
+                kind: "security".to_string(),
+                command: "true".to_string(),
+                source: "mcp".to_string(),
+            },
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+    }
+
+    #[test]
+    fn execute_verification_records_failure_status_on_nonzero_exit() {
+        let db = test_db();
+        let dir = tempfile::tempdir().unwrap();
+        let result = execute_verification_command(
+            &db,
+            dir.path(),
+            ExecuteVerificationInput {
+                kind: "lint".to_string(),
+                command: "exit 1".to_string(),
+                source: "mcp".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.run.status, "failed");
+        assert_eq!(result.run.exit_code, Some(1));
+    }
 }
