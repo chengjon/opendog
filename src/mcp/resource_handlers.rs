@@ -91,3 +91,79 @@ fn json_resource_result(uri: &str, value: &Value) -> Result<ReadResourceResult, 
     )
     .with_mime_type(JSON_MIME_TYPE)]))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // --- read_resource_kind ---
+
+    #[test]
+    fn resource_kind_projects_uri() {
+        assert_eq!(read_resource_kind("opendog://projects"), Some(ResourceKind::Projects));
+    }
+
+    #[test]
+    fn resource_kind_project_verification() {
+        let kind = read_resource_kind("opendog://project/my-app/verification").unwrap();
+        assert_eq!(kind, ResourceKind::ProjectVerification { id: "my-app".to_string() });
+    }
+
+    #[test]
+    fn resource_kind_project_verification_with_dashes() {
+        let kind = read_resource_kind("opendog://project/my-cool-app/verification").unwrap();
+        assert_eq!(kind, ResourceKind::ProjectVerification { id: "my-cool-app".to_string() });
+    }
+
+    #[test]
+    fn resource_kind_empty_id_rejected() {
+        assert_eq!(read_resource_kind("opendog://project//verification"), None);
+    }
+
+    #[test]
+    fn resource_kind_slash_in_id_rejected() {
+        assert_eq!(read_resource_kind("opendog://project/a/b/verification"), None);
+    }
+
+    #[test]
+    fn resource_kind_unknown_uri() {
+        assert_eq!(read_resource_kind("opendog://unknown"), None);
+        assert_eq!(read_resource_kind("http://example.com"), None);
+        assert_eq!(read_resource_kind(""), None);
+    }
+
+    #[test]
+    fn resource_kind_partial_verification_path() {
+        assert_eq!(read_resource_kind("opendog://project/demo/verify"), None);
+        assert_eq!(read_resource_kind("opendog://project/demo"), None);
+    }
+
+    // --- json_resource_result ---
+
+    #[test]
+    fn json_resource_result_ok() {
+        let value = json!({"status": "ok", "count": 42});
+        let result = json_resource_result("opendog://test", &value).unwrap();
+        assert_eq!(result.contents.len(), 1);
+        let content = &result.contents[0];
+        // The text field should be pretty-printed JSON
+        let text = match content {
+            ResourceContents::TextResourceContents { text, .. } => text,
+            other => panic!("expected TextResourceContents, got {:?}", other),
+        };
+        assert!(text.contains("\"status\": \"ok\""));
+        assert!(text.contains("\"count\": 42"));
+    }
+
+    #[test]
+    fn json_resource_result_preserves_uri() {
+        let value = json!({});
+        let result = json_resource_result("opendog://projects", &value).unwrap();
+        let (uri, text_content) = match &result.contents[0] {
+            ResourceContents::TextResourceContents { uri, text, .. } => (uri.clone(), text.clone()),
+            other => panic!("expected TextResourceContents, got {:?}", other),
+        };
+        assert_eq!(uri, "opendog://projects");
+    }
+}

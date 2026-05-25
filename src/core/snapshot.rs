@@ -136,3 +136,69 @@ fn now_iso() -> String {
         .unwrap_or_default();
     format!("{}", now.as_secs())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::ProjectConfig;
+
+    #[test]
+    fn now_iso_returns_unix_timestamp_string() {
+        let result = now_iso();
+        // Should be a non-empty string of digits (unix epoch seconds)
+        assert!(!result.is_empty());
+        assert!(result.chars().all(|c| c.is_ascii_digit()));
+        let secs: u64 = result.parse().expect("now_iso should return a valid number");
+        // Sanity: should be after year 2020 (~1577836800) and before year 2100 (~4102444800)
+        assert!(secs > 1_577_836_800);
+        assert!(secs < 4_102_444_800);
+    }
+
+    #[test]
+    fn should_ignore_matches_configured_pattern() {
+        let config = ProjectConfig {
+            ignore_patterns: vec!["node_modules".to_string(), "*.pyc".to_string()],
+            process_whitelist: vec![],
+        };
+        assert!(should_ignore("src/node_modules/pkg/index.js", &config));
+        assert!(should_ignore("build/output.pyc", &config));
+    }
+
+    #[test]
+    fn should_ignore_does_not_match_unconfigured_path() {
+        let config = ProjectConfig {
+            ignore_patterns: vec!["node_modules".to_string()],
+            process_whitelist: vec![],
+        };
+        assert!(!should_ignore("src/main.rs", &config));
+        assert!(!should_ignore("lib/core/mod.rs", &config));
+    }
+
+    #[test]
+    fn should_ignore_with_empty_patterns_matches_nothing() {
+        let config = ProjectConfig {
+            ignore_patterns: vec![],
+            process_whitelist: vec![],
+        };
+        assert!(!should_ignore("any/path.rs", &config));
+    }
+
+    #[test]
+    fn should_ignore_with_default_config() {
+        let config = ProjectConfig::default();
+        // Default config includes "node_modules", ".git", "target", etc.
+        assert!(should_ignore("node_modules/pkg/index.js", &config));
+        assert!(should_ignore("target/debug/app", &config));
+        assert!(!should_ignore("src/main.rs", &config));
+    }
+
+    #[test]
+    fn should_ignore_normalizes_backslashes() {
+        let config = ProjectConfig {
+            ignore_patterns: vec!["node_modules".to_string()],
+            process_whitelist: vec![],
+        };
+        // Backslash normalization is handled by should_ignore_path
+        assert!(should_ignore("src\\node_modules\\pkg", &config));
+    }
+}

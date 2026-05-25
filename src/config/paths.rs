@@ -104,4 +104,67 @@ mod tests {
             super::data_dir().join("projects/demo.db"),
         );
     }
+
+    // --- additional project_db_path tests ---
+
+    #[test]
+    fn project_db_path_simple_id() {
+        let path = super::project_db_path("myproject");
+        assert!(path.ends_with("projects/myproject.db"));
+    }
+
+    #[test]
+    fn project_db_path_dashed_id() {
+        let path = super::project_db_path("my-cool-app");
+        assert!(path.ends_with("projects/my-cool-app.db"));
+    }
+
+    #[test]
+    fn project_db_path_underscore_id() {
+        let path = super::project_db_path("test_project");
+        assert!(path.ends_with("projects/test_project.db"));
+    }
+
+    // --- resolve_dirs edge cases ---
+
+    #[test]
+    fn resolve_dirs_empty_opendog_home_falls_through() {
+        let root = resolve_dirs(
+            Some(PathBuf::from("")),
+            Some(PathBuf::from("/home/tester")),
+        );
+        assert_eq!(root, PathBuf::from("/home/tester/.opendog"));
+    }
+
+    #[test]
+    fn resolve_dirs_both_missing_uses_tmp() {
+        let root = resolve_dirs(None, None);
+        assert_eq!(root, PathBuf::from("/tmp/.opendog"));
+    }
+
+    #[test]
+    fn resolve_dirs_both_empty_uses_tmp() {
+        let root = resolve_dirs(Some(PathBuf::from("")), Some(PathBuf::from("")));
+        assert_eq!(root, PathBuf::from("/tmp/.opendog"));
+    }
+
+    // --- non_empty_path tests ---
+
+    #[test]
+    fn non_empty_path_some_with_value() {
+        let result = super::non_empty_path(Some(PathBuf::from("/opt/data")));
+        assert_eq!(result, Some(PathBuf::from("/opt/data")));
+    }
+
+    #[test]
+    fn non_empty_path_some_empty_returns_none() {
+        let result = super::non_empty_path(Some(PathBuf::from("")));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn non_empty_path_none_returns_none() {
+        let result = super::non_empty_path(None);
+        assert_eq!(result, None);
+    }
 }

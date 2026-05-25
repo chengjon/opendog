@@ -225,3 +225,45 @@ impl MonitorController {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn respond_ok_maps_to_custom_response() {
+        let result: crate::error::Result<i32> = Ok(42);
+        let response = respond(result, |value| ControlResponse::Pong);
+        // The ok closure is called, producing the mapped response
+        assert!(matches!(response, ControlResponse::Pong));
+    }
+
+    #[test]
+    fn respond_err_maps_to_error_response() {
+        let result: crate::error::Result<i32> = Err(crate::error::OpenDogError::InvalidInput(
+            "bad input".to_string(),
+        ));
+        let response = respond(result, |_| ControlResponse::Pong);
+        match response {
+            ControlResponse::Error { message } => {
+                assert!(message.contains("bad input"));
+            }
+            other => panic!("expected Error variant, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn respond_ok_with_complex_value() {
+        let result: crate::error::Result<String> = Ok("hello".to_string());
+        let response = respond(result, |val| ControlResponse::Error {
+            message: val,
+        });
+        // The ok closure receives the value and maps it
+        match response {
+            ControlResponse::Error { message } => {
+                assert_eq!(message, "hello");
+            }
+            other => panic!("expected Error variant (used as test wrapper), got {:?}", other),
+        }
+    }
+}

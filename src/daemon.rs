@@ -275,3 +275,42 @@ async fn wait_for_shutdown_signal() -> &'static str {
         "SIGINT"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pid_file_path_ends_with_pid_filename() {
+        let path = pid_file_path();
+        assert_eq!(
+            path.file_name().unwrap().to_str().unwrap(),
+            PID_FILE,
+            "pid file should end with '{}'",
+            PID_FILE
+        );
+    }
+
+    #[test]
+    fn pid_file_path_lives_under_opendog_data_dir() {
+        let path = pid_file_path();
+        let path_str = path.to_str().unwrap();
+        // data_dir() ends with "data", which lives under the .opendog root
+        assert!(
+            path_str.contains(".opendog"),
+            "pid file path should be under .opendog directory, got: {}",
+            path_str
+        );
+        assert!(
+            path_str.contains("data"),
+            "pid file path should be under data subdirectory, got: {}",
+            path_str
+        );
+    }
+
+    #[test]
+    fn pid_file_constant_value() {
+        // Document the expected constant value
+        assert_eq!(PID_FILE, "daemon.pid");
+    }
+}

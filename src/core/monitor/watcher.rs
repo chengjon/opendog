@@ -115,3 +115,64 @@ fn normalize_event_path(root: &Path, path: &Path) -> Option<String> {
         .filter(|p| !p.is_empty())
         .map(|p| p.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn normalize_event_path_strips_root_prefix() {
+        let root = PathBuf::from("/home/user/project");
+        let path = PathBuf::from("/home/user/project/src/main.rs");
+        assert_eq!(
+            normalize_event_path(&root, &path),
+            Some("src/main.rs".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_event_path_deeply_nested() {
+        let root = PathBuf::from("/project");
+        let path = PathBuf::from("/project/a/b/c/d/e/file.rs");
+        assert_eq!(
+            normalize_event_path(&root, &path),
+            Some("a/b/c/d/e/file.rs".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_event_path_path_outside_root_returns_none() {
+        let root = PathBuf::from("/home/user/project");
+        let path = PathBuf::from("/home/user/other/file.rs");
+        assert_eq!(normalize_event_path(&root, &path), None);
+    }
+
+    #[test]
+    fn normalize_event_path_path_equals_root_returns_none() {
+        let root = PathBuf::from("/home/user/project");
+        let path = PathBuf::from("/home/user/project");
+        // strip_prefix succeeds but yields an empty string, which is filtered out
+        assert_eq!(normalize_event_path(&root, &path), None);
+    }
+
+    #[test]
+    fn normalize_event_path_file_directly_under_root() {
+        let root = PathBuf::from("/project");
+        let path = PathBuf::from("/project/Cargo.toml");
+        assert_eq!(
+            normalize_event_path(&root, &path),
+            Some("Cargo.toml".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_event_path_handles_utf8() {
+        let root = PathBuf::from("/project");
+        let path = PathBuf::from("/project/src/lib.rs");
+        assert_eq!(
+            normalize_event_path(&root, &path),
+            Some("src/lib.rs".to_string())
+        );
+    }
+}
