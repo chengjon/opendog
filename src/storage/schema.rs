@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS governance_nodes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_governance_nodes_lane ON governance_nodes(lane_id);
+CREATE INDEX IF NOT EXISTS idx_governance_nodes_lane_updated ON governance_nodes(lane_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_governance_nodes_state ON governance_nodes(state);
 
 CREATE TABLE IF NOT EXISTS data_risk_cache (
