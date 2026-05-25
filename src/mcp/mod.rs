@@ -104,7 +104,7 @@ use self::orphan_handlers::{handle_scan_orphans, handle_verify_deletion_plan};
 pub use self::params::{
     AgentGuidanceParams, CloseGovernanceLaneParams, CompareSnapshotsParams,
     CreateGovernanceLaneParams, DataRiskParams, DecisionBriefParams, ExecuteVerificationParams,
-    GetGovernanceStateParams, GlobalConfigParams, GuidanceParams, ObservationRowsParams,
+    GetGovernanceStateParams, GuidanceParams, ObservationRowsParams,
     ProjectIdParams, RecordVerificationParams, RegisterProjectParams, ScanOrphansParams,
     TimeWindowReportParams, UpsertGovernanceNodeParams, UsageTrendParams,
     VerifyDeletionPlanParams, WorkspaceDataRiskParams,

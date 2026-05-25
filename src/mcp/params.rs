@@ -34,7 +34,7 @@ pub struct ObservationRowsParams {
 }
 
 #[derive(Deserialize, schemars::JsonSchema)]
-pub struct GlobalConfigParams {}
+pub(super) struct GlobalConfigParams {}
 
 #[derive(Deserialize, schemars::JsonSchema)]
 pub struct RecordVerificationParams {

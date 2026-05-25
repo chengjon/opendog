@@ -8,8 +8,8 @@ use walkdir::WalkDir;
 
 use crate::error::{OpenDogError, Result};
 
-pub const SELF_UPDATE_STATUS_SCHEMA: &str = "opendog.cli.self-update-status.v1";
-pub const SELF_UPDATE_BUILD_SCHEMA: &str = "opendog.cli.self-update-build.v1";
+pub(super) const SELF_UPDATE_STATUS_SCHEMA: &str = "opendog.cli.self-update-status.v1";
+pub(super) const SELF_UPDATE_BUILD_SCHEMA: &str = "opendog.cli.self-update-build.v1";
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct SelfUpdateStatus {
@@ -38,7 +38,7 @@ pub struct SelfUpdateBuildResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BuildCommandSpec {
+pub(super) struct BuildCommandSpec {
     pub program: String,
     pub args: Vec<String>,
     pub current_dir: PathBuf,
@@ -96,7 +96,7 @@ pub fn run_self_update_build(source: &Path) -> Result<SelfUpdateBuildResult> {
     Ok(build_result_for(&source_path, status.code(), "built"))
 }
 
-pub fn validate_source_path(source: &Path) -> Result<PathBuf> {
+pub(crate) fn validate_source_path(source: &Path) -> Result<PathBuf> {
     let source_path = source.canonicalize().map_err(|err| {
         OpenDogError::InvalidPath(format!(
             "OpenDog source path '{}' is not accessible: {}",
@@ -121,7 +121,7 @@ pub fn validate_source_path(source: &Path) -> Result<PathBuf> {
     Ok(source_path)
 }
 
-pub fn build_command_for(source: &Path) -> Result<BuildCommandSpec> {
+fn build_command_for(source: &Path) -> Result<BuildCommandSpec> {
     let source_path = validate_source_path(source)?;
     Ok(BuildCommandSpec {
         program: "cargo".to_string(),
@@ -130,7 +130,7 @@ pub fn build_command_for(source: &Path) -> Result<BuildCommandSpec> {
     })
 }
 
-pub fn build_result_for(
+fn build_result_for(
     source: &Path,
     exit_code: Option<i32>,
     status: &str,

@@ -123,7 +123,7 @@ pub fn get_snapshot_history_entries(
     )
 }
 
-pub fn delete_stale_snapshot(
+pub(super) fn delete_stale_snapshot(
     db: &Database,
     existing_paths: &[String],
     scan_timestamp: &str,
@@ -163,6 +163,6 @@ pub fn get_snapshot_paths(db: &Database) -> Result<Vec<String>> {
     db.prepare_and_query("SELECT path FROM snapshot", params![], |row| row.get(0))
 }
 
-pub fn clear_snapshot(db: &Database) -> Result<usize> {
+pub(super) fn clear_snapshot(db: &Database) -> Result<usize> {
     db.execute("DELETE FROM snapshot", params![])
 }

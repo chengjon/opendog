@@ -26,7 +26,7 @@ pub use self::retention::{
     list_snapshot_run_ids_to_prune,
 };
 pub use self::snapshots::{
-    clear_snapshot, count_snapshot, delete_stale_snapshot, get_snapshot_history_entries,
+    count_snapshot, get_snapshot_history_entries,
     get_snapshot_paths, get_snapshot_run, insert_snapshot_batch, insert_snapshot_history,
     list_snapshot_runs, HistoricalSnapshotEntry, SnapshotEntry, SnapshotRunRecord,
 };

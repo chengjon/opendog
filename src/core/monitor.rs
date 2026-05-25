@@ -215,10 +215,12 @@ fn flush_open_durations(
     for (key, state) in open_state.drain() {
         let duration_ms = (current_time.saturating_sub(state.last_seen_at)) * 1000;
         if duration_ms > 0 {
-            let _ = db.execute(
+            if let Err(e) = db.execute(
                 "UPDATE file_stats SET estimated_duration_ms = estimated_duration_ms + ?1, last_updated = ?2 WHERE file_path = ?3",
                 params![duration_ms as i64, current_time.to_string(), key.0],
-            );
+            ) {
+                tracing::warn!("failed to flush open duration for {}: {}", key.0, e);
+            }
         }
     }
 }
