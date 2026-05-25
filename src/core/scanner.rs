@@ -168,8 +168,9 @@ pub fn default_process_whitelist() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{mark_fd_seen, resolve_snapshot_relative_file_path};
+    use super::{mark_fd_seen, resolve_snapshot_relative_file_path, ProcScanner, default_process_whitelist};
     use std::collections::HashSet;
+    use std::path::Path;
 
     #[test]
     fn mark_fd_seen_deduplicates_per_pid_and_fd() {
@@ -196,5 +197,40 @@ mod tests {
         let dir_target =
             resolve_snapshot_relative_file_path(&root, &snapshot_paths, &root.join("src"));
         assert_eq!(dir_target, None);
+    }
+
+    #[test]
+    fn is_whitelisted_matches_exact_and_substring() {
+        let scanner = ProcScanner::new(
+            Path::new("/tmp"),
+            &["claude".to_string(), "node".to_string()],
+            HashSet::new(),
+        );
+        assert!(scanner.is_whitelisted("claude"));
+        assert!(scanner.is_whitelisted("Claude")); // case-insensitive
+        assert!(scanner.is_whitelisted("node"));
+        assert!(scanner.is_whitelisted("my-node-addon")); // substring match
+        assert!(!scanner.is_whitelisted("python"));
+        assert!(!scanner.is_whitelisted("rustc"));
+    }
+
+    #[test]
+    fn is_whitelisted_empty_whitelist_matches_nothing() {
+        let scanner = ProcScanner::new(Path::new("/tmp"), &[], HashSet::new());
+        assert!(!scanner.is_whitelisted("claude"));
+        assert!(!scanner.is_whitelisted("node"));
+    }
+
+    #[test]
+    fn default_process_whitelist_contains_expected_entries() {
+        let whitelist = default_process_whitelist();
+        assert!(whitelist.contains(&"claude".to_string()));
+        assert!(whitelist.contains(&"codex".to_string()));
+        assert!(whitelist.contains(&"node".to_string()));
+        assert!(whitelist.contains(&"python".to_string()));
+        assert!(whitelist.contains(&"python3".to_string()));
+        assert!(whitelist.contains(&"gpt".to_string()));
+        assert!(whitelist.contains(&"glm".to_string()));
+        assert_eq!(whitelist.len(), 7);
     }
 }
