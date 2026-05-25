@@ -274,3 +274,444 @@ pub(crate) struct ConstraintsBoundariesLayer {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) projects_with_storage_maintenance_candidates: Option<u64>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn recommendation_serializes_all_fields() {
+        let rec = Recommendation {
+            project_id: "proj".into(),
+            recommended_next_action: "take_snapshot".into(),
+            recommended_flow: vec!["step1".into()],
+            reason: "reason".into(),
+            confidence: "high".into(),
+            strategy_mode: "evidence_first".into(),
+            strategy_profile: json!({"mode": "evidence_first"}),
+            verification_gate_levels: json!({}),
+            cleanup_blockers: Some(json!(["blocker1"])),
+            refactor_blockers: Some(json!(["blocker2"])),
+            repo_truth_gaps: json!({}),
+            mandatory_shell_checks: json!({}),
+            suggested_commands: vec!["cargo test".into()],
+        };
+        let v = serde_json::to_value(&rec).unwrap();
+        assert_eq!(v["project_id"], "proj");
+        assert!(v.get("cleanup_blockers").is_some());
+        assert!(v.get("refactor_blockers").is_some());
+    }
+
+    #[test]
+    fn recommendation_skips_none_optionals() {
+        let rec = Recommendation {
+            project_id: "p".into(),
+            recommended_next_action: "a".into(),
+            recommended_flow: vec![],
+            reason: "r".into(),
+            confidence: "c".into(),
+            strategy_mode: "s".into(),
+            strategy_profile: json!(null),
+            verification_gate_levels: json!(null),
+            cleanup_blockers: None,
+            refactor_blockers: None,
+            repo_truth_gaps: json!(null),
+            mandatory_shell_checks: json!(null),
+            suggested_commands: vec![],
+        };
+        let v = serde_json::to_value(&rec).unwrap();
+        assert!(v.get("cleanup_blockers").is_none());
+        assert!(v.get("refactor_blockers").is_none());
+    }
+
+    #[test]
+    fn project_overview_serializes() {
+        let po = ProjectOverview {
+            project_id: "x".into(),
+            status: "active".into(),
+            snapshot_available: true,
+            activity_available: false,
+            unused_files: 5,
+            observation: json!({}),
+            repo_status_risk: json!({}),
+            verification_evidence: json!({}),
+            mock_data_summary: json!({}),
+            storage_maintenance: json!({}),
+            project_toolchain: json!({}),
+            verification_safe_for_cleanup: json!(true),
+            verification_safe_for_refactor: json!(true),
+            verification_gate_levels: json!({}),
+            safe_for_cleanup: json!(true),
+            safe_for_cleanup_reason: json!("ok"),
+            cleanup_blockers: json!([]),
+            safe_for_refactor: json!(true),
+            safe_for_refactor_reason: json!("ok"),
+            refactor_blockers: json!([]),
+            recommended_next_action: json!("none"),
+            recommended_flow: json!([]),
+            recommended_reason: json!(""),
+            strategy_confidence: json!("high"),
+        };
+        let v = serde_json::to_value(&po).unwrap();
+        assert_eq!(v["project_id"], "x");
+        assert!(v["snapshot_available"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn attention_summary_serializes() {
+        let a = AttentionSummary {
+            attention_score: 42,
+            attention_band: "high".into(),
+            attention_reasons: vec!["reason1".into()],
+            evidence_quality: "good".into(),
+            priority_basis: AttentionPriorityBasis {
+                recommended_next_action: "stabilize".into(),
+                recommended_action_base: 10,
+                repo_risk_level: "medium".into(),
+                repo_in_operation: false,
+                repo_is_dirty: true,
+                verification_status: "passed".into(),
+                has_failing_verification: false,
+                coverage_state: "partial".into(),
+                snapshot_freshness: "fresh".into(),
+                activity_freshness: "fresh".into(),
+                verification_freshness: "stale".into(),
+                hardcoded_candidate_count: 3,
+                mock_candidate_count: 1,
+                safe_for_cleanup: false,
+                safe_for_refactor: false,
+            },
+        };
+        let v = serde_json::to_value(&a).unwrap();
+        assert_eq!(v["attention_score"], 42);
+        assert!(v["priority_basis"]["repo_is_dirty"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn workspace_portfolio_layer_serializes() {
+        let w = WorkspacePortfolioLayer {
+            status: "available".into(),
+            project_count: 2,
+            monitoring_count: 1,
+            monitored_projects: vec![json!("p1")],
+            priority_candidates: vec![],
+            project_overviews: vec![],
+            priority_model: "attention".into(),
+            dirty_projects: 0,
+            high_risk_projects: 1,
+            projects_with_failing_verification: 0,
+            projects_safe_for_cleanup: 1,
+            projects_safe_for_refactor: 1,
+            projects_with_hardcoded_candidates: 0,
+            projects_with_hardcoded_data_candidates: 0,
+            total_mock_candidates: 0,
+            total_hardcoded_candidates: 0,
+            projects_in_operation: vec![],
+            attention_queue: vec![],
+            attention_batches: json!({}),
+        };
+        let v = serde_json::to_value(&w).unwrap();
+        assert_eq!(v["project_count"], 2);
+        assert_eq!(v["priority_model"], "attention");
+    }
+
+    #[test]
+    fn decision_brief_serializes_with_options() {
+        let d = DecisionBrief {
+            summary: "test".into(),
+            recommended_next_action: "act".into(),
+            reason: json!("reason"),
+            repo_truth_gaps: json!([]),
+            mandatory_shell_checks: json!([]),
+            external_truth_boundary: json!(null),
+            review_focus: json!(null),
+            execution_sequence: json!({}),
+            data_risk_focus: json!("none"),
+            target_project_id: Some("proj".into()),
+            strategy_mode: json!("evidence"),
+            preferred_primary_tool: json!("opendog"),
+            preferred_secondary_tool: json!("shell"),
+            recommended_flow: json!([]),
+            safe_for_cleanup: Some(true),
+            safe_for_refactor: Some(false),
+            verification_status: "passed".into(),
+            requires_verification: false,
+            action_profile: json!({}),
+            risk_profile: json!({}),
+            signals: DecisionSignals {
+                repo_risk_level: "low".into(),
+                repo_is_dirty: false,
+                hardcoded_candidate_count: 0,
+                mock_candidate_count: 0,
+                mixed_review_file_count: 0,
+                storage_maintenance_candidate: false,
+                storage_vacuum_candidate: false,
+                storage_reclaimable_bytes: 0,
+                storage_db_size_bytes: 1024,
+                attention_score: 10,
+                attention_band: "low".into(),
+                attention_reasons: vec![],
+                monitoring_count: 1,
+            },
+        };
+        let v = serde_json::to_value(&d).unwrap();
+        assert_eq!(v["target_project_id"], "proj");
+        assert!(v["safe_for_cleanup"].as_bool().unwrap());
+        assert!(!v["safe_for_refactor"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn decision_brief_skips_none_options() {
+        let d = DecisionBrief {
+            summary: "s".into(),
+            recommended_next_action: "a".into(),
+            reason: json!(null),
+            repo_truth_gaps: json!(null),
+            mandatory_shell_checks: json!(null),
+            external_truth_boundary: json!(null),
+            review_focus: json!(null),
+            execution_sequence: json!(null),
+            data_risk_focus: json!(null),
+            target_project_id: None,
+            strategy_mode: json!(null),
+            preferred_primary_tool: json!(null),
+            preferred_secondary_tool: json!(null),
+            recommended_flow: json!(null),
+            safe_for_cleanup: None,
+            safe_for_refactor: None,
+            verification_status: "unknown".into(),
+            requires_verification: false,
+            action_profile: json!(null),
+            risk_profile: json!(null),
+            signals: DecisionSignals {
+                repo_risk_level: "low".into(),
+                repo_is_dirty: false,
+                hardcoded_candidate_count: 0,
+                mock_candidate_count: 0,
+                mixed_review_file_count: 0,
+                storage_maintenance_candidate: false,
+                storage_vacuum_candidate: false,
+                storage_reclaimable_bytes: 0,
+                storage_db_size_bytes: 0,
+                attention_score: 0,
+                attention_band: "low".into(),
+                attention_reasons: vec![],
+                monitoring_count: 0,
+            },
+        };
+        let v = serde_json::to_value(&d).unwrap();
+        assert!(v["target_project_id"].is_null());
+        assert!(v["safe_for_cleanup"].is_null());
+        assert!(v["safe_for_refactor"].is_null());
+    }
+
+    #[test]
+    fn decision_signals_serializes() {
+        let s = DecisionSignals {
+            repo_risk_level: "high".into(),
+            repo_is_dirty: true,
+            hardcoded_candidate_count: 5,
+            mock_candidate_count: 2,
+            mixed_review_file_count: 1,
+            storage_maintenance_candidate: true,
+            storage_vacuum_candidate: false,
+            storage_reclaimable_bytes: 4096,
+            storage_db_size_bytes: 8192,
+            attention_score: 80,
+            attention_band: "critical".into(),
+            attention_reasons: vec![json!("r1")],
+            monitoring_count: 3,
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["hardcoded_candidate_count"], 5);
+        assert!(v["repo_is_dirty"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn repo_truth_summary_serializes() {
+        let s = RepoTruthSummary {
+            projects_with_repo_truth_gaps: 2,
+            repo_truth_gap_distribution: json!({"missing_test": 2}),
+            mandatory_shell_check_examples: vec!["cargo test".into()],
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["projects_with_repo_truth_gaps"], 2);
+    }
+
+    #[test]
+    fn stabilization_summary_serializes() {
+        let s = StabilizationSummary {
+            projects_requiring_repo_stabilization: 1,
+            repo_stabilization_priority_projects: vec!["proj1".into()],
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["projects_requiring_repo_stabilization"], 1);
+    }
+
+    #[test]
+    fn verification_summary_serializes() {
+        let s = VerificationSummary {
+            projects_requiring_verification_run: 3,
+            projects_requiring_failing_verification_repair: 1,
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["projects_requiring_verification_run"], 3);
+    }
+
+    #[test]
+    fn observation_summary_serializes() {
+        let s = ObservationSummary {
+            projects_requiring_monitor_start: 1,
+            projects_requiring_snapshot_refresh: 2,
+            projects_requiring_activity_generation: 0,
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["projects_requiring_snapshot_refresh"], 2);
+    }
+
+    #[test]
+    fn data_risk_focus_summary_serializes() {
+        let s = DataRiskFocusSummary {
+            data_risk_focus_distribution: json!({"hardcoded": 1, "mock": 0, "mixed": 0, "none": 2}),
+            projects_requiring_hardcoded_review: 1,
+            projects_requiring_mock_review: 0,
+            projects_requiring_mixed_file_review: 0,
+        };
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["projects_requiring_hardcoded_review"], 1);
+    }
+
+    #[test]
+    fn workspace_observation_layer_serializes() {
+        let w = WorkspaceObservationLayer {
+            status: "available".into(),
+            project_count: 3,
+            monitoring_count: 2,
+            analysis_state: "ready".into(),
+            projects_missing_snapshot: 0,
+            projects_with_stale_snapshot: 1,
+            projects_missing_activity: 0,
+            projects_with_stale_activity: 0,
+            projects_missing_verification: 1,
+            projects_with_stale_verification: 0,
+            projects_with_storage_maintenance_candidates: 0,
+            projects_with_vacuum_candidates: 0,
+            total_storage_reclaimable_bytes: json!(0),
+            data_risk_focus_distribution: json!({}),
+            projects_requiring_hardcoded_review: json!(0),
+            projects_requiring_mock_review: json!(0),
+            projects_requiring_mixed_file_review: json!(0),
+            notes: vec!["note1".into()],
+        };
+        let v = serde_json::to_value(&w).unwrap();
+        assert_eq!(v["project_count"], 3);
+        assert_eq!(v["analysis_state"], "ready");
+    }
+
+    #[test]
+    fn execution_strategy_layer_serializes() {
+        let e = ExecutionStrategyLayer {
+            status: "available".into(),
+            recommended_flow: json!([]),
+            project_recommendations: vec![],
+            global_strategy_mode: json!("evidence_first"),
+            preferred_primary_tool: json!("opendog"),
+            preferred_secondary_tool: json!("shell"),
+            evidence_priority: json!("high"),
+            risk_strategy_coupling: json!({}),
+            external_truth_boundary: json!({}),
+            review_focus_projection: json!({}),
+            when_to_use_opendog: vec![],
+            when_to_use_shell: vec![],
+            guardrails: vec![],
+            projects_not_ready_for_cleanup: 0,
+            projects_not_ready_for_refactor: 0,
+            projects_with_hardcoded_data_candidates: 0,
+            projects_missing_snapshot: 0,
+            projects_with_stale_snapshot: 0,
+            projects_missing_activity: 0,
+            projects_with_stale_activity: 0,
+            projects_missing_verification: 0,
+            projects_with_stale_verification: 0,
+            projects_with_storage_maintenance_candidates: 0,
+            projects_with_vacuum_candidates: 0,
+            review_opendog_retention_before_large_cleanup: false,
+            recommend_manual_review_for_hardcoded_data: false,
+            data_risk_focus_distribution: json!({}),
+            projects_requiring_hardcoded_review: json!(0),
+            projects_requiring_mock_review: json!(0),
+            projects_requiring_mixed_file_review: json!(0),
+            projects_requiring_monitor_start: json!(0),
+            projects_requiring_snapshot_refresh: json!(0),
+            projects_requiring_activity_generation: json!(0),
+            projects_with_repo_truth_gaps: json!(0),
+            repo_truth_gap_distribution: json!({}),
+            mandatory_shell_check_examples: json!([]),
+            projects_requiring_verification_run: json!(0),
+            projects_requiring_failing_verification_repair: json!(0),
+            projects_requiring_repo_stabilization: json!(0),
+            repo_stabilization_priority_projects: json!([]),
+        };
+        let v = serde_json::to_value(&e).unwrap();
+        assert_eq!(v["status"], "available");
+    }
+
+    #[test]
+    fn constraints_boundaries_layer_skips_none_optionals() {
+        let c = ConstraintsBoundariesLayer {
+            status: "available".into(),
+            direct_observations: vec![],
+            inferences: vec![],
+            blind_spots: vec![],
+            guardrails: vec![],
+            destructive_operations_requiring_confirmation: vec![],
+            human_review_required_for: vec![],
+            cleanup_blockers: vec![],
+            refactor_blockers: vec![],
+            requires_shell_verification: vec![],
+            projects_not_ready_for_cleanup: None,
+            projects_not_ready_for_refactor: None,
+            projects_with_hardcoded_data_candidates: None,
+            projects_missing_snapshot: None,
+            projects_with_stale_snapshot: None,
+            projects_missing_activity: None,
+            projects_with_stale_activity: None,
+            projects_missing_verification: None,
+            projects_with_stale_verification: None,
+            projects_with_storage_maintenance_candidates: None,
+        };
+        let v = serde_json::to_value(&c).unwrap();
+        assert!(v.get("projects_not_ready_for_cleanup").is_none());
+        assert!(v.get("projects_with_storage_maintenance_candidates").is_none());
+    }
+
+    #[test]
+    fn constraints_boundaries_layer_includes_some_optionals() {
+        let c = ConstraintsBoundariesLayer {
+            status: "available".into(),
+            direct_observations: vec![],
+            inferences: vec![],
+            blind_spots: vec![],
+            guardrails: vec![],
+            destructive_operations_requiring_confirmation: vec![],
+            human_review_required_for: vec![],
+            cleanup_blockers: vec![],
+            refactor_blockers: vec![],
+            requires_shell_verification: vec![],
+            projects_not_ready_for_cleanup: Some(2),
+            projects_not_ready_for_refactor: Some(1),
+            projects_with_hardcoded_data_candidates: Some(3),
+            projects_missing_snapshot: Some(0),
+            projects_with_stale_snapshot: Some(1),
+            projects_missing_activity: Some(0),
+            projects_with_stale_activity: Some(0),
+            projects_missing_verification: Some(1),
+            projects_with_stale_verification: Some(0),
+            projects_with_storage_maintenance_candidates: Some(5),
+        };
+        let v = serde_json::to_value(&c).unwrap();
+        assert_eq!(v["projects_not_ready_for_cleanup"], 2);
+        assert_eq!(v["projects_with_storage_maintenance_candidates"], 5);
+    }
+}
