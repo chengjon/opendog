@@ -123,37 +123,6 @@ pub fn get_snapshot_history_entries(
     )
 }
 
-pub(super) fn delete_stale_snapshot(
-    db: &Database,
-    existing_paths: &[String],
-    scan_timestamp: &str,
-) -> Result<usize> {
-    if existing_paths.is_empty() {
-        return Ok(0);
-    }
-
-    let placeholders: Vec<String> = (1..=existing_paths.len())
-        .map(|i| format!("?{}", i))
-        .collect();
-    let sql = format!(
-        "DELETE FROM snapshot WHERE scan_timestamp < ?{} AND path NOT IN ({})",
-        existing_paths.len() + 1,
-        placeholders.join(",")
-    );
-
-    let mut params_vec: Vec<Box<dyn rusqlite::types::ToSql>> = existing_paths
-        .iter()
-        .map(|p| Box::new(p.clone()) as Box<dyn rusqlite::types::ToSql>)
-        .collect();
-    params_vec.push(Box::new(scan_timestamp.to_string()));
-
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-        params_vec.iter().map(|p| p.as_ref()).collect();
-
-    let rows = db.conn().execute(&sql, param_refs.as_slice())?;
-    Ok(rows)
-}
-
 pub fn count_snapshot(db: &Database) -> Result<i64> {
     let count = db.query_row("SELECT COUNT(*) FROM snapshot", params![], |row| row.get(0))?;
     Ok(count)
@@ -161,8 +130,4 @@ pub fn count_snapshot(db: &Database) -> Result<i64> {
 
 pub fn get_snapshot_paths(db: &Database) -> Result<Vec<String>> {
     db.prepare_and_query("SELECT path FROM snapshot", params![], |row| row.get(0))
-}
-
-pub(super) fn clear_snapshot(db: &Database) -> Result<usize> {
-    db.execute("DELETE FROM snapshot", params![])
 }
