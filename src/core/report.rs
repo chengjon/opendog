@@ -331,4 +331,34 @@ mod tests {
         let error = ReportWindow::parse("90d").unwrap_err();
         assert!(error.to_string().contains("window must be one of"));
     }
+
+    #[test]
+    fn compare_latest_snapshots_rejects_fewer_than_two_runs() {
+        let db = test_db();
+        let err = compare_latest_snapshots(&db, 10).unwrap_err();
+        assert!(
+            err.to_string().contains("at least two snapshot runs"),
+            "expected insufficient-runs error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn compare_snapshot_runs_rejects_equal_run_ids() {
+        let db = test_db();
+        let err = compare_snapshot_runs(&db, 42, 42, 10).unwrap_err();
+        assert!(
+            err.to_string().contains("must differ"),
+            "expected equal-ids error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn compare_snapshot_runs_rejects_missing_run() {
+        let db = test_db();
+        let err = compare_snapshot_runs(&db, 999, 998, 10).unwrap_err();
+        assert!(
+            err.to_string().contains("not found"),
+            "expected missing-run error, got: {err}"
+        );
+    }
 }

@@ -180,3 +180,111 @@ pub fn count_accessed(db: &Database) -> Result<i64> {
     )?;
     Ok(count)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::database::Database;
+    use rusqlite::params;
+
+    fn test_db() -> Database {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("stats_test.db");
+        let db = Database::open_project(&db_path).unwrap();
+        Box::leak(Box::new(dir));
+        db
+    }
+
+    fn seed_snapshot(db: &Database, path: &str, size: i64, file_type: &str) {
+        db.execute(
+            "INSERT INTO snapshot (path, size, mtime, file_type, scan_timestamp) VALUES (?1, ?2, 0, ?3, '0')",
+            params![path, size, file_type],
+        )
+        .unwrap();
+    }
+
+    fn seed_stats(db: &Database, path: &str, access_count: i64, mod_count: i64) {
+        db.execute(
+            "INSERT INTO file_stats (file_path, access_count, estimated_duration_ms, modification_count, first_seen_time, last_updated)
+             VALUES (?1, ?2, 100, ?3, '100', '200')",
+            params![path, access_count, mod_count],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn get_all_stats_returns_rows() {
+        let db = test_db();
+        seed_stats(&db, "a.rs", 5, 1);
+        seed_stats(&db, "b.rs", 0, 0);
+        let all = get_all_stats(&db).unwrap();
+        assert_eq!(all.len(), 2);
+        assert_eq!(all[0].file_path, "a.rs"); // ordered by access_count DESC
+    }
+
+    #[test]
+    fn get_stats_with_snapshot_joins_correctly() {
+        let db = test_db();
+        seed_snapshot(&db, "a.rs", 100, "rs");
+        seed_snapshot(&db, "b.rs", 200, "rs");
+        seed_stats(&db, "a.rs", 10, 2);
+        let entries = get_stats_with_snapshot(&db).unwrap();
+        assert_eq!(entries.len(), 2);
+        let a = entries.iter().find(|e| e.file_path == "a.rs").unwrap();
+        assert_eq!(a.access_count, 10);
+        assert_eq!(a.modification_count, 2);
+        let b = entries.iter().find(|e| e.file_path == "b.rs").unwrap();
+        assert_eq!(b.access_count, 0);
+    }
+
+    #[test]
+    fn get_unused_files_returns_zero_access_or_missing_stats() {
+        let db = test_db();
+        seed_snapshot(&db, "used.rs", 10, "rs");
+        seed_snapshot(&db, "unused.rs", 20, "rs");
+        seed_snapshot(&db, "nostats.rs", 30, "rs");
+        seed_stats(&db, "used.rs", 5, 0);
+        seed_stats(&db, "unused.rs", 0, 0);
+        let unused = get_unused_files(&db).unwrap();
+        assert_eq!(unused.len(), 2);
+        let paths: Vec<&str> = unused.iter().map(|e| e.file_path.as_str()).collect();
+        assert!(paths.contains(&"unused.rs"));
+        assert!(paths.contains(&"nostats.rs"));
+    }
+
+    #[test]
+    fn get_core_files_filters_by_min_access() {
+        let db = test_db();
+        seed_snapshot(&db, "hot.rs", 10, "rs");
+        seed_snapshot(&db, "warm.rs", 20, "rs");
+        seed_stats(&db, "hot.rs", 10, 0);
+        seed_stats(&db, "warm.rs", 2, 0);
+        let core = get_core_files(&db, 5).unwrap();
+        assert_eq!(core.len(), 1);
+        assert_eq!(core[0].file_path, "hot.rs");
+    }
+
+    #[test]
+    fn get_file_detail_found_and_missing() {
+        let db = test_db();
+        seed_snapshot(&db, "exists.rs", 42, "rs");
+        seed_stats(&db, "exists.rs", 3, 1);
+        let found = get_file_detail(&db, "exists.rs").unwrap().unwrap();
+        assert_eq!(found.size, 42);
+        assert_eq!(found.access_count, 3);
+        assert!(get_file_detail(&db, "nope.rs").unwrap().is_none());
+    }
+
+    #[test]
+    fn count_unused_and_accessed() {
+        let db = test_db();
+        seed_snapshot(&db, "a.rs", 10, "rs");
+        seed_snapshot(&db, "b.rs", 20, "rs");
+        seed_snapshot(&db, "c.rs", 30, "rs");
+        seed_stats(&db, "a.rs", 5, 0);
+        seed_stats(&db, "b.rs", 0, 0);
+        // c.rs has no stats
+        assert_eq!(count_unused(&db).unwrap(), 2);
+        assert_eq!(count_accessed(&db).unwrap(), 1);
+    }
+}

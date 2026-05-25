@@ -72,3 +72,60 @@ pub fn get_latest_verification_runs(db: &Database) -> Result<Vec<VerificationRun
         },
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::database::Database;
+
+    fn test_db() -> Database {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("verification_test.db");
+        let db = Database::open_project(&db_path).unwrap();
+        Box::leak(Box::new(dir));
+        db
+    }
+
+    fn insert_run(db: &Database, kind: &str, status: &str, command: &str, finished_at: &str) {
+        insert_verification_run(
+            db,
+            &NewVerificationRun {
+                kind: kind.to_string(),
+                status: status.to_string(),
+                command: command.to_string(),
+                exit_code: None,
+                summary: None,
+                source: "test".to_string(),
+                started_at: None,
+                finished_at: finished_at.to_string(),
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn insert_and_read_verification_run() {
+        let db = test_db();
+        insert_run(&db, "test", "passed", "cargo test", "1000");
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].kind, "test");
+        assert_eq!(runs[0].status, "passed");
+        assert_eq!(runs[0].command, "cargo test");
+    }
+
+    #[test]
+    fn latest_returns_most_recent_per_kind() {
+        let db = test_db();
+        insert_run(&db, "test", "passed", "cargo test v1", "1000");
+        insert_run(&db, "test", "failed", "cargo test v2", "2000");
+        insert_run(&db, "lint", "passed", "cargo clippy", "1500");
+        let runs = get_latest_verification_runs(&db).unwrap();
+        assert_eq!(runs.len(), 2);
+        let test_run = runs.iter().find(|r| r.kind == "test").unwrap();
+        assert_eq!(test_run.status, "failed"); // latest
+        assert_eq!(test_run.finished_at, "2000");
+        let lint_run = runs.iter().find(|r| r.kind == "lint").unwrap();
+        assert_eq!(lint_run.status, "passed");
+    }
+}
