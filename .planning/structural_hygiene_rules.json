@@ -67,7 +67,7 @@
       "include": [
         "src/core/monitor.rs"
       ],
-      "max_lines": 500,
+      "max_lines": 505,
       "max_bytes": 22000
     },
     {

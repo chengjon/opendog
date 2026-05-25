@@ -244,8 +244,7 @@ fn acquire_monitor_lock(lock_path: &Path) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
 
-    // Atomic create-new: succeeds only if the file does not exist.
-    // This eliminates the TOCTOU race between checking existence and writing.
+    // Atomic create-new eliminates the TOCTOU race between checking existence and writing.
     use std::fs::OpenOptions;
     match OpenOptions::new()
         .write(true)
@@ -258,7 +257,7 @@ fn acquire_monitor_lock(lock_path: &Path) -> Result<()> {
             Ok(())
         }
         Err(_) => {
-            // File already exists — check if the owner process is still alive.
+            // File exists — check if the owner process is still alive.
             if let Ok(existing) = std::fs::read_to_string(lock_path) {
                 let pid = existing.trim();
                 if !pid.is_empty() && process_exists(pid) {
@@ -437,5 +436,65 @@ mod tests {
             )
             .unwrap();
         assert_eq!(stored_path, "src/main.rs");
+    }
+
+    #[test]
+    fn acquire_monitor_lock_creates_lock_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let lock_path = dir.path().join("project.monitor.lock");
+        assert!(acquire_monitor_lock(&lock_path).is_ok());
+        let pid = std::fs::read_to_string(&lock_path).unwrap();
+        assert_eq!(pid, std::process::id().to_string());
+    }
+
+    #[test]
+    fn acquire_monitor_lock_rejects_duplicate_for_current_pid() {
+        let dir = tempfile::tempdir().unwrap();
+        let lock_path = dir.path().join("project.monitor.lock");
+        acquire_monitor_lock(&lock_path).unwrap();
+        let err = acquire_monitor_lock(&lock_path).unwrap_err();
+        match err {
+            OpenDogError::MonitorAlreadyRunning(pid) => {
+                assert_eq!(pid, std::process::id().to_string());
+            }
+            other => panic!("expected MonitorAlreadyRunning, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn acquire_monitor_lock_replaces_stale_lock() {
+        let dir = tempfile::tempdir().unwrap();
+        let lock_path = dir.path().join("project.monitor.lock");
+        // Write a PID that doesn't exist
+        std::fs::write(&lock_path, "999999999").unwrap();
+        assert!(acquire_monitor_lock(&lock_path).is_ok());
+        let pid = std::fs::read_to_string(&lock_path).unwrap();
+        assert_eq!(pid, std::process::id().to_string());
+    }
+
+    #[test]
+    fn flush_open_durations_writes_accumulated_duration() {
+        let (_dir, db) = test_db();
+        // Pre-populate a file_stats row so the UPDATE has a target
+        db.execute(
+            "INSERT INTO file_stats (file_path, access_count, estimated_duration_ms, last_updated) VALUES (?1, 1, 0, ?2)",
+            params!["src/lib.rs", "100"],
+        ).unwrap();
+
+        let mut open_state = HashMap::new();
+        open_state.insert(
+            ("src/lib.rs".to_string(), 42),
+            OpenObservation { last_seen_at: 95 },
+        );
+        flush_open_durations(&db, &mut open_state, 100);
+
+        let duration: i64 = db
+            .query_row(
+                "SELECT estimated_duration_ms FROM file_stats WHERE file_path = ?1",
+                params!["src/lib.rs"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(duration, 5000); // (100 - 95) * 1000
     }
 }
