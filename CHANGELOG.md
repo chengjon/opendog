@@ -21,9 +21,15 @@ All notable changes to OPENDOG are documented here.
 - MCP tool count: 20 → 26 (added 4 governance + 2 orphan tools).
 - CLI command count: 22 → 23 (added `opendog governance` subcommand).
 - Schema version: v5 → v6 (added `data_risk_cache` table).
-- Test count: 298 → 300 → 305 (added control plane roundtrip test, data-risk cache test, orphan roundtrip test, governance payload contract tests).
+- Test count: 298 → 300 → 306 (added control plane roundtrip test, data-risk cache test, orphan roundtrip test, governance payload contract tests, governance tool surface test).
 - `GovernanceState`, `UpsertNodeResult`, `ObservationHints`, `GovernanceLaneSummary` now implement `Deserialize` for control plane protocol serialization.
 - README updated with accurate counts, daemon-first architecture note, governance and orphan tool tables, and governance CLI commands.
+- AI playbook now covers governance CLI workflow entry points, JSON usage entries, and decision-critical field guides for governance and orphan tools.
+- MCP tool reference updated with orphan scan and deletion plan documentation, governance cluster map, trimmed to fit 1000-line budget.
+- JSON contracts updated with orphan scan and deletion plan contract sections.
+- Extracted `GovernanceCommand` enum from `cli/mod.rs` to `governance_commands.rs` (482 lines, under 500-line budget).
+- Fixed ROADMAP requirement count (114→122) and added missing `roadmap_phases` to FT-03.09.01.
+- All 4 validation scripts pass: governance, structural hygiene, task cards, requirement mappings.
 
 ## 2026-05-11
 
