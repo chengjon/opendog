@@ -136,10 +136,7 @@ mod tests {
 
     #[test]
     fn snapshot_comparison_header_format() {
-        let line = format!(
-            "Project '{}' — snapshot {} -> {}",
-            "proj", 1, 2
-        );
+        let line = format!("Project '{}' — snapshot {} -> {}", "proj", 1, 2);
         assert_eq!(line, "Project 'proj' — snapshot 1 -> 2");
     }
 
@@ -180,10 +177,7 @@ mod tests {
 
     #[test]
     fn usage_trend_totals_format() {
-        let line = format!(
-            "  Totals: access={} modifications={}",
-            200, 50
-        );
+        let line = format!("  Totals: access={} modifications={}", 200, 50);
         assert_eq!(line, "  Totals: access=200 modifications=50");
     }
 

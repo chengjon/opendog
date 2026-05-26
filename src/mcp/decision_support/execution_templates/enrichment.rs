@@ -334,22 +334,19 @@ mod tests {
         );
         let t = &result.as_array().unwrap()[0];
         let run = t["should_run_if"].as_array().unwrap();
-        assert!(run.iter().any(|r| r.as_str().unwrap().contains("repository operation state")));
+        assert!(run
+            .iter()
+            .any(|r| r.as_str().unwrap().contains("repository operation state")));
         let skip = t["skip_if"].as_array().unwrap();
         assert!(!skip.is_empty());
     }
 
     #[test]
     fn start_monitor_run_if_and_skip_if() {
-        let result = enrich_templates(
-            "start_monitor",
-            vec![make_template("z")],
-            false,
-            false,
-        );
+        let result = enrich_templates("start_monitor", vec![make_template("z")], false, false);
         let t = &result.as_array().unwrap()[0];
-        assert!(t["should_run_if"].as_array().unwrap().len() > 0);
-        assert!(t["skip_if"].as_array().unwrap().len() > 0);
+        assert!(!t["should_run_if"].as_array().unwrap().is_empty());
+        assert!(!t["skip_if"].as_array().unwrap().is_empty());
     }
 
     #[test]
@@ -365,36 +362,26 @@ mod tests {
         assert!(!skip.is_empty());
 
         // cleanup ready: skip_if should be empty
-        let result2 = enrich_templates(
-            "review_unused_files",
-            vec![make_template("a")],
-            true,
-            false,
-        );
-        let skip2 = result2.as_array().unwrap()[0]["skip_if"].as_array().unwrap();
+        let result2 =
+            enrich_templates("review_unused_files", vec![make_template("a")], true, false);
+        let skip2 = result2.as_array().unwrap()[0]["skip_if"]
+            .as_array()
+            .unwrap();
         assert!(skip2.is_empty());
     }
 
     #[test]
     fn inspect_hot_files_skip_if_depends_on_refactor_ready() {
         // refactor NOT ready
-        let result = enrich_templates(
-            "inspect_hot_files",
-            vec![make_template("b")],
-            false,
-            false,
-        );
+        let result = enrich_templates("inspect_hot_files", vec![make_template("b")], false, false);
         let skip = result.as_array().unwrap()[0]["skip_if"].as_array().unwrap();
         assert!(!skip.is_empty());
 
         // refactor ready
-        let result2 = enrich_templates(
-            "inspect_hot_files",
-            vec![make_template("b")],
-            false,
-            true,
-        );
-        let skip2 = result2.as_array().unwrap()[0]["skip_if"].as_array().unwrap();
+        let result2 = enrich_templates("inspect_hot_files", vec![make_template("b")], false, true);
+        let skip2 = result2.as_array().unwrap()[0]["skip_if"]
+            .as_array()
+            .unwrap();
         assert!(skip2.is_empty());
     }
 
@@ -403,7 +390,9 @@ mod tests {
         let result = enrich_templates("unknown", vec![make_template("c")], false, false);
         let t = &result.as_array().unwrap()[0];
         let run = t["should_run_if"].as_array().unwrap();
-        assert!(run.iter().any(|r| r.as_str().unwrap().contains("no narrower")));
+        assert!(run
+            .iter()
+            .any(|r| r.as_str().unwrap().contains("no narrower")));
         assert!(t["skip_if"].as_array().unwrap().is_empty());
     }
 
@@ -424,15 +413,36 @@ mod tests {
 
     #[test]
     fn plan_stage_for_repo_and_activity_templates() {
-        for id in &["repo.status", "repo.diff", "activity.generate", "unused.search", "hot.diff"] {
-            let result = enrich_templates("stabilize_repository_state", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["plan_stage"], "inspect", "failed for template_id {}", id);
+        for id in &[
+            "repo.status",
+            "repo.diff",
+            "activity.generate",
+            "unused.search",
+            "hot.diff",
+        ] {
+            let result = enrich_templates(
+                "stabilize_repository_state",
+                vec![make_template(id)],
+                false,
+                false,
+            );
+            assert_eq!(
+                result.as_array().unwrap()[0]["plan_stage"],
+                "inspect",
+                "failed for template_id {}",
+                id
+            );
         }
     }
 
     #[test]
     fn plan_stage_for_monitor_start() {
-        let result = enrich_templates("start_monitor", vec![make_template("monitor.start")], false, false);
+        let result = enrich_templates(
+            "start_monitor",
+            vec![make_template("monitor.start")],
+            false,
+            false,
+        );
         assert_eq!(result.as_array().unwrap()[0]["plan_stage"], "observe");
     }
 
@@ -446,21 +456,41 @@ mod tests {
 
     #[test]
     fn plan_stage_for_stats_templates() {
-        for id in &["stats.inspect", "stats.refresh", "stats.hot_files", "unused.list"] {
+        for id in &[
+            "stats.inspect",
+            "stats.refresh",
+            "stats.hot_files",
+            "unused.list",
+        ] {
             let result = enrich_templates("take_snapshot", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["plan_stage"], "analyze", "failed for template_id {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["plan_stage"],
+                "analyze",
+                "failed for template_id {}",
+                id
+            );
         }
     }
 
     #[test]
     fn plan_stage_for_guidance_refresh() {
-        let result = enrich_templates("unknown", vec![make_template("guidance.refresh")], false, false);
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("guidance.refresh")],
+            false,
+            false,
+        );
         assert_eq!(result.as_array().unwrap()[0]["plan_stage"], "decide");
     }
 
     #[test]
     fn plan_stage_for_unknown_template_defaults_to_inspect() {
-        let result = enrich_templates("unknown", vec![make_template("some.unknown.id")], false, false);
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("some.unknown.id")],
+            false,
+            false,
+        );
         assert_eq!(result.as_array().unwrap()[0]["plan_stage"], "inspect");
     }
 
@@ -474,20 +504,42 @@ mod tests {
             false,
             false,
         );
-        assert_eq!(result.as_array().unwrap()[0]["terminality"], "decision_gate");
+        assert_eq!(
+            result.as_array().unwrap()[0]["terminality"],
+            "decision_gate"
+        );
     }
 
     #[test]
     fn terminality_terminal_on_success_for_guidance_refresh() {
-        let result = enrich_templates("unknown", vec![make_template("guidance.refresh")], false, false);
-        assert_eq!(result.as_array().unwrap()[0]["terminality"], "terminal_on_success");
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("guidance.refresh")],
+            false,
+            false,
+        );
+        assert_eq!(
+            result.as_array().unwrap()[0]["terminality"],
+            "terminal_on_success"
+        );
     }
 
     #[test]
     fn terminality_non_terminal_for_most_templates() {
-        for id in &["repo.status", "monitor.start", "snapshot.baseline", "stats.inspect", "verification.rerun"] {
+        for id in &[
+            "repo.status",
+            "monitor.start",
+            "snapshot.baseline",
+            "stats.inspect",
+            "verification.rerun",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["terminality"], "non_terminal", "failed for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["terminality"],
+                "non_terminal",
+                "failed for {}",
+                id
+            );
         }
     }
 
@@ -497,15 +549,30 @@ mod tests {
     fn human_confirmation_for_verification_rerun() {
         for id in &["verification.rerun", "verification.execute"] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["requires_human_confirmation"], true, "expected true for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["requires_human_confirmation"],
+                true,
+                "expected true for {}",
+                id
+            );
         }
     }
 
     #[test]
     fn no_human_confirmation_for_read_only_templates() {
-        for id in &["repo.status", "stats.inspect", "monitor.start", "guidance.refresh"] {
+        for id in &[
+            "repo.status",
+            "stats.inspect",
+            "monitor.start",
+            "guidance.refresh",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["requires_human_confirmation"], false, "expected false for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["requires_human_confirmation"],
+                false,
+                "expected false for {}",
+                id
+            );
         }
     }
 
@@ -513,17 +580,38 @@ mod tests {
 
     #[test]
     fn evidence_written_for_verification_rerun_and_snapshot() {
-        for id in &["verification.rerun", "snapshot.baseline", "snapshot.take", "verification.execute"] {
+        for id in &[
+            "verification.rerun",
+            "snapshot.baseline",
+            "snapshot.take",
+            "verification.execute",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["evidence_written_to_opendog"], true, "expected true for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["evidence_written_to_opendog"],
+                true,
+                "expected true for {}",
+                id
+            );
         }
     }
 
     #[test]
     fn no_evidence_written_for_read_templates() {
-        for id in &["repo.status", "repo.diff", "stats.inspect", "guidance.refresh", "monitor.start"] {
+        for id in &[
+            "repo.status",
+            "repo.diff",
+            "stats.inspect",
+            "guidance.refresh",
+            "monitor.start",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["evidence_written_to_opendog"], false, "expected false for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["evidence_written_to_opendog"],
+                false,
+                "expected false for {}",
+                id
+            );
         }
     }
 
@@ -531,17 +619,43 @@ mod tests {
 
     #[test]
     fn parallel_for_inspect_templates() {
-        for id in &["repo.status", "repo.diff", "activity.generate", "unused.search", "hot.diff", "stats.inspect", "stats.refresh", "stats.hot_files", "unused.list"] {
+        for id in &[
+            "repo.status",
+            "repo.diff",
+            "activity.generate",
+            "unused.search",
+            "hot.diff",
+            "stats.inspect",
+            "stats.refresh",
+            "stats.hot_files",
+            "unused.list",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["can_run_in_parallel"], true, "expected true for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["can_run_in_parallel"],
+                true,
+                "expected true for {}",
+                id
+            );
         }
     }
 
     #[test]
     fn not_parallel_for_verification_templates() {
-        for id in &["verification.review_status", "verification.rerun", "monitor.start", "snapshot.baseline", "guidance.refresh"] {
+        for id in &[
+            "verification.review_status",
+            "verification.rerun",
+            "monitor.start",
+            "snapshot.baseline",
+            "guidance.refresh",
+        ] {
             let result = enrich_templates("some_action", vec![make_template(id)], false, false);
-            assert_eq!(result.as_array().unwrap()[0]["can_run_in_parallel"], false, "expected false for {}", id);
+            assert_eq!(
+                result.as_array().unwrap()[0]["can_run_in_parallel"],
+                false,
+                "expected false for {}",
+                id
+            );
         }
     }
 
@@ -560,7 +674,12 @@ mod tests {
 
     #[test]
     fn unknown_template_has_no_retry_allowed() {
-        let result = enrich_templates("some_action", vec![make_template("totally.unknown")], false, false);
+        let result = enrich_templates(
+            "some_action",
+            vec![make_template("totally.unknown")],
+            false,
+            false,
+        );
         let retry = &result.as_array().unwrap()[0]["retry_policy"];
         assert_eq!(retry["allowed"], false);
         assert_eq!(retry["max_attempts"], 1);
@@ -576,23 +695,41 @@ mod tests {
             false,
             false,
         );
-        let fields = result.as_array().unwrap()[0]["expected_output_fields"].as_array().unwrap();
+        let fields = result.as_array().unwrap()[0]["expected_output_fields"]
+            .as_array()
+            .unwrap();
         assert!(fields.contains(&json!("verification.latest_runs")));
         assert!(fields.contains(&json!("verification.failing_runs")));
     }
 
     #[test]
     fn expected_output_fields_for_guidance_refresh() {
-        let result = enrich_templates("unknown", vec![make_template("guidance.refresh")], false, false);
-        let fields = result.as_array().unwrap()[0]["expected_output_fields"].as_array().unwrap();
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("guidance.refresh")],
+            false,
+            false,
+        );
+        let fields = result.as_array().unwrap()[0]["expected_output_fields"]
+            .as_array()
+            .unwrap();
         assert!(fields.contains(&json!("guidance.recommended_flow")));
-        assert!(fields.iter().any(|f| f.as_str().unwrap().contains("execution_strategy")));
+        assert!(fields
+            .iter()
+            .any(|f| f.as_str().unwrap().contains("execution_strategy")));
     }
 
     #[test]
     fn expected_output_fields_empty_for_unknown_template() {
-        let result = enrich_templates("unknown", vec![make_template("nonexistent.id")], false, false);
-        let fields = result.as_array().unwrap()[0]["expected_output_fields"].as_array().unwrap();
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("nonexistent.id")],
+            false,
+            false,
+        );
+        let fields = result.as_array().unwrap()[0]["expected_output_fields"]
+            .as_array()
+            .unwrap();
         assert!(fields.is_empty());
     }
 
@@ -617,7 +754,12 @@ mod tests {
 
     #[test]
     fn guidance_refresh_has_no_follow_ups() {
-        let result = enrich_templates("unknown", vec![make_template("guidance.refresh")], false, false);
+        let result = enrich_templates(
+            "unknown",
+            vec![make_template("guidance.refresh")],
+            false,
+            false,
+        );
         let t = &result.as_array().unwrap()[0];
         assert!(t["follow_up_on_success"].as_array().unwrap().is_empty());
         assert!(t["follow_up_on_failure"].as_array().unwrap().is_empty());
@@ -634,7 +776,9 @@ mod tests {
             false,
             false,
         );
-        let success = result.as_array().unwrap()[0]["follow_up_on_success"].as_array().unwrap();
+        let success = result.as_array().unwrap()[0]["follow_up_on_success"]
+            .as_array()
+            .unwrap();
         assert!(success.contains(&json!("verification.status")));
 
         // cleanup ready: follow_up_on_success includes guidance.refresh
@@ -644,7 +788,9 @@ mod tests {
             true,
             false,
         );
-        let success2 = result2.as_array().unwrap()[0]["follow_up_on_success"].as_array().unwrap();
+        let success2 = result2.as_array().unwrap()[0]["follow_up_on_success"]
+            .as_array()
+            .unwrap();
         assert!(success2.contains(&json!("guidance.refresh")));
     }
 

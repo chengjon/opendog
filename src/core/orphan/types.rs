@@ -211,9 +211,15 @@ mod tests {
     #[test]
     fn classification_options_default_includes_required_scanners() {
         let opts = ClassificationOptions::default();
-        assert!(opts.required_scanners.contains(&"candidate_collector".to_string()));
-        assert!(opts.required_scanners.contains(&"entrypoint_scanner".to_string()));
-        assert!(opts.required_scanners.contains(&"docs_ownership_gate".to_string()));
+        assert!(opts
+            .required_scanners
+            .contains(&"candidate_collector".to_string()));
+        assert!(opts
+            .required_scanners
+            .contains(&"entrypoint_scanner".to_string()));
+        assert!(opts
+            .required_scanners
+            .contains(&"docs_ownership_gate".to_string()));
         assert_eq!(opts.used_signal_threshold, 0.80);
         assert!(opts.max_age_secs.is_none());
         assert!(opts.now_secs.is_none());
@@ -252,7 +258,11 @@ mod tests {
     #[test]
     fn default_required_scanners_subset_of_internal() {
         for scanner in DEFAULT_REQUIRED_SCANNERS {
-            assert!(INTERNAL_SCANNERS.contains(scanner), "{} not in INTERNAL_SCANNERS", scanner);
+            assert!(
+                INTERNAL_SCANNERS.contains(scanner),
+                "{} not in INTERNAL_SCANNERS",
+                scanner
+            );
         }
     }
 
@@ -377,7 +387,10 @@ mod tests {
         let back: ScanOrphansResult = serde_json::from_str(&json_str).unwrap();
         assert_eq!(result.status, back.status);
         assert_eq!(result.scan_run_id, back.scan_run_id);
-        assert_eq!(result.summary.total_candidates, back.summary.total_candidates);
+        assert_eq!(
+            result.summary.total_candidates,
+            back.summary.total_candidates
+        );
     }
 
     #[test]
@@ -396,7 +409,10 @@ mod tests {
         let json_str = serde_json::to_string(&input).unwrap();
         let back: DeletionPlanInput = serde_json::from_str(&json_str).unwrap();
         assert_eq!(input.targets.len(), back.targets.len());
-        assert_eq!(input.required_project_verification_commands, back.required_project_verification_commands);
+        assert_eq!(
+            input.required_project_verification_commands,
+            back.required_project_verification_commands
+        );
     }
 
     #[test]
@@ -413,7 +429,10 @@ mod tests {
         let json_str = serde_json::to_string(&verification).unwrap();
         let back: DeletionPlanVerification = serde_json::from_str(&json_str).unwrap();
         assert_eq!(verification.status, back.status);
-        assert_eq!(verification.safe_to_plan_deletion, back.safe_to_plan_deletion);
+        assert_eq!(
+            verification.safe_to_plan_deletion,
+            back.safe_to_plan_deletion
+        );
     }
 
     #[test]

@@ -41,42 +41,65 @@ pub(crate) fn get_governance_state_payload(id: &str, state: &GovernanceState) ->
         [
             (
                 "lanes",
-                json!(state.lanes.iter().map(|l| json!({
-                    "lane_id": l.lane_id, "title": l.title, "status": l.status,
-                    "node_count": l.node_count, "active_nodes": l.active_nodes,
-                })).collect::<Vec<_>>()),
+                json!(state
+                    .lanes
+                    .iter()
+                    .map(|l| json!({
+                        "lane_id": l.lane_id, "title": l.title, "status": l.status,
+                        "node_count": l.node_count, "active_nodes": l.active_nodes,
+                    }))
+                    .collect::<Vec<_>>()),
             ),
             (
                 "nodes",
-                json!(state.nodes.iter().map(|n| {
-                    let mut obj = json!({
-                        "node_id": n.node_id, "lane_id": n.lane_id, "state": n.state,
-                        "updated_at": n.updated_at,
-                    });
-                    if n.summary.is_some() { obj["summary"] = json!(n.summary); }
-                    if let Some(ref s) = n.evidence_refs {
-                        obj["evidence_refs"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
-                    }
-                    if let Some(ref s) = n.artifact_refs {
-                        obj["artifact_refs"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
-                    }
-                    if n.reported_git_head.is_some() { obj["reported_git_head"] = json!(n.reported_git_head); }
-                    if n.suggested_next.is_some() { obj["suggested_next"] = json!(n.suggested_next); }
-                    if let Some(ref s) = n.forbidden_scope {
-                        obj["forbidden_scope"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
-                    }
-                    if let Some(ref s) = n.external_anchors {
-                        obj["external_anchors"] = serde_json::from_str::<'_, serde_json::Value>(s).unwrap_or_else(|_| json!(s));
-                    }
-                    obj
-                }).collect::<Vec<_>>()),
+                json!(state
+                    .nodes
+                    .iter()
+                    .map(|n| {
+                        let mut obj = json!({
+                            "node_id": n.node_id, "lane_id": n.lane_id, "state": n.state,
+                            "updated_at": n.updated_at,
+                        });
+                        if n.summary.is_some() {
+                            obj["summary"] = json!(n.summary);
+                        }
+                        if let Some(ref s) = n.evidence_refs {
+                            obj["evidence_refs"] = serde_json::from_str::<'_, serde_json::Value>(s)
+                                .unwrap_or_else(|_| json!(s));
+                        }
+                        if let Some(ref s) = n.artifact_refs {
+                            obj["artifact_refs"] = serde_json::from_str::<'_, serde_json::Value>(s)
+                                .unwrap_or_else(|_| json!(s));
+                        }
+                        if n.reported_git_head.is_some() {
+                            obj["reported_git_head"] = json!(n.reported_git_head);
+                        }
+                        if n.suggested_next.is_some() {
+                            obj["suggested_next"] = json!(n.suggested_next);
+                        }
+                        if let Some(ref s) = n.forbidden_scope {
+                            obj["forbidden_scope"] =
+                                serde_json::from_str::<'_, serde_json::Value>(s)
+                                    .unwrap_or_else(|_| json!(s));
+                        }
+                        if let Some(ref s) = n.external_anchors {
+                            obj["external_anchors"] =
+                                serde_json::from_str::<'_, serde_json::Value>(s)
+                                    .unwrap_or_else(|_| json!(s));
+                        }
+                        obj
+                    })
+                    .collect::<Vec<_>>()),
             ),
-            ("observation_hints", json!({
-                "snapshot_freshness": state.observation_hints.snapshot_freshness,
-                "verification_status": state.observation_hints.verification_status,
-                "data_risk_candidates": state.observation_hints.data_risk_candidates,
-                "unused_files": state.observation_hints.unused_files,
-            })),
+            (
+                "observation_hints",
+                json!({
+                    "snapshot_freshness": state.observation_hints.snapshot_freshness,
+                    "verification_status": state.observation_hints.verification_status,
+                    "data_risk_candidates": state.observation_hints.data_risk_candidates,
+                    "unused_files": state.observation_hints.unused_files,
+                }),
+            ),
         ],
     )
 }
@@ -103,7 +126,9 @@ pub(crate) fn close_governance_lane_payload(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::governance::{GovernanceLaneSummary, GovernanceState, ObservationHints, UpsertNodeResult};
+    use crate::core::governance::{
+        GovernanceLaneSummary, GovernanceState, ObservationHints, UpsertNodeResult,
+    };
     use crate::storage::queries::{GovernanceLane, GovernanceNode};
 
     // --- create_governance_lane_payload ---
@@ -208,7 +233,10 @@ mod tests {
         assert!(payload["lanes"].as_array().unwrap().is_empty());
         assert!(payload["nodes"].as_array().unwrap().is_empty());
         assert_eq!(payload["observation_hints"]["snapshot_freshness"], "fresh");
-        assert_eq!(payload["observation_hints"]["verification_status"], "unknown");
+        assert_eq!(
+            payload["observation_hints"]["verification_status"],
+            "unknown"
+        );
         assert_eq!(payload["observation_hints"]["data_risk_candidates"], 0);
         assert_eq!(payload["observation_hints"]["unused_files"], 0);
     }

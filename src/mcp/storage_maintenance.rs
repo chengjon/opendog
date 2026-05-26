@@ -713,7 +713,10 @@ mod tests {
         assert_eq!(hints.len(), 1);
         assert_eq!(hints[0]["field"], "id");
         assert_eq!(hints[0]["placeholder"], "<project>");
-        assert!(hints[0]["description"].as_str().unwrap().contains("project id"));
+        assert!(hints[0]["description"]
+            .as_str()
+            .unwrap()
+            .contains("project id"));
     }
 
     #[test]
@@ -876,6 +879,8 @@ mod tests {
         augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("proj"), &sm);
         assert_eq!(entrypoints["unrelated_key"], "preserved");
         // No next_cli_commands, selection_reasons, or execution_templates arrays created
-        assert!(entrypoints.get("next_cli_commands").is_none_or(|v| v.is_null()));
+        assert!(entrypoints
+            .get("next_cli_commands")
+            .is_none_or(|v| v.is_null()));
     }
 }

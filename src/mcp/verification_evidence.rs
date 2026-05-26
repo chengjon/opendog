@@ -3,8 +3,10 @@ use serde_json::{json, Value};
 use crate::contracts::{
     MCP_RECORD_VERIFICATION_V1, MCP_RUN_VERIFICATION_V1, MCP_VERIFICATION_STATUS_V1,
 };
-use crate::core::verification::command_contains_pipeline_operators;
 use crate::core::verification::ExecutedVerificationResult;
+use crate::core::verification::{
+    command_contains_pipeline_operators, detect_suspicious_pass_signals,
+};
 use crate::storage::queries::VerificationRun;
 
 use super::constraints::readiness_reason_summary;
@@ -64,18 +66,26 @@ pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
             .iter()
             .filter(|r| r.status == "passed" && command_contains_pipeline_operators(&r.command))
             .collect();
+        let suspicious_summary_runs: Vec<&VerificationRun> = runs
+            .iter()
+            .filter(|run| !suspicious_summary_signals(run).is_empty())
+            .collect();
         json!({
             "status": "available",
-            "summary": if failing_runs.is_empty() && pipeline_caution_runs.is_empty() {
+            "summary": if failing_runs.is_empty() && pipeline_caution_runs.is_empty() && suspicious_summary_runs.is_empty() {
                 "Recorded verification results exist and the latest known runs are passing."
-            } else if !pipeline_caution_runs.is_empty() {
-                "Recorded verification results exist but some passed runs used pipeline commands whose exit codes may be masked."
-            } else {
+            } else if !failing_runs.is_empty() {
                 "Recorded verification results include failing or uncertain runs."
+            } else if !suspicious_summary_runs.is_empty() {
+                "Recorded verification results include passed runs with suspicious error signals in their summaries."
+            } else {
+                "Recorded verification results exist but some passed runs used pipeline commands whose exit codes may be masked."
             },
             "latest_runs": runs.iter().map(|run| {
                 let pipeline = command_contains_pipeline_operators(&run.command);
                 let masked = pipeline && run.status == "passed";
+                let suspicious_signals = suspicious_summary_signals(run);
+                let suspicious = !suspicious_signals.is_empty();
                 json!({
                     "kind": run.kind,
                     "status": run.status,
@@ -85,7 +95,8 @@ pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
                     "source": run.source,
                     "finished_at": run.finished_at,
                     "exit_code_masked_possible": masked,
-                    "trust_level": if masked { "caution" } else { "trusted" },
+                    "suspicious_pass_signals": suspicious_signals,
+                    "trust_level": if masked || suspicious { "caution" } else { "trusted" },
                 })
             }).collect::<Vec<_>>(),
             "latest_finished_at": latest_finished_at,
@@ -458,6 +469,20 @@ fn pipeline_caution_kinds(runs: &[VerificationRun]) -> Vec<&str> {
         .collect()
 }
 
+fn suspicious_summary_signals(run: &VerificationRun) -> Vec<String> {
+    if run.status != "passed" {
+        return Vec::new();
+    }
+    detect_suspicious_pass_signals(run.summary.as_deref().unwrap_or_default(), "")
+}
+
+fn suspicious_summary_kinds(runs: &[VerificationRun]) -> Vec<&str> {
+    runs.iter()
+        .filter(|run| !suspicious_summary_signals(run).is_empty())
+        .map(|run| run.kind.as_str())
+        .collect()
+}
+
 fn blocker_reasons(
     target: &str,
     required_missing: &[&str],
@@ -578,6 +603,7 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
     let (advisory_missing, advisory_stale) = kind_state_sets(runs, advisory_kinds, now_secs);
     let failing = failing_kinds(runs);
     let pipeline_caution_kinds = pipeline_caution_kinds(runs);
+    let suspicious_summary_kinds = suspicious_summary_kinds(runs);
     let blockers = blocker_reasons(target, &required_missing, &required_stale, &failing);
     let mut reasons = gate_reasons(
         target,
@@ -593,11 +619,18 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
             pipeline_caution_kinds.join(", ")
         ));
     }
+    if !suspicious_summary_kinds.is_empty() {
+        reasons.push(format!(
+            "Passed {} verification includes suspicious pass signals in recorded summaries. Recheck the original command output.",
+            suspicious_summary_kinds.join(", ")
+        ));
+    }
     let level = if !blockers.is_empty() {
         "blocked"
     } else if !advisory_missing.is_empty()
         || !advisory_stale.is_empty()
         || !pipeline_caution_kinds.is_empty()
+        || !suspicious_summary_kinds.is_empty()
     {
         "caution"
     } else {
@@ -625,7 +658,14 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
     );
     if !pipeline_caution_kinds.is_empty() {
         next_steps.push(
-            "Rerun pipeline commands without pipes for more reliable exit-code capture.".to_string(),
+            "Rerun pipeline commands without pipes for more reliable exit-code capture."
+                .to_string(),
+        );
+    }
+    if !suspicious_summary_kinds.is_empty() {
+        next_steps.push(
+            "Rerun passed commands whose recorded summaries still contain error or failure text."
+                .to_string(),
         );
     }
 
@@ -638,6 +678,7 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
         "failing_kinds": failing,
         "stale_kinds": stale_kinds,
         "pipeline_caution_kinds": pipeline_caution_kinds,
+        "suspicious_summary_kinds": suspicious_summary_kinds,
         "freshness_policy": freshness_policy(),
         "reasons": reasons,
         "next_steps": next_steps,
@@ -749,9 +790,7 @@ mod tests {
     #[test]
     fn kind_state_sets_stale_runs() {
         let old_ts = (NOW - 10 * 86400).to_string();
-        let runs = vec![
-            make_run("test", "passed", &old_ts),
-        ];
+        let runs = vec![make_run("test", "passed", &old_ts)];
         let (missing, stale) = kind_state_sets(&runs, &["test", "build"], NOW);
         assert_eq!(missing, vec!["build"]);
         assert_eq!(stale, vec!["test"]);
@@ -783,7 +822,9 @@ mod tests {
     #[test]
     fn blocker_reasons_missing_test() {
         let reasons = blocker_reasons("cleanup", &["test"], &[], &[]);
-        assert!(reasons.iter().any(|r| r.contains("Missing recorded test evidence")));
+        assert!(reasons
+            .iter()
+            .any(|r| r.contains("Missing recorded test evidence")));
     }
 
     #[test]
@@ -854,14 +895,20 @@ mod tests {
     #[test]
     fn gate_next_steps_missing_test() {
         let steps = gate_next_steps("cleanup", &["test"], &[], &[], &[], &[]);
-        assert!(steps.iter().any(|s| s.contains("Run and record project-native test")));
+        assert!(steps
+            .iter()
+            .any(|s| s.contains("Run and record project-native test")));
     }
 
     #[test]
     fn gate_next_steps_missing_build_for_refactor() {
         let steps = gate_next_steps("refactor", &["test", "build"], &[], &[], &[], &[]);
-        assert!(steps.iter().any(|s| s.contains("Run and record project-native test")));
-        assert!(steps.iter().any(|s| s.contains("Run and record project-native build")));
+        assert!(steps
+            .iter()
+            .any(|s| s.contains("Run and record project-native test")));
+        assert!(steps
+            .iter()
+            .any(|s| s.contains("Run and record project-native build")));
     }
 
     #[test]
@@ -873,7 +920,9 @@ mod tests {
     #[test]
     fn gate_next_steps_advisory_gaps_only() {
         let steps = gate_next_steps("cleanup", &[], &[], &["lint"], &[], &[]);
-        assert!(steps.iter().any(|s| s.contains("Refresh advisory verification")));
+        assert!(steps
+            .iter()
+            .any(|s| s.contains("Refresh advisory verification")));
     }
 
     #[test]
@@ -891,7 +940,7 @@ mod tests {
         let result = gate_assessment(&runs, "cleanup", NOW);
         assert_eq!(result["level"], "blocked");
         assert_eq!(result["allowed"], false);
-        assert!(result["missing_kinds"].as_array().unwrap().len() > 0);
+        assert!(!result["missing_kinds"].as_array().unwrap().is_empty());
     }
 
     #[test]
@@ -975,15 +1024,26 @@ mod tests {
         let result = gate_assessment(&runs, "cleanup", NOW);
         assert_eq!(result["level"], "caution");
         assert_eq!(result["pipeline_caution_kinds"], json!(["test"]));
-        assert!(result["reasons"].as_array().unwrap().iter().any(|r| r.as_str().unwrap().contains("pipeline")));
-        assert!(result["next_steps"].as_array().unwrap().iter().any(|s| s.as_str().unwrap().contains("without pipes")));
+        assert!(result["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r.as_str().unwrap().contains("pipeline")));
+        assert!(result["next_steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("without pipes")));
     }
 
     #[test]
     fn gate_assessment_no_pipeline_caution_for_clean_commands() {
         let runs = vec![make_run("test", "passed", &NOW.to_string())];
         let result = gate_assessment(&runs, "cleanup", NOW);
-        assert!(result["pipeline_caution_kinds"].as_array().unwrap().is_empty());
+        assert!(result["pipeline_caution_kinds"]
+            .as_array()
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
@@ -1011,6 +1071,36 @@ mod tests {
         let latest = result["latest_runs"].as_array().unwrap();
         assert_eq!(latest[0]["trust_level"], "trusted");
         assert_eq!(latest[0]["exit_code_masked_possible"], false);
+    }
+
+    #[test]
+    fn verification_status_layer_cautions_suspicious_pass_summary() {
+        let ts = NOW.to_string();
+        let mut run = make_run("test", "passed", &ts);
+        run.summary = Some("src/App.vue(10,5): error TS2304: Cannot find name X".to_string());
+        let runs = vec![run];
+        let result = verification_status_layer(&runs);
+        let latest = result["latest_runs"].as_array().unwrap();
+        assert_eq!(latest[0]["trust_level"], "caution");
+        assert!(!latest[0]["suspicious_pass_signals"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn gate_assessment_caution_when_suspicious_pass_summary() {
+        let mut run = make_run("test", "passed", &NOW.to_string());
+        run.summary = Some("FAILED keyword despite recorded passed status".to_string());
+        let runs = vec![run];
+        let result = gate_assessment(&runs, "cleanup", NOW);
+        assert_eq!(result["level"], "caution");
+        assert_eq!(result["suspicious_summary_kinds"], json!(["test"]));
+        assert!(result["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r.as_str().unwrap().contains("suspicious pass")));
     }
 
     // ---- gate_blockers ----
@@ -1191,9 +1281,7 @@ mod tests {
     fn verification_status_layer_stale_runs_not_safe() {
         // Use a timestamp far enough in the past to be stale (>7 days)
         let old_ts = (current_unix_secs() - 10 * 86400).to_string();
-        let runs = vec![
-            make_run("test", "passed", &old_ts),
-        ];
+        let runs = vec![make_run("test", "passed", &old_ts)];
         let result = verification_status_layer(&runs);
         // Stale required test => blocked for cleanup
         assert_eq!(result["safe_for_cleanup"], false);
@@ -1332,8 +1420,12 @@ mod tests {
     fn workspace_verification_evidence_layer_direct_observations_count() {
         let result = workspace_verification_evidence_layer(&[], 5, 2);
         let obs = result["direct_observations"].as_array().unwrap();
-        assert!(obs.iter().any(|o| o.as_str().unwrap().contains("Registered projects: 5")));
-        assert!(obs.iter().any(|o| o.as_str().unwrap().contains("monitoring: 2")));
+        assert!(obs
+            .iter()
+            .any(|o| o.as_str().unwrap().contains("Registered projects: 5")));
+        assert!(obs
+            .iter()
+            .any(|o| o.as_str().unwrap().contains("monitoring: 2")));
     }
 
     #[test]
@@ -1354,7 +1446,9 @@ mod tests {
         });
         let result = workspace_verification_evidence_layer(&[project], 1, 1);
         let vc = result["verified_conclusions"].as_array().unwrap();
-        assert!(vc.iter().any(|c| c["summary"].as_str().unwrap().contains("1 project(s)")));
+        assert!(vc
+            .iter()
+            .any(|c| c["summary"].as_str().unwrap().contains("1 project(s)")));
     }
 
     #[test]
@@ -1375,6 +1469,9 @@ mod tests {
         });
         let result = workspace_verification_evidence_layer(&[project], 1, 0);
         let uc = result["unverified_conclusions"].as_array().unwrap();
-        assert!(uc.iter().any(|c| c["summary"].as_str().unwrap().contains("missing verification")));
+        assert!(uc.iter().any(|c| c["summary"]
+            .as_str()
+            .unwrap()
+            .contains("missing verification")));
     }
 }

@@ -227,7 +227,14 @@ pub struct CreateGovernanceLaneParams {
 
 impl CreateGovernanceLaneParams {
     pub(super) fn into_parts(self) -> (String, CreateLaneInput) {
-        (self.id, CreateLaneInput { lane_id: self.lane_id, title: self.title, description: self.description })
+        (
+            self.id,
+            CreateLaneInput {
+                lane_id: self.lane_id,
+                title: self.title,
+                description: self.description,
+            },
+        )
     }
 }
 
@@ -259,13 +266,21 @@ pub struct UpsertGovernanceNodeParams {
 
 impl UpsertGovernanceNodeParams {
     pub(super) fn into_parts(self) -> (String, UpsertNodeInput) {
-        (self.id, UpsertNodeInput {
-            node_id: self.node_id, lane_id: self.lane_id, state: self.state,
-            summary: self.summary, evidence_refs: self.evidence_refs,
-            artifact_refs: self.artifact_refs, reported_git_head: self.reported_git_head,
-            suggested_next: self.suggested_next, forbidden_scope: self.forbidden_scope,
-            external_anchors: self.external_anchors,
-        })
+        (
+            self.id,
+            UpsertNodeInput {
+                node_id: self.node_id,
+                lane_id: self.lane_id,
+                state: self.state,
+                summary: self.summary,
+                evidence_refs: self.evidence_refs,
+                artifact_refs: self.artifact_refs,
+                reported_git_head: self.reported_git_head,
+                suggested_next: self.suggested_next,
+                forbidden_scope: self.forbidden_scope,
+                external_anchors: self.external_anchors,
+            },
+        )
     }
 }
 
@@ -283,7 +298,14 @@ pub struct GetGovernanceStateParams {
 
 impl GetGovernanceStateParams {
     pub(super) fn into_parts(self) -> (String, GetGovernanceStateInput) {
-        (self.id, GetGovernanceStateInput { lane_id: self.lane_id, node_id: self.node_id, active_only: self.active_only })
+        (
+            self.id,
+            GetGovernanceStateInput {
+                lane_id: self.lane_id,
+                node_id: self.node_id,
+                active_only: self.active_only,
+            },
+        )
     }
 }
 
@@ -299,7 +321,13 @@ pub struct CloseGovernanceLaneParams {
 
 impl CloseGovernanceLaneParams {
     pub(super) fn into_parts(self) -> (String, CloseLaneInput) {
-        (self.id, CloseLaneInput { lane_id: self.lane_id, action: self.action })
+        (
+            self.id,
+            CloseLaneInput {
+                lane_id: self.lane_id,
+                action: self.action,
+            },
+        )
     }
 }
 

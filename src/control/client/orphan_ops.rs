@@ -1,4 +1,6 @@
-use crate::core::orphan::{DeletionPlanInput, DeletionPlanVerification, ScanOrphansInput, ScanOrphansResult};
+use crate::core::orphan::{
+    DeletionPlanInput, DeletionPlanVerification, ScanOrphansInput, ScanOrphansResult,
+};
 use crate::error::{OpenDogError, Result};
 
 use super::{ControlRequest, ControlResponse, DaemonClient};

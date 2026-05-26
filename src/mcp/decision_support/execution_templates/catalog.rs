@@ -310,7 +310,10 @@ mod tests {
     #[test]
     fn review_failing_verification_templates() {
         let t = call("review_failing_verification");
-        assert_eq!(template_ids(&t), vec!["verification.review_status", "verification.rerun"]);
+        assert_eq!(
+            template_ids(&t),
+            vec!["verification.review_status", "verification.rerun"]
+        );
     }
 
     #[test]
@@ -340,7 +343,10 @@ mod tests {
     #[test]
     fn run_verification_before_high_risk_templates() {
         let t = call("run_verification_before_high_risk_changes");
-        assert_eq!(template_ids(&t), vec!["verification.status", "verification.execute"]);
+        assert_eq!(
+            template_ids(&t),
+            vec!["verification.status", "verification.execute"]
+        );
     }
 
     #[test]
@@ -379,12 +385,36 @@ mod tests {
         for action in all_actions {
             let templates = call(action);
             for t in &templates {
-                assert!(t["template_id"].is_string(), "missing template_id for action {}", action);
-                assert!(t["preconditions"].is_array(), "missing preconditions for action {}", action);
-                assert!(t["blocking_conditions"].is_array(), "missing blocking_conditions for action {}", action);
-                assert!(t["success_signal"].is_string(), "missing success_signal for action {}", action);
-                assert!(t["parameter_schema"].is_object(), "missing parameter_schema for action {}", action);
-                assert!(t["default_values"].is_object(), "missing default_values for action {}", action);
+                assert!(
+                    t["template_id"].is_string(),
+                    "missing template_id for action {}",
+                    action
+                );
+                assert!(
+                    t["preconditions"].is_array(),
+                    "missing preconditions for action {}",
+                    action
+                );
+                assert!(
+                    t["blocking_conditions"].is_array(),
+                    "missing blocking_conditions for action {}",
+                    action
+                );
+                assert!(
+                    t["success_signal"].is_string(),
+                    "missing success_signal for action {}",
+                    action
+                );
+                assert!(
+                    t["parameter_schema"].is_object(),
+                    "missing parameter_schema for action {}",
+                    action
+                );
+                assert!(
+                    t["default_values"].is_object(),
+                    "missing default_values for action {}",
+                    action
+                );
             }
         }
     }
@@ -425,7 +455,10 @@ mod tests {
         );
         for t in &templates {
             let bc = t["blocking_conditions"].as_array().unwrap();
-            assert!(!bc.is_empty(), "expected blocking_conditions when cleanup_ready=false");
+            assert!(
+                !bc.is_empty(),
+                "expected blocking_conditions when cleanup_ready=false"
+            );
         }
     }
 
@@ -442,7 +475,10 @@ mod tests {
         );
         for t in &templates {
             let bc = t["blocking_conditions"].as_array().unwrap();
-            assert!(bc.is_empty(), "expected empty blocking_conditions when cleanup_ready=true");
+            assert!(
+                bc.is_empty(),
+                "expected empty blocking_conditions when cleanup_ready=true"
+            );
         }
     }
 
@@ -518,16 +554,11 @@ mod tests {
 
     #[test]
     fn fallback_success_signal_includes_verification_status() {
-        let templates = base_templates(
-            "whatever",
-            "p",
-            "missing",
-            "low",
-            false,
-            false,
-            &json!([]),
-        );
+        let templates = base_templates("whatever", "p", "missing", "low", false, false, &json!([]));
         let sig = templates[0]["success_signal"].as_str().unwrap();
-        assert!(sig.contains("missing"), "expected verification status in success_signal");
+        assert!(
+            sig.contains("missing"),
+            "expected verification status in success_signal"
+        );
     }
 }

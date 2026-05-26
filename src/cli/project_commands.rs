@@ -297,7 +297,9 @@ mod tests {
     #[test]
     fn parse_path_classification_filter_rejects_invalid_value() {
         let err = parse_path_classification_filter("documents").unwrap_err();
-        assert!(err.to_string().contains("path_classification must be one of"));
+        assert!(err
+            .to_string()
+            .contains("path_classification must be one of"));
     }
 
     #[test]
@@ -310,22 +312,18 @@ mod tests {
 
     #[test]
     fn filter_entries_by_classification_infrastructure_filter() {
-        let entries = vec![
-            entry(".claude/settings.json"),
-            entry("src/main.rs"),
-        ];
-        let infra =
-            filter_entries_by_classification(&entries, FilePathClassificationFilter::Infrastructure);
+        let entries = vec![entry(".claude/settings.json"), entry("src/main.rs")];
+        let infra = filter_entries_by_classification(
+            &entries,
+            FilePathClassificationFilter::Infrastructure,
+        );
         assert_eq!(infra.len(), 1);
         assert_eq!(infra[0].file_path, ".claude/settings.json");
     }
 
     #[test]
     fn filter_entries_by_classification_no_matching_entries() {
-        let entries = vec![
-            entry("README.md"),
-            entry("LICENSE"),
-        ];
+        let entries = vec![entry("README.md"), entry("LICENSE")];
         let source =
             filter_entries_by_classification(&entries, FilePathClassificationFilter::Source);
         assert!(source.is_empty());

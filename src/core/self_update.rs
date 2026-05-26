@@ -130,11 +130,7 @@ fn build_command_for(source: &Path) -> Result<BuildCommandSpec> {
     })
 }
 
-fn build_result_for(
-    source: &Path,
-    exit_code: Option<i32>,
-    status: &str,
-) -> SelfUpdateBuildResult {
+fn build_result_for(source: &Path, exit_code: Option<i32>, status: &str) -> SelfUpdateBuildResult {
     let release_binary = release_binary_path(source);
     SelfUpdateBuildResult {
         schema_version: SELF_UPDATE_BUILD_SCHEMA,

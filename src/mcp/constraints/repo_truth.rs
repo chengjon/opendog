@@ -103,7 +103,7 @@ mod tests {
             "status": "clean",
             "operation_states": []
         });
-        let (gaps, checks) = repo_truth_gap_projection(&input);
+        let (gaps, _checks) = repo_truth_gap_projection(&input);
         assert!(!gaps.contains(&"repository_mid_operation".to_string()));
     }
 
@@ -125,7 +125,7 @@ mod tests {
             "status": "clean",
             "conflicted_count": 0
         });
-        let (gaps, checks) = repo_truth_gap_projection(&input);
+        let (gaps, _checks) = repo_truth_gap_projection(&input);
         assert!(!gaps.contains(&"working_tree_conflicted".to_string()));
     }
 
@@ -147,7 +147,7 @@ mod tests {
             "status": "clean",
             "lockfile_anomalies": []
         });
-        let (gaps, checks) = repo_truth_gap_projection(&input);
+        let (gaps, _checks) = repo_truth_gap_projection(&input);
         assert!(!gaps.contains(&"dependency_state_requires_repo_review".to_string()));
     }
 

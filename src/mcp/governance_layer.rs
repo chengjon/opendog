@@ -1,10 +1,8 @@
-use serde_json::{json, Value};
 use crate::storage::database::Database;
 use crate::storage::queries::{self, get_data_risk_cache};
+use serde_json::{json, Value};
 
-pub(crate) fn build_governance_layer(
-    project_dbs: &[(&String, &Database)],
-) -> Value {
+pub(crate) fn build_governance_layer(project_dbs: &[(&String, &Database)]) -> Value {
     let mut project_governance: Vec<Value> = Vec::new();
     let mut total_active_lanes = 0usize;
     let mut total_active_nodes = 0usize;
@@ -28,8 +26,8 @@ pub(crate) fn build_governance_layer(
             let active_nodes = queries::count_active_nodes_for_lane(db, &lane.lane_id).unwrap_or(0);
             total_active_nodes += active_nodes;
 
-            let nodes = queries::get_governance_nodes(db, Some(&lane.lane_id), None)
-                .unwrap_or_default();
+            let nodes =
+                queries::get_governance_nodes(db, Some(&lane.lane_id), None).unwrap_or_default();
             let latest_node = nodes.first();
 
             let mut lane_json = json!({
@@ -57,8 +55,14 @@ pub(crate) fn build_governance_layer(
 
         // Observation cross-reference hints
         let snapshot_freshness = if let Ok(entries) = queries::get_snapshot_paths(db) {
-            if !entries.is_empty() { "fresh" } else { "unknown" }
-        } else { "unknown" };
+            if !entries.is_empty() {
+                "fresh"
+            } else {
+                "unknown"
+            }
+        } else {
+            "unknown"
+        };
 
         let verification_status = match queries::get_latest_verification_runs(db) {
             Ok(runs) if runs.iter().all(|r| r.status == "passed") => "passed",

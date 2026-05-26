@@ -226,7 +226,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.verification_failing = true;
         let score = make_score("review_unused_files", 100);
-        assert_eq!(derive_confidence(&score, &signals, &low_risk_repo()), "high");
+        assert_eq!(
+            derive_confidence(&score, &signals, &low_risk_repo()),
+            "high"
+        );
     }
 
     #[test]
@@ -243,7 +246,10 @@ mod tests {
     #[test]
     fn confidence_high_when_strong_ready_signal() {
         let score = make_score("review_unused_files", 100);
-        assert_eq!(derive_confidence(&score, &allow_signals(), &low_risk_repo()), "high");
+        assert_eq!(
+            derive_confidence(&score, &allow_signals(), &low_risk_repo()),
+            "high"
+        );
     }
 
     #[test]
@@ -254,10 +260,7 @@ mod tests {
             "operation_states": [],
             "large_diff": false,
         });
-        assert_eq!(
-            derive_confidence(&score, &allow_signals(), &repo),
-            "medium"
-        );
+        assert_eq!(derive_confidence(&score, &allow_signals(), &repo), "medium");
     }
 
     #[test]
@@ -265,7 +268,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.cleanup_gate_level = GateLevel::Caution;
         let score = make_score("review_unused_files", 100);
-        assert_eq!(derive_confidence(&score, &signals, &low_risk_repo()), "medium");
+        assert_eq!(
+            derive_confidence(&score, &signals, &low_risk_repo()),
+            "medium"
+        );
     }
 
     #[test]
@@ -284,7 +290,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.snapshot_stale = true;
         let score = make_score("review_unused_files", 60);
-        assert_eq!(derive_confidence(&score, &signals, &low_risk_repo()), "medium");
+        assert_eq!(
+            derive_confidence(&score, &signals, &low_risk_repo()),
+            "medium"
+        );
     }
 
     #[test]

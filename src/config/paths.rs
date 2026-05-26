@@ -129,10 +129,7 @@ mod tests {
 
     #[test]
     fn resolve_dirs_empty_opendog_home_falls_through() {
-        let root = resolve_dirs(
-            Some(PathBuf::from("")),
-            Some(PathBuf::from("/home/tester")),
-        );
+        let root = resolve_dirs(Some(PathBuf::from("")), Some(PathBuf::from("/home/tester")));
         assert_eq!(root, PathBuf::from("/home/tester/.opendog"));
     }
 

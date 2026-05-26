@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn changed_fields_join_with_comma() {
-        let fields = vec![
+        let fields = [
             "ignore_patterns".to_string(),
             "process_whitelist".to_string(),
         ];
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn skipped_fields_join_with_pipe() {
-        let fields = vec!["a".to_string(), "b".to_string()];
+        let fields = ["a".to_string(), "b".to_string()];
         let text = fields.join(" | ");
         assert_eq!(text, "a | b");
     }
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn vec_formatter_nonempty_lists_values() {
-        let values = vec!["node".to_string(), "python".to_string()];
+        let values = ["node".to_string(), "python".to_string()];
         // Mirrors the iteration in print_vec
         let rendered: Vec<String> = values.iter().map(|v| format!("    {}", v)).collect();
         assert_eq!(rendered.len(), 2);

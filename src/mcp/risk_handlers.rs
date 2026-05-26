@@ -143,9 +143,7 @@ pub(super) fn handle_get_workspace_data_risk_overview(
                     .and_then(|db| stats::get_stats(&db).ok())
                     .unwrap_or_default()
             },
-            |project_id: &str| {
-                inner.project_manager().open_project_db(project_id).ok()
-            },
+            |project_id: &str| inner.project_manager().open_project_db(project_id).ok(),
         )),
         Err(e) => error_json_for(MCP_WORKSPACE_DATA_RISK_V1, None, &e),
     }

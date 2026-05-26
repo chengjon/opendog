@@ -320,7 +320,7 @@ mod tests {
         let query_subject = OrphanSubject {
             subject_kind: OrphanSubjectKind::File,
             subject: "foo.rs".to_string(),
-            path: None,  // different path
+            path: None, // different path
             display_name: None,
         };
         let signal = EvidenceSignal {
@@ -406,8 +406,14 @@ mod tests {
     #[test]
     fn subject_text_matches_finds_literal() {
         let subject = file_subject("main.rs");
-        assert!(subject_text_matches("mod main;\n// main.rs is core\n", &subject));
-        assert!(!subject_text_matches("completely unrelated content", &subject));
+        assert!(subject_text_matches(
+            "mod main;\n// main.rs is core\n",
+            &subject
+        ));
+        assert!(!subject_text_matches(
+            "completely unrelated content",
+            &subject
+        ));
     }
 
     #[test]

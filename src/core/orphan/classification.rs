@@ -187,7 +187,11 @@ mod tests {
     #[test]
     fn strong_used_signal_classifies_as_blocked() {
         let subject = file_subject("alive.rs");
-        let evidence = vec![signal(EvidencePolarity::SupportsUsed, "incoming_ref", &subject)];
+        let evidence = vec![signal(
+            EvidencePolarity::SupportsUsed,
+            "incoming_ref",
+            &subject,
+        )];
         let result = classify_subject(&subject, vec![], evidence, &default_options()).unwrap();
         assert_eq!(result.classification, OrphanClassification::Blocked);
     }
@@ -228,7 +232,11 @@ mod tests {
     #[test]
     fn unused_evidence_with_passed_scanners_yields_remove_candidate() {
         let subject = file_subject("dead_code.rs");
-        let evidence = vec![signal(EvidencePolarity::SupportsUnused, "candidate_collector", &subject)];
+        let evidence = vec![signal(
+            EvidencePolarity::SupportsUnused,
+            "candidate_collector",
+            &subject,
+        )];
         let health = vec![passed_health("candidate_collector")];
         let result = classify_subject(&subject, health, evidence, &default_options()).unwrap();
         assert_eq!(result.classification, OrphanClassification::RemoveCandidate);
@@ -240,13 +248,20 @@ mod tests {
         let health = vec![passed_health("candidate_collector")];
         let result = classify_subject(&subject, health, vec![], &default_options()).unwrap();
         assert_eq!(result.classification, OrphanClassification::ReviewRequired);
-        assert!(result.reasons.iter().any(|r| r.contains("No positive unused evidence")));
+        assert!(result
+            .reasons
+            .iter()
+            .any(|r| r.contains("No positive unused evidence")));
     }
 
     #[test]
     fn stale_evidence_triggers_review() {
         let subject = file_subject("old.rs");
-        let mut s = signal(EvidencePolarity::SupportsUnused, "candidate_collector", &subject);
+        let mut s = signal(
+            EvidencePolarity::SupportsUnused,
+            "candidate_collector",
+            &subject,
+        );
         s.observed_at = Some(100);
         let evidence = vec![s];
         let health = vec![passed_health("candidate_collector")];

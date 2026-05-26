@@ -70,7 +70,10 @@ mod tests {
             "Recorded {} result for project '{}': {} ({})",
             "test", "proj", "passed", "cargo test"
         );
-        assert_eq!(line, "Recorded test result for project 'proj': passed (cargo test)");
+        assert_eq!(
+            line,
+            "Recorded test result for project 'proj': passed (cargo test)"
+        );
     }
 
     #[test]
@@ -113,14 +116,18 @@ mod tests {
     #[test]
     fn exit_code_display_some() {
         let code: Option<i32> = Some(1);
-        let display = code.map(|c| c.to_string()).unwrap_or_else(|| "-".to_string());
+        let display = code
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "-".to_string());
         assert_eq!(display, "1");
     }
 
     #[test]
     fn exit_code_display_none() {
         let code: Option<i32> = None;
-        let display = code.map(|c| c.to_string()).unwrap_or_else(|| "-".to_string());
+        let display = code
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "-".to_string());
         assert_eq!(display, "-");
     }
 

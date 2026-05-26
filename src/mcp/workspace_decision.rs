@@ -442,7 +442,11 @@ mod tests {
         // proj-b: mock + hardcoded patterns
         let mock_dir_b = dir_b.path().join("mocks");
         std::fs::create_dir_all(&mock_dir_b).unwrap();
-        std::fs::write(mock_dir_b.join("data.py"), "customer = 'Alice'\nemail = 'a@b.com'\namount = 100\n").unwrap();
+        std::fs::write(
+            mock_dir_b.join("data.py"),
+            "customer = 'Alice'\nemail = 'a@b.com'\namount = 100\n",
+        )
+        .unwrap();
 
         let project_a = make_project_info("proj-a", dir_a.path().to_str().unwrap());
         let project_b = make_project_info("proj-b", dir_b.path().to_str().unwrap());
@@ -465,10 +469,18 @@ mod tests {
         );
         // proj-b should come first because hardcoded_candidate_count is >= proj-a
         if summaries.len() >= 2 {
-            let hc_b = summaries.iter().find(|s| s["project_id"] == "proj-b").unwrap();
-            let hc_a = summaries.iter().find(|s| s["project_id"] == "proj-a").unwrap();
-            assert!(hc_b["hardcoded_candidate_count"].as_u64().unwrap()
-                >= hc_a["hardcoded_candidate_count"].as_u64().unwrap());
+            let hc_b = summaries
+                .iter()
+                .find(|s| s["project_id"] == "proj-b")
+                .unwrap();
+            let hc_a = summaries
+                .iter()
+                .find(|s| s["project_id"] == "proj-a")
+                .unwrap();
+            assert!(
+                hc_b["hardcoded_candidate_count"].as_u64().unwrap()
+                    >= hc_a["hardcoded_candidate_count"].as_u64().unwrap()
+            );
         }
     }
 
@@ -484,7 +496,7 @@ mod tests {
 
         // Filter to "hardcoded" only - should return empty because only mock candidates
         let summaries = collect_workspace_data_risk_summaries(
-            &[project.clone()],
+            std::slice::from_ref(&project),
             "hardcoded",
             "low",
             move |_p: &ProjectInfo| entries.clone(),

@@ -124,10 +124,14 @@ mod tests {
         assert_eq!(json["status"], "ready");
         assert_eq!(json["safe_to_plan_deletion"], true);
         assert!(json["blocked_targets"].as_array().unwrap().is_empty());
-        assert!(json["review_required_targets"].as_array().unwrap().is_empty());
+        assert!(json["review_required_targets"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert!(json["remove_candidates"].as_array().unwrap().is_empty());
         assert_eq!(
-            json["required_project_verification_commands"][0], "cargo test"
+            json["required_project_verification_commands"][0],
+            "cargo test"
         );
         assert_eq!(json["evidence_gaps"][0], "gap one");
     }
@@ -163,7 +167,10 @@ mod tests {
         assert_eq!(json["targets"].as_array().unwrap().len(), 1);
         assert_eq!(json["targets"][0]["subject_kind"], "file");
         assert_eq!(json["targets"][0]["subject"], "dead.rs");
-        assert_eq!(json["required_project_verification_commands"][0], "cargo test");
+        assert_eq!(
+            json["required_project_verification_commands"][0],
+            "cargo test"
+        );
         assert_eq!(json["max_age_secs"], 3600);
     }
 }

@@ -4,23 +4,25 @@ use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
     ProjectConfigView,
 };
-use crate::storage::schema::SCHEMA_VERSION;
 use crate::contracts::{versioned_payload, versioned_project_payload};
 use crate::core::export::PortableProjectExport;
+use crate::storage::schema::SCHEMA_VERSION;
 
 use super::super::tool_guidance;
 
-pub(crate) fn build_info_payload(
-    schema_version: &str,
-    version: &str,
-    git_hash: &str,
-    build_time: &str,
-    binary_path: &str,
-    needs_rebuild: Option<bool>,
-    daemon_running: bool,
-    opendog_home: &str,
-) -> Value {
-    let rebuild_hint = match needs_rebuild {
+pub(crate) struct BuildInfoPayloadInput<'a> {
+    pub schema_version: &'a str,
+    pub version: &'a str,
+    pub git_hash: &'a str,
+    pub build_time: &'a str,
+    pub binary_path: &'a str,
+    pub needs_rebuild: Option<bool>,
+    pub daemon_running: bool,
+    pub opendog_home: &'a str,
+}
+
+pub(crate) fn build_info_payload(input: BuildInfoPayloadInput<'_>) -> Value {
+    let rebuild_hint = match input.needs_rebuild {
         Some(true) => Some(
             "Running binary is older than source code. Run `opendog self-update build --source /opt/claude/opendog`, then restart this MCP session."
                 .to_string(),
@@ -29,14 +31,14 @@ pub(crate) fn build_info_payload(
     };
 
     let mut fields: Vec<(&str, Value)> = vec![
-        ("version", json!(version)),
+        ("version", json!(input.version)),
         ("schema_version", json!(SCHEMA_VERSION)),
-        ("git_hash", json!(git_hash)),
-        ("build_time", json!(build_time)),
-        ("binary_path", json!(binary_path)),
-        ("needs_rebuild", json!(needs_rebuild)),
-        ("daemon_running", json!(daemon_running)),
-        ("opendog_home", json!(opendog_home)),
+        ("git_hash", json!(input.git_hash)),
+        ("build_time", json!(input.build_time)),
+        ("binary_path", json!(input.binary_path)),
+        ("needs_rebuild", json!(input.needs_rebuild)),
+        ("daemon_running", json!(input.daemon_running)),
+        ("opendog_home", json!(input.opendog_home)),
     ];
     if let Some(hint) = &rebuild_hint {
         fields.push(("rebuild_hint", json!(hint)));
@@ -44,7 +46,7 @@ pub(crate) fn build_info_payload(
     fields.push((
         "guidance",
         tool_guidance(
-            if needs_rebuild == Some(true) {
+            if input.needs_rebuild == Some(true) {
                 "Binary is stale — rebuild and restart to pick up latest changes."
             } else {
                 "Build info loaded. Binary is up to date."
@@ -54,7 +56,7 @@ pub(crate) fn build_info_payload(
             None,
         ),
     ));
-    versioned_payload(schema_version, fields)
+    versioned_payload(input.schema_version, fields)
 }
 
 pub(crate) fn global_config_payload(schema_version: &str, config: &ProjectConfig) -> Value {
@@ -255,11 +257,24 @@ mod tests {
         }
     }
 
+    fn sample_build_info_input() -> BuildInfoPayloadInput<'static> {
+        BuildInfoPayloadInput {
+            schema_version: "v1",
+            version: "0.1.0",
+            git_hash: "abc123",
+            build_time: "2025-01-01",
+            binary_path: "/usr/bin/opendog",
+            needs_rebuild: None,
+            daemon_running: false,
+            opendog_home: "/home/user/.opendog",
+        }
+    }
+
     // --- build_info_payload ---
 
     #[test]
     fn build_info_payload_basic() {
-        let result = build_info_payload("v1", "0.1.0", "abc123", "2025-01-01", "/usr/bin/opendog", None, false, "/home/user/.opendog");
+        let result = build_info_payload(sample_build_info_input());
         assert_eq!(result["version"], "0.1.0");
         assert_eq!(result["git_hash"], "abc123");
         assert_eq!(result["build_time"], "2025-01-01");
@@ -270,14 +285,25 @@ mod tests {
 
     #[test]
     fn build_info_payload_needs_rebuild_true() {
-        let result = build_info_payload("v1", "0.1.0", "abc", "2025-01-01", "/bin/od", Some(true), false, "/home/user/.opendog");
+        let mut input = sample_build_info_input();
+        input.git_hash = "abc";
+        input.binary_path = "/bin/od";
+        input.needs_rebuild = Some(true);
+        let result = build_info_payload(input);
         assert_eq!(result["needs_rebuild"], true);
-        assert!(result["rebuild_hint"].as_str().unwrap().contains("self-update"));
+        assert!(result["rebuild_hint"]
+            .as_str()
+            .unwrap()
+            .contains("self-update"));
     }
 
     #[test]
     fn build_info_payload_needs_rebuild_false() {
-        let result = build_info_payload("v1", "0.1.0", "abc", "2025-01-01", "/bin/od", Some(false), false, "/home/user/.opendog");
+        let mut input = sample_build_info_input();
+        input.git_hash = "abc";
+        input.binary_path = "/bin/od";
+        input.needs_rebuild = Some(false);
+        let result = build_info_payload(input);
         assert_eq!(result["needs_rebuild"], false);
         assert!(result.get("rebuild_hint").is_none() || result["rebuild_hint"].is_null());
     }
@@ -351,7 +377,10 @@ mod tests {
         assert_eq!(result["project_id"], "p2");
         assert_eq!(result["status"], "updated");
         assert_eq!(result["reload"]["monitor_running"], true);
-        assert_eq!(result["reload"]["changed_fields"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            result["reload"]["changed_fields"].as_array().unwrap().len(),
+            1
+        );
     }
 
     // --- project_config_reload_payload ---
@@ -390,9 +419,8 @@ mod tests {
             row_count: 50,
             rows: vec![],
         };
-        let result = export_project_evidence_payload(
-            "v1", &artifact, "/tmp/out.json", 1024, "content-here",
-        );
+        let result =
+            export_project_evidence_payload("v1", &artifact, "/tmp/out.json", 1024, "content-here");
         assert_eq!(result["project_id"], "exp1");
         assert_eq!(result["status"], "exported");
         assert_eq!(result["format"], "json");
@@ -406,32 +434,21 @@ mod tests {
 
     #[test]
     fn build_info_payload_includes_schema_version() {
-        let payload = build_info_payload(
-            "1.0",
-            "0.1.0",
-            "abc123",
-            "2026-01-01",
-            "/usr/bin/opendog",
-            None,
-            false,
-            "/home/user/.opendog",
-        );
+        let mut input = sample_build_info_input();
+        input.schema_version = "1.0";
+        input.build_time = "2026-01-01";
+        let payload = build_info_payload(input);
         assert_eq!(payload["schema_version"], 6);
         assert_eq!(payload["version"], "0.1.0");
     }
 
     #[test]
     fn build_info_payload_preserves_existing_fields() {
-        let payload = build_info_payload(
-            "1.0",
-            "0.1.0",
-            "abc123",
-            "2026-01-01",
-            "/usr/bin/opendog",
-            Some(true),
-            false,
-            "/home/user/.opendog",
-        );
+        let mut input = sample_build_info_input();
+        input.schema_version = "1.0";
+        input.build_time = "2026-01-01";
+        input.needs_rebuild = Some(true);
+        let payload = build_info_payload(input);
         assert_eq!(payload["version"], "0.1.0");
         assert_eq!(payload["git_hash"], "abc123");
         assert_eq!(payload["needs_rebuild"], true);
@@ -440,32 +457,24 @@ mod tests {
 
     #[test]
     fn build_info_payload_includes_daemon_running() {
-        let payload = build_info_payload(
-            "1.0",
-            "0.1.0",
-            "abc",
-            "2026-01-01",
-            "/usr/bin/opendog",
-            None,
-            true,
-            "/home/user/.opendog",
-        );
+        let mut input = sample_build_info_input();
+        input.schema_version = "1.0";
+        input.git_hash = "abc";
+        input.build_time = "2026-01-01";
+        input.daemon_running = true;
+        let payload = build_info_payload(input);
         assert_eq!(payload["daemon_running"], true);
         assert_eq!(payload["opendog_home"], "/home/user/.opendog");
     }
 
     #[test]
     fn build_info_payload_daemon_not_running() {
-        let payload = build_info_payload(
-            "1.0",
-            "0.1.0",
-            "abc",
-            "2026-01-01",
-            "/usr/bin/opendog",
-            None,
-            false,
-            "/var/lib/opendog",
-        );
+        let mut input = sample_build_info_input();
+        input.schema_version = "1.0";
+        input.git_hash = "abc";
+        input.build_time = "2026-01-01";
+        input.opendog_home = "/var/lib/opendog";
+        let payload = build_info_payload(input);
         assert_eq!(payload["daemon_running"], false);
         assert_eq!(payload["opendog_home"], "/var/lib/opendog");
     }

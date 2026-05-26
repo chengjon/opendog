@@ -68,17 +68,26 @@ mod tests {
 
     #[test]
     fn test_normalize_candidate_type_all() {
-        assert_eq!(normalize_candidate_type(Some("all".to_string())).unwrap(), "all");
+        assert_eq!(
+            normalize_candidate_type(Some("all".to_string())).unwrap(),
+            "all"
+        );
     }
 
     #[test]
     fn test_normalize_candidate_type_mock() {
-        assert_eq!(normalize_candidate_type(Some("mock".to_string())).unwrap(), "mock");
+        assert_eq!(
+            normalize_candidate_type(Some("mock".to_string())).unwrap(),
+            "mock"
+        );
     }
 
     #[test]
     fn test_normalize_candidate_type_hardcoded() {
-        assert_eq!(normalize_candidate_type(Some("hardcoded".to_string())).unwrap(), "hardcoded");
+        assert_eq!(
+            normalize_candidate_type(Some("hardcoded".to_string())).unwrap(),
+            "hardcoded"
+        );
     }
 
     #[test]
@@ -91,24 +100,36 @@ mod tests {
         let result = normalize_candidate_type(Some("bogus".to_string()));
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err["error"], "candidate_type must be one of: all, mock, hardcoded");
+        assert_eq!(
+            err["error"],
+            "candidate_type must be one of: all, mock, hardcoded"
+        );
     }
 
     // ---- normalize_min_review_priority ----
 
     #[test]
     fn test_normalize_min_review_priority_low() {
-        assert_eq!(normalize_min_review_priority(Some("low".to_string())).unwrap(), "low");
+        assert_eq!(
+            normalize_min_review_priority(Some("low".to_string())).unwrap(),
+            "low"
+        );
     }
 
     #[test]
     fn test_normalize_min_review_priority_medium() {
-        assert_eq!(normalize_min_review_priority(Some("medium".to_string())).unwrap(), "medium");
+        assert_eq!(
+            normalize_min_review_priority(Some("medium".to_string())).unwrap(),
+            "medium"
+        );
     }
 
     #[test]
     fn test_normalize_min_review_priority_high() {
-        assert_eq!(normalize_min_review_priority(Some("high".to_string())).unwrap(), "high");
+        assert_eq!(
+            normalize_min_review_priority(Some("high".to_string())).unwrap(),
+            "high"
+        );
     }
 
     #[test]
@@ -121,7 +142,10 @@ mod tests {
         let result = normalize_min_review_priority(Some("urgent".to_string()));
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err["error"], "min_review_priority must be one of: low, medium, high");
+        assert_eq!(
+            err["error"],
+            "min_review_priority must be one of: low, medium, high"
+        );
     }
 
     // ---- review_priority_score ----
@@ -249,7 +273,10 @@ mod tests {
                 "severity should be recognized: got {}",
                 meta.severity
             );
-            assert!(!meta.description.is_empty(), "description should not be empty");
+            assert!(
+                !meta.description.is_empty(),
+                "description should not be empty"
+            );
         }
     }
 }

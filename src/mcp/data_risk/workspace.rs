@@ -373,7 +373,10 @@ mod tests {
             ],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "runtime-shared hardcoded candidates with high-severity content matches");
+        assert_eq!(
+            reason,
+            "runtime-shared hardcoded candidates with high-severity content matches"
+        );
     }
 
     #[test]
@@ -387,7 +390,10 @@ mod tests {
             ],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "runtime-shared hardcoded candidates need manual review before refactor");
+        assert_eq!(
+            reason,
+            "runtime-shared hardcoded candidates need manual review before refactor"
+        );
     }
 
     #[test]
@@ -401,7 +407,10 @@ mod tests {
             ],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "hardcoded business-like literals detected in review candidates");
+        assert_eq!(
+            reason,
+            "hardcoded business-like literals detected in review candidates"
+        );
     }
 
     #[test]
@@ -413,7 +422,10 @@ mod tests {
             "rule_hits_summary": [],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "hardcoded candidates appear alongside mixed review files");
+        assert_eq!(
+            reason,
+            "hardcoded candidates appear alongside mixed review files"
+        );
     }
 
     #[test]
@@ -425,7 +437,10 @@ mod tests {
             "rule_hits_summary": [],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "hardcoded-data candidates require project-level inspection");
+        assert_eq!(
+            reason,
+            "hardcoded-data candidates require project-level inspection"
+        );
     }
 
     #[test]
@@ -437,7 +452,10 @@ mod tests {
             "rule_hits_summary": [],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "mixed mock and hardcoded review files need classification cleanup");
+        assert_eq!(
+            reason,
+            "mixed mock and hardcoded review files need classification cleanup"
+        );
     }
 
     #[test]
@@ -449,7 +467,10 @@ mod tests {
             "rule_hits_summary": [],
         });
         let reason = workspace_priority_reason(&summary);
-        assert_eq!(reason, "mock-style candidates should be confirmed as test-only before cleanup");
+        assert_eq!(
+            reason,
+            "mock-style candidates should be confirmed as test-only before cleanup"
+        );
     }
 
     #[test]
@@ -528,7 +549,10 @@ mod tests {
         let enriched = enrich_workspace_priority_project(&summary);
         assert_eq!(enriched["project_id"], "demo");
         assert!(enriched["dominant_rule_group"].is_null());
-        assert_eq!(enriched["priority_reason"], "mock-style candidates should be confirmed as test-only before cleanup");
+        assert_eq!(
+            enriched["priority_reason"],
+            "mock-style candidates should be confirmed as test-only before cleanup"
+        );
     }
 
     #[test]
@@ -730,9 +754,8 @@ mod tests {
         let arr = result.as_array().unwrap();
         assert_eq!(arr.len(), 4);
 
-        let find_group = |name: &str| -> &serde_json::Value {
-            arr.iter().find(|v| v["group"] == name).unwrap()
-        };
+        let find_group =
+            |name: &str| -> &serde_json::Value { arr.iter().find(|v| v["group"] == name).unwrap() };
         assert_eq!(find_group("content")["severity"], "medium");
         assert_eq!(find_group("classification")["severity"], "medium");
         assert_eq!(find_group("path")["severity"], "low");
@@ -746,10 +769,24 @@ mod tests {
         let result = workspace_data_risk_overview_payload(&[], 0);
         // tool_guidance sets schema_version to MCP_GUIDANCE_V1
         assert!(result["schema_version"].is_string());
-        assert_eq!(result["layers"]["workspace_observation"]["matched_project_count"], 0);
-        assert_eq!(result["layers"]["workspace_observation"]["total_mock_candidates"], 0);
-        assert_eq!(result["layers"]["workspace_observation"]["total_hardcoded_candidates"], 0);
-        assert!(result["layers"]["cleanup_refactor_candidates"]["priority_projects"].as_array().unwrap().is_empty());
+        assert_eq!(
+            result["layers"]["workspace_observation"]["matched_project_count"],
+            0
+        );
+        assert_eq!(
+            result["layers"]["workspace_observation"]["total_mock_candidates"],
+            0
+        );
+        assert_eq!(
+            result["layers"]["workspace_observation"]["total_hardcoded_candidates"],
+            0
+        );
+        assert!(
+            result["layers"]["cleanup_refactor_candidates"]["priority_projects"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -764,10 +801,22 @@ mod tests {
             "rule_groups_summary": [],
         })];
         let result = workspace_data_risk_overview_payload(&summaries, 5);
-        assert_eq!(result["layers"]["workspace_observation"]["matched_project_count"], 1);
-        assert_eq!(result["layers"]["workspace_observation"]["projects_with_mock_candidates"], 1);
-        assert_eq!(result["layers"]["workspace_observation"]["projects_with_hardcoded_candidates"], 0);
-        assert_eq!(result["layers"]["workspace_observation"]["total_mock_candidates"], 3);
+        assert_eq!(
+            result["layers"]["workspace_observation"]["matched_project_count"],
+            1
+        );
+        assert_eq!(
+            result["layers"]["workspace_observation"]["projects_with_mock_candidates"],
+            1
+        );
+        assert_eq!(
+            result["layers"]["workspace_observation"]["projects_with_hardcoded_candidates"],
+            0
+        );
+        assert_eq!(
+            result["layers"]["workspace_observation"]["total_mock_candidates"],
+            3
+        );
     }
 
     #[test]

@@ -130,8 +130,14 @@ mod tests {
         assert_eq!(layers["verification_evidence"]["status"], "not_assessed");
         assert_eq!(layers["multi_project_portfolio"]["status"], "not_assessed");
         assert_eq!(layers["storage_maintenance"]["status"], "not_assessed");
-        assert_eq!(layers["cleanup_refactor_candidates"]["status"], "not_assessed");
-        assert_eq!(layers["cleanup_refactor_candidates"]["candidates"], json!([]));
+        assert_eq!(
+            layers["cleanup_refactor_candidates"]["status"],
+            "not_assessed"
+        );
+        assert_eq!(
+            layers["cleanup_refactor_candidates"]["candidates"],
+            json!([])
+        );
         assert_eq!(layers["project_toolchain"]["status"], "not_assessed");
         assert_eq!(layers["constraints_boundaries"]["status"], "not_assessed");
         assert_eq!(layers["governance"]["status"], "not_assessed");
@@ -140,9 +146,7 @@ mod tests {
     #[test]
     fn base_guidance_layers_repo_status_has_summary() {
         let layers = base_guidance_layers();
-        let summary = layers["repo_status_risk"]["summary"]
-            .as_str()
-            .unwrap();
+        let summary = layers["repo_status_risk"]["summary"].as_str().unwrap();
         assert!(summary.contains("not yet collected"));
     }
 
@@ -189,12 +193,7 @@ mod tests {
 
     #[test]
     fn tool_guidance_overwrites_execution_strategy_layer() {
-        let result = tool_guidance(
-            "Check workspace.",
-            &["cmd1"],
-            &["tool1"],
-            None,
-        );
+        let result = tool_guidance("Check workspace.", &["cmd1"], &["tool1"], None);
         let strategy = &result["layers"]["execution_strategy"];
         assert_eq!(strategy["status"], "available");
         assert_eq!(strategy["recommended_flow"], json!(["Check workspace."]));

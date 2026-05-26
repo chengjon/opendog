@@ -96,19 +96,12 @@ pub fn get_governance_lane_by_id(db: &Database, lane_id: &str) -> Result<Option<
         },
     ) {
         Ok(lane) => Ok(Some(lane)),
-        Err(crate::error::OpenDogError::Database(rusqlite::Error::QueryReturnedNoRows)) => {
-            Ok(None)
-        }
+        Err(crate::error::OpenDogError::Database(rusqlite::Error::QueryReturnedNoRows)) => Ok(None),
         Err(e) => Err(e),
     }
 }
 
-pub fn update_lane_status(
-    db: &Database,
-    lane_id: &str,
-    status: &str,
-    now: &str,
-) -> Result<usize> {
+pub fn update_lane_status(db: &Database, lane_id: &str, status: &str, now: &str) -> Result<usize> {
     db.execute(
         "UPDATE governance_lanes SET status = ?1, updated_at = ?2 WHERE lane_id = ?3",
         params![status, now, lane_id],
@@ -162,15 +155,13 @@ pub fn upsert_governance_node(
 
     match inserted {
         Ok(_) => Ok(true),
-        Err(crate::error::OpenDogError::Database(
-            rusqlite::Error::SqliteFailure(
-                rusqlite::ffi::Error {
-                    code: rusqlite::ErrorCode::ConstraintViolation,
-                    ..
-                },
-                _,
-            ),
-        )) => {
+        Err(crate::error::OpenDogError::Database(rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error {
+                code: rusqlite::ErrorCode::ConstraintViolation,
+                ..
+            },
+            _,
+        ))) => {
             // UNIQUE constraint violation — node_id exists, perform dynamic UPDATE.
             let mut sets = vec!["updated_at = ?1".to_string()];
             let mut param_idx = 2u32;
@@ -251,26 +242,22 @@ pub fn get_governance_nodes(
     let param_refs: Vec<&dyn rusqlite::types::ToSql> =
         param_values.iter().map(|p| p.as_ref()).collect();
 
-    db.prepare_and_query(
-        &sql,
-        param_refs.as_slice(),
-        |row| {
-            Ok(GovernanceNode {
-                node_id: row.get(0)?,
-                lane_id: row.get(1)?,
-                state: row.get(2)?,
-                summary: row.get(3)?,
-                evidence_refs: row.get(4)?,
-                artifact_refs: row.get(5)?,
-                reported_git_head: row.get(6)?,
-                suggested_next: row.get(7)?,
-                forbidden_scope: row.get(8)?,
-                external_anchors: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-            })
-        },
-    )
+    db.prepare_and_query(&sql, param_refs.as_slice(), |row| {
+        Ok(GovernanceNode {
+            node_id: row.get(0)?,
+            lane_id: row.get(1)?,
+            state: row.get(2)?,
+            summary: row.get(3)?,
+            evidence_refs: row.get(4)?,
+            artifact_refs: row.get(5)?,
+            reported_git_head: row.get(6)?,
+            suggested_next: row.get(7)?,
+            forbidden_scope: row.get(8)?,
+            external_anchors: row.get(9)?,
+            created_at: row.get(10)?,
+            updated_at: row.get(11)?,
+        })
+    })
 }
 
 /// Counts nodes not in 'closed' state. Projects define their own state vocabulary;
@@ -317,11 +304,9 @@ pub fn count_all_active_nodes(db: &Database) -> Result<usize> {
 
 /// Returns `true` if the project has any governance data (at least one lane).
 pub fn has_governance_data(db: &Database) -> Result<bool> {
-    let count: i64 = db.query_row(
-        "SELECT COUNT(*) FROM governance_lanes",
-        params![],
-        |row| row.get(0),
-    )?;
+    let count: i64 = db.query_row("SELECT COUNT(*) FROM governance_lanes", params![], |row| {
+        row.get(0)
+    })?;
     Ok(count > 0)
 }
 
@@ -487,9 +472,7 @@ mod tests {
         assert_eq!(deleted_lane, 1);
 
         // Verify empty
-        assert!(get_governance_lane_by_id(&db, "lane-3")
-            .unwrap()
-            .is_none());
+        assert!(get_governance_lane_by_id(&db, "lane-3").unwrap().is_none());
         assert_eq!(count_nodes_for_lane(&db, "lane-3").unwrap(), 0);
 
         // Global counters
@@ -596,10 +579,13 @@ mod tests {
         };
         insert_governance_lane(&db, &lane, now).unwrap();
 
-        let affected = update_lane_status(&db, "lane-status", "complete", "2026-05-24T14:00:00Z").unwrap();
+        let affected =
+            update_lane_status(&db, "lane-status", "complete", "2026-05-24T14:00:00Z").unwrap();
         assert_eq!(affected, 1);
 
-        let found = get_governance_lane_by_id(&db, "lane-status").unwrap().unwrap();
+        let found = get_governance_lane_by_id(&db, "lane-status")
+            .unwrap()
+            .unwrap();
         assert_eq!(found.status, "complete");
         assert_eq!(found.updated_at, "2026-05-24T14:00:00Z");
     }
@@ -638,7 +624,8 @@ mod tests {
                 external_anchors: None,
             },
             now,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Closed node
         upsert_governance_node(
@@ -656,7 +643,8 @@ mod tests {
                 external_anchors: None,
             },
             now,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(count_active_nodes_for_lane(&db, "lane-active").unwrap(), 1);
         assert_eq!(count_nodes_for_lane(&db, "lane-active").unwrap(), 2);
@@ -710,7 +698,8 @@ mod tests {
                 external_anchors: None,
             },
             now,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Update with all optional fields
         upsert_governance_node(
@@ -728,7 +717,8 @@ mod tests {
                 external_anchors: Some("anchor-1".to_string()),
             },
             "2026-05-24T14:00:00Z",
-        ).unwrap();
+        )
+        .unwrap();
 
         let nodes = get_governance_nodes(&db, Some("lane-fields"), None).unwrap();
         assert_eq!(nodes.len(), 1);
@@ -762,7 +752,9 @@ mod tests {
             description: None,
         };
         insert_governance_lane(&db, &lane, now).unwrap();
-        let found = get_governance_lane_by_id(&db, "lane-nodesc").unwrap().unwrap();
+        let found = get_governance_lane_by_id(&db, "lane-nodesc")
+            .unwrap()
+            .unwrap();
         assert_eq!(found.description, None);
     }
 }

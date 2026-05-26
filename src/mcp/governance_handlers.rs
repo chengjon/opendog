@@ -41,9 +41,7 @@ pub(super) fn handle_upsert_governance_node(
     input: UpsertNodeInput,
 ) -> Json<Value> {
     match DaemonClient::new().upsert_governance_node(id, input.clone()) {
-        Ok(node_result) => {
-            return Json(upsert_governance_node_payload(id, &node_result))
-        }
+        Ok(node_result) => return Json(upsert_governance_node_payload(id, &node_result)),
         Err(OpenDogError::DaemonUnavailable) => {}
         Err(e) => return error_json_for(MCP_UPSERT_GOVERNANCE_NODE_V1, Some(id), &e),
     }

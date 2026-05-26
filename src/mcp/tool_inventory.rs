@@ -264,7 +264,6 @@ pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     // --- mcp_tool_inventory ---
 

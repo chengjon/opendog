@@ -407,9 +407,7 @@ mod tests {
         repo["conflicted_count"] = json!(3);
         let verification = clean_verification_layer();
         let reasons = project_readiness_reasons(&repo, &verification, "cleanup");
-        assert!(reasons
-            .iter()
-            .any(|r| r.contains("3 conflicted paths")));
+        assert!(reasons.iter().any(|r| r.contains("3 conflicted paths")));
     }
 
     #[test]
@@ -418,9 +416,7 @@ mod tests {
         repo["lockfile_anomalies"] = json!([{"file": "package.json"}]);
         let verification = clean_verification_layer();
         let reasons = project_readiness_reasons(&repo, &verification, "cleanup");
-        assert!(reasons
-            .iter()
-            .any(|r| r.contains("mismatches are present")));
+        assert!(reasons.iter().any(|r| r.contains("mismatches are present")));
     }
 
     #[test]
@@ -597,9 +593,7 @@ mod tests {
             vec![],
             None,
         );
-        let human_review = result["human_review_required_for"]
-            .as_array()
-            .unwrap();
+        let human_review = result["human_review_required_for"].as_array().unwrap();
         // cleanup_blockers: verification blocker + mid-operation => non-empty
         // refactor_blockers: mid-operation => non-empty
         // So both "Cleanup candidates blocked" and "Refactor candidates blocked" are added
@@ -640,9 +634,7 @@ mod tests {
             vec![],
             None,
         );
-        let human_review = result["human_review_required_for"]
-            .as_array()
-            .unwrap();
+        let human_review = result["human_review_required_for"].as_array().unwrap();
         // lockfile anomalies produce cleanup_blockers and refactor_blockers entries
         // via project_readiness_reasons, plus the direct lockfile entry
         assert_eq!(human_review.len(), 3);
@@ -653,15 +645,8 @@ mod tests {
 
     #[test]
     fn build_constraints_boundaries_layer_guardrails_always_present() {
-        let result = build_constraints_boundaries_layer(
-            None,
-            None,
-            vec![],
-            vec![],
-            vec![],
-            vec![],
-            None,
-        );
+        let result =
+            build_constraints_boundaries_layer(None, None, vec![], vec![], vec![], vec![], None);
         let guardrails = result["guardrails"].as_array().unwrap();
         assert_eq!(guardrails.len(), 3);
         let destructive = result["destructive_operations_requiring_confirmation"]

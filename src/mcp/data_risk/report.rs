@@ -283,7 +283,10 @@ mod tests {
         };
         let focus = report.data_risk_focus();
         assert_eq!(focus["primary_focus"], "mock");
-        assert_eq!(focus["priority_order"], json!(["mock", "hardcoded", "mixed"]));
+        assert_eq!(
+            focus["priority_order"],
+            json!(["mock", "hardcoded", "mixed"])
+        );
         assert_eq!(focus["basis"], json!(["mock_candidates_present"]));
     }
 
@@ -291,7 +294,11 @@ mod tests {
     fn test_data_risk_focus_hardcoded_only() {
         let report = MockDataReport {
             mock_candidates: vec![],
-            hardcoded_candidates: vec![make_candidate("data.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec![],
         };
         let focus = report.data_risk_focus();
@@ -303,46 +310,79 @@ mod tests {
     fn test_data_risk_focus_hardcoded_with_runtime_shared() {
         let report = MockDataReport {
             mock_candidates: vec![],
-            hardcoded_candidates: vec![make_candidate("src/data.py", "high", vec!["path.runtime_shared"])],
+            hardcoded_candidates: vec![make_candidate(
+                "src/data.py",
+                "high",
+                vec!["path.runtime_shared"],
+            )],
             mixed_review_files: vec![],
         };
         let focus = report.data_risk_focus();
         assert_eq!(focus["primary_focus"], "hardcoded");
-        assert_eq!(focus["priority_order"], json!(["hardcoded", "mixed", "mock"]));
-        assert!((focus["basis"].as_array().unwrap().iter().any(|b| b == "runtime_shared_candidates_present")));
+        assert_eq!(
+            focus["priority_order"],
+            json!(["hardcoded", "mixed", "mock"])
+        );
+        assert!(
+            (focus["basis"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|b| b == "runtime_shared_candidates_present"))
+        );
     }
 
     #[test]
     fn test_data_risk_focus_hardcoded_with_business_literal_combo() {
         let report = MockDataReport {
             mock_candidates: vec![],
-            hardcoded_candidates: vec![make_candidate("data.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec![],
         };
         let focus = report.data_risk_focus();
         assert_eq!(focus["primary_focus"], "hardcoded");
-        assert!(focus["basis"].as_array().unwrap().iter().any(|b| b == "high_severity_content_hits_present"));
+        assert!(focus["basis"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|b| b == "high_severity_content_hits_present"));
     }
 
     #[test]
     fn test_data_risk_focus_mixed() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("mock.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("mock.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "mock.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec!["mock.py".to_string()],
         };
         let focus = report.data_risk_focus();
         assert_eq!(focus["primary_focus"], "hardcoded");
-        assert!(focus["basis"].as_array().unwrap().iter().any(|b| b == "mixed_review_files_present"));
+        assert!(focus["basis"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|b| b == "mixed_review_files_present"));
     }
 
     #[test]
     fn test_data_risk_focus_mixed_without_hardcoded_runtime() {
         // mixed files present but hardcoded has no runtime_shared or business_literal_combo
         // However has_hardcoded && has_mixed is true, so first branch matches
-        let mut report = MockDataReport {
+        let report = MockDataReport {
             mock_candidates: vec![],
-            hardcoded_candidates: vec![make_candidate("data.py", "medium", vec!["content.template_placeholder"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "medium",
+                vec!["content.template_placeholder"],
+            )],
             mixed_review_files: vec!["data.py".to_string()],
         };
         let focus = report.data_risk_focus();
@@ -356,7 +396,11 @@ mod tests {
     fn test_filtered_by_type_mock() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("mock.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("data.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec!["mock.py".to_string(), "data.py".to_string()],
         };
         let filtered = report.filtered("mock", None);
@@ -370,7 +414,11 @@ mod tests {
     fn test_filtered_by_type_hardcoded() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("mock.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("data.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec!["mock.py".to_string(), "data.py".to_string()],
         };
         let filtered = report.filtered("hardcoded", None);
@@ -384,7 +432,11 @@ mod tests {
     fn test_filtered_by_type_all() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("mock.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("data.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "data.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec!["mock.py".to_string(), "data.py".to_string()],
         };
         let filtered = report.filtered("all", None);
@@ -475,8 +527,16 @@ mod tests {
     #[test]
     fn test_rule_hits_summary_aggregation() {
         let report = MockDataReport {
-            mock_candidates: vec![make_candidate("a.py", "medium", vec!["path.mock_token", "path.test_only"])],
-            hardcoded_candidates: vec![make_candidate("b.py", "high", vec!["path.mock_token", "content.business_literal_combo"])],
+            mock_candidates: vec![make_candidate(
+                "a.py",
+                "medium",
+                vec!["path.mock_token", "path.test_only"],
+            )],
+            hardcoded_candidates: vec![make_candidate(
+                "b.py",
+                "high",
+                vec!["path.mock_token", "content.business_literal_combo"],
+            )],
             mixed_review_files: vec![],
         };
         let summary = report.rule_hits_summary();
@@ -488,7 +548,10 @@ mod tests {
         let test_only_entry = arr.iter().find(|e| e["rule"] == "path.test_only").unwrap();
         assert_eq!(test_only_entry["count"], 1);
         // content.business_literal_combo appears once
-        let combo_entry = arr.iter().find(|e| e["rule"] == "content.business_literal_combo").unwrap();
+        let combo_entry = arr
+            .iter()
+            .find(|e| e["rule"] == "content.business_literal_combo")
+            .unwrap();
         assert_eq!(combo_entry["count"], 1);
     }
 
@@ -531,7 +594,11 @@ mod tests {
     fn test_rule_groups_summary_aggregation() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("a.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("b.py", "high", vec!["path.mock_token", "content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "b.py",
+                "high",
+                vec!["path.mock_token", "content.business_literal_combo"],
+            )],
             mixed_review_files: vec![],
         };
         let summary = report.rule_groups_summary();
@@ -555,7 +622,11 @@ mod tests {
     fn test_rule_groups_summary_severity_mapping() {
         let report = MockDataReport {
             mock_candidates: vec![make_candidate("a.py", "medium", vec!["path.mock_token"])],
-            hardcoded_candidates: vec![make_candidate("b.py", "high", vec!["content.business_literal_combo"])],
+            hardcoded_candidates: vec![make_candidate(
+                "b.py",
+                "high",
+                vec!["content.business_literal_combo"],
+            )],
             mixed_review_files: vec![],
         };
         let summary = report.rule_groups_summary();

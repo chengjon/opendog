@@ -170,12 +170,18 @@ mod tests {
 
     #[test]
     fn error_code_daemon_unavailable() {
-        assert_eq!(open_dog_error_code(&OpenDogError::DaemonUnavailable), "daemon_unavailable");
+        assert_eq!(
+            open_dog_error_code(&OpenDogError::DaemonUnavailable),
+            "daemon_unavailable"
+        );
     }
 
     #[test]
     fn error_code_daemon_control_unavailable() {
-        assert_eq!(open_dog_error_code(&OpenDogError::DaemonControlUnavailable), "daemon_control_unavailable");
+        assert_eq!(
+            open_dog_error_code(&OpenDogError::DaemonControlUnavailable),
+            "daemon_control_unavailable"
+        );
     }
 
     #[test]
@@ -277,7 +283,9 @@ mod tests {
             socket.contains(".opendog"),
             "socket_path should contain '.opendog', got: {socket}"
         );
-        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        let actions = value["remediation"]["suggested_actions"]
+            .as_array()
+            .unwrap();
         assert_eq!(actions.len(), 3);
     }
 
@@ -288,7 +296,9 @@ mod tests {
         assert_eq!(value["project_id"], "proj-1");
         assert_eq!(value["error_code"], "daemon_control_unavailable");
         assert!(value.get("remediation").is_some());
-        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        let actions = value["remediation"]["suggested_actions"]
+            .as_array()
+            .unwrap();
         assert_eq!(actions.len(), 3);
     }
 
@@ -297,10 +307,17 @@ mod tests {
         let err = OpenDogError::DaemonResponseIntegrity("truncated".into());
         let Json(value) = error_json_for("test.v1", None, &err);
         assert_eq!(value["error_code"], "daemon_response_integrity_error");
-        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        let actions = value["remediation"]["suggested_actions"]
+            .as_array()
+            .unwrap();
         assert_eq!(actions.len(), 3);
-        let has_retry = actions.iter().any(|a| a.as_str().unwrap().contains("Retry"));
-        assert!(has_retry, "suggested_actions should include an item containing 'Retry'");
+        let has_retry = actions
+            .iter()
+            .any(|a| a.as_str().unwrap().contains("Retry"));
+        assert!(
+            has_retry,
+            "suggested_actions should include an item containing 'Retry'"
+        );
     }
 
     #[test]

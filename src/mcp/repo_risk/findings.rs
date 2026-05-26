@@ -304,30 +304,37 @@ mod tests {
 
     // ---- repo_risk_findings ----
 
-    fn make_snapshot(
+    #[derive(Default)]
+    struct SnapshotSpec {
         changed_file_count: usize,
         conflicted_count: usize,
         staged_count: usize,
         unstaged_count: usize,
         untracked_count: usize,
         large_diff: bool,
-        operation_states: Vec<&str>,
+        operation_states: Vec<&'static str>,
         lockfile_anomalies: Vec<Value>,
-    ) -> RepoRiskSnapshot {
+    }
+
+    fn make_snapshot(spec: SnapshotSpec) -> RepoRiskSnapshot {
         RepoRiskSnapshot {
             status: "available",
             branch: Some("test-branch".to_string()),
-            is_dirty: changed_file_count > 0,
-            changed_file_count,
-            staged_count,
-            unstaged_count,
-            untracked_count,
-            conflicted_count,
-            operation_states: operation_states.into_iter().map(|s| s.to_string()).collect(),
+            is_dirty: spec.changed_file_count > 0,
+            changed_file_count: spec.changed_file_count,
+            staged_count: spec.staged_count,
+            unstaged_count: spec.unstaged_count,
+            untracked_count: spec.untracked_count,
+            conflicted_count: spec.conflicted_count,
+            operation_states: spec
+                .operation_states
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect(),
             top_changed_directories: vec![],
-            large_diff,
-            lockfile_anomalies,
-            evidence: vec![format!("Changed files: {}.", changed_file_count)],
+            large_diff: spec.large_diff,
+            lockfile_anomalies: spec.lockfile_anomalies,
+            evidence: vec![format!("Changed files: {}.", spec.changed_file_count)],
             risk_reasons: vec![],
             risk_level: "low",
         }
@@ -335,14 +342,20 @@ mod tests {
 
     #[test]
     fn findings_empty_clean_repo() {
-        let snap = make_snapshot(0, 0, 0, 0, 0, false, vec![], vec![]);
+        let snap = make_snapshot(SnapshotSpec::default());
         let findings = repo_risk_findings(&snap);
         assert!(findings.is_empty());
     }
 
     #[test]
     fn findings_conflicted_paths() {
-        let snap = make_snapshot(3, 2, 1, 2, 0, false, vec![], vec![]);
+        let snap = make_snapshot(SnapshotSpec {
+            changed_file_count: 3,
+            conflicted_count: 2,
+            staged_count: 1,
+            unstaged_count: 2,
+            ..SnapshotSpec::default()
+        });
         let findings = repo_risk_findings(&snap);
         let conflicted: Vec<&Value> = findings
             .iter()
@@ -355,7 +368,10 @@ mod tests {
 
     #[test]
     fn findings_operation_in_progress() {
-        let snap = make_snapshot(0, 0, 0, 0, 0, false, vec!["merge"], vec![]);
+        let snap = make_snapshot(SnapshotSpec {
+            operation_states: vec!["merge"],
+            ..SnapshotSpec::default()
+        });
         let findings = repo_risk_findings(&snap);
         let ops: Vec<&Value> = findings
             .iter()
@@ -368,7 +384,14 @@ mod tests {
 
     #[test]
     fn findings_large_diff() {
-        let snap = make_snapshot(30, 0, 10, 20, 5, true, vec![], vec![]);
+        let snap = make_snapshot(SnapshotSpec {
+            changed_file_count: 30,
+            staged_count: 10,
+            unstaged_count: 20,
+            untracked_count: 5,
+            large_diff: true,
+            ..SnapshotSpec::default()
+        });
         let findings = repo_risk_findings(&snap);
         let large: Vec<&Value> = findings
             .iter()
@@ -387,7 +410,13 @@ mod tests {
             "manifest": "package.json",
             "expected_lockfile": "package-lock.json",
         });
-        let snap = make_snapshot(2, 0, 1, 1, 0, false, vec![], vec![anomaly]);
+        let snap = make_snapshot(SnapshotSpec {
+            changed_file_count: 2,
+            staged_count: 1,
+            unstaged_count: 1,
+            lockfile_anomalies: vec![anomaly],
+            ..SnapshotSpec::default()
+        });
         let findings = repo_risk_findings(&snap);
         let lockfile: Vec<&Value> = findings
             .iter()
@@ -399,7 +428,13 @@ mod tests {
 
     #[test]
     fn findings_local_changes_low_severity() {
-        let snap = make_snapshot(5, 0, 2, 3, 1, false, vec![], vec![]);
+        let snap = make_snapshot(SnapshotSpec {
+            changed_file_count: 5,
+            staged_count: 2,
+            unstaged_count: 3,
+            untracked_count: 1,
+            ..SnapshotSpec::default()
+        });
         let findings = repo_risk_findings(&snap);
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0]["kind"], "local_working_tree_changes");
@@ -410,7 +445,16 @@ mod tests {
     #[test]
     fn findings_sorted_by_priority_then_severity() {
         let anomaly = json!({"kind": "manifest_without_lockfile_change", "directory": "."});
-        let snap = make_snapshot(30, 2, 10, 20, 5, true, vec!["rebase"], vec![anomaly]);
+        let snap = make_snapshot(SnapshotSpec {
+            changed_file_count: 30,
+            conflicted_count: 2,
+            staged_count: 10,
+            unstaged_count: 20,
+            untracked_count: 5,
+            large_diff: true,
+            operation_states: vec!["rebase"],
+            lockfile_anomalies: vec![anomaly],
+        });
         let findings = repo_risk_findings(&snap);
 
         // conflicted (priority=immediate, severity=high) should come before

@@ -180,7 +180,10 @@ mod tests {
 
         let err = migrate(&conn, SchemaKind::Project).expect_err("future schema rejected");
         let message = err.to_string();
-        assert!(message.contains("newer than supported"), "should contain version mismatch: {message}");
+        assert!(
+            message.contains("newer than supported"),
+            "should contain version mismatch: {message}"
+        );
         assert!(
             message.contains("Restart the daemon and MCP session"),
             "should contain restart advice: {message}"

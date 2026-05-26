@@ -98,9 +98,11 @@ fn in_clause_sql(prefix: &str, ids: &[i64]) -> (String, Vec<i64>) {
 }
 
 pub fn count_snapshot_runs(db: &Database) -> Result<i64> {
-    db.query_row("SELECT COUNT(*) FROM snapshot_runs", rusqlite::params![], |row| {
-        row.get(0)
-    })
+    db.query_row(
+        "SELECT COUNT(*) FROM snapshot_runs",
+        rusqlite::params![],
+        |row| row.get(0),
+    )
 }
 
 #[cfg(test)]

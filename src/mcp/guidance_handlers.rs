@@ -87,7 +87,9 @@ mod tests {
     #[test]
     fn parse_guidance_detail_rejects_invalid_value() {
         let err = parse_guidance_detail(Some("detailed")).unwrap_err();
-        assert!(err.to_string().contains("detail must be one of: summary, decision"));
+        assert!(err
+            .to_string()
+            .contains("detail must be one of: summary, decision"));
         assert!(err.to_string().contains("detailed"));
     }
 

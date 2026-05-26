@@ -309,12 +309,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::All,
-            10,
-            5,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::All, 10, 5);
         assert!(guidance["layers"]["workspace_observation"]
             .get("path_classification_filter")
             .is_none());
@@ -331,12 +326,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Source,
-            10,
-            5,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Source, 10, 5);
         assert_eq!(
             guidance["layers"]["workspace_observation"]["path_classification_filter"],
             "source"
@@ -371,12 +361,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Backup,
-            10,
-            2,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Backup, 10, 2);
         assert_eq!(
             guidance["layers"]["workspace_observation"]["path_classification_filter"],
             "backup"
@@ -391,12 +376,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Project,
-            10,
-            1,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Project, 10, 1);
         assert_eq!(
             guidance["layers"]["workspace_observation"]["path_classification_filter"],
             "project"
@@ -411,12 +391,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Source,
-            20,
-            0,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Source, 20, 0);
         assert!(guidance["layers"]["workspace_observation"]["filter_note"]
             .as_str()
             .unwrap()
@@ -436,12 +411,7 @@ mod tests {
             }
         });
         // total_files == 0, filtered_rows == 0: condition is `total_files > 0 && filtered_rows == 0`
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Source,
-            0,
-            0,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Source, 0, 0);
         // Should set the filter field but NOT the note (total_files is 0)
         assert_eq!(
             guidance["layers"]["workspace_observation"]["path_classification_filter"],
@@ -460,12 +430,7 @@ mod tests {
                 "verification_evidence": {}
             }
         });
-        apply_path_filter_observation(
-            &mut guidance,
-            FilePathClassificationFilter::Source,
-            15,
-            10,
-        );
+        apply_path_filter_observation(&mut guidance, FilePathClassificationFilter::Source, 15, 10);
         assert_eq!(
             guidance["layers"]["workspace_observation"]["path_classification_filter"],
             "source"

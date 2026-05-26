@@ -401,18 +401,15 @@ mod tests {
             "project_id": "myproj",
             "recommended_next_action": "review_failing_verification",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert_eq!(flow.len(), 3);
         assert!(flow[0].as_str().unwrap().contains("myproj"));
         assert!(flow[0].as_str().unwrap().contains("failing"));
-        assert!(flow[1].as_str().unwrap().contains("verification --id myproj"));
+        assert!(flow[1]
+            .as_str()
+            .unwrap()
+            .contains("verification --id myproj"));
     }
 
     #[test]
@@ -422,13 +419,7 @@ mod tests {
             "project_id": "proj_a",
             "recommended_next_action": "stabilize_repository_state",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert!(flow[0].as_str().unwrap().contains("mid-operation"));
         assert!(flow[1].as_str().unwrap().contains("git status"));
@@ -441,13 +432,7 @@ mod tests {
             "project_id": "proj_b",
             "recommended_next_action": "start_monitor",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert!(flow[0].as_str().unwrap().contains("monitoring"));
         assert!(flow[1].as_str().unwrap().contains("start --id proj_b"));
@@ -460,13 +445,7 @@ mod tests {
             "project_id": "proj_c",
             "recommended_next_action": "take_snapshot",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert!(flow[0].as_str().unwrap().contains("snapshot baseline"));
         assert!(flow[1].as_str().unwrap().contains("snapshot --id proj_c"));
@@ -479,16 +458,16 @@ mod tests {
             "project_id": "proj_d",
             "recommended_next_action": "generate_activity_then_stats",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
-        assert!(flow[0].as_str().unwrap().contains("no meaningful file activity"));
-        assert!(flow[1].as_str().unwrap().contains("edits, tests, or builds"));
+        assert!(flow[0]
+            .as_str()
+            .unwrap()
+            .contains("no meaningful file activity"));
+        assert!(flow[1]
+            .as_str()
+            .unwrap()
+            .contains("edits, tests, or builds"));
     }
 
     #[test]
@@ -498,15 +477,12 @@ mod tests {
             "project_id": "proj_e",
             "recommended_next_action": "run_verification_before_high_risk_changes",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
-        assert!(flow[0].as_str().unwrap().contains("verification evidence is still missing"));
+        assert!(flow[0]
+            .as_str()
+            .unwrap()
+            .contains("verification evidence is still missing"));
     }
 
     #[test]
@@ -516,13 +492,7 @@ mod tests {
             "project_id": "proj_f",
             "recommended_next_action": "review_unused_files",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert!(flow[0].as_str().unwrap().contains("unused-file candidates"));
         assert!(flow[1].as_str().unwrap().contains("unused --id proj_f"));
@@ -535,13 +505,7 @@ mod tests {
             "project_id": "proj_g",
             "recommended_next_action": "inspect_hot_files",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         assert!(flow[0].as_str().unwrap().contains("hotspot"));
         assert!(flow[1].as_str().unwrap().contains("stats --id proj_g"));
@@ -554,15 +518,12 @@ mod tests {
             "project_id": "proj_h",
             "recommended_next_action": "unknown_action",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            0,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 0, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
-        assert!(flow[0].as_str().unwrap().contains("No project is currently monitored"));
+        assert!(flow[0]
+            .as_str()
+            .unwrap()
+            .contains("No project is currently monitored"));
     }
 
     #[test]
@@ -572,13 +533,7 @@ mod tests {
             "project_id": "proj_i",
             "recommended_next_action": "unknown_action",
         });
-        let result = agent_guidance_recommended_flow(
-            3,
-            1,
-            Some(&recommendation),
-            &strategy,
-            None,
-        );
+        let result = agent_guidance_recommended_flow(3, 1, Some(&recommendation), &strategy, None);
         let flow = result.as_array().unwrap();
         // Falls back to workspace strategy flow
         assert_eq!(flow[0], "Default workspace flow step 1.");
@@ -621,7 +576,10 @@ mod tests {
                 "freshness": "stale"
             }]
         });
-        let has_stale = verification["latest_runs"].as_array().unwrap().iter()
+        let has_stale = verification["latest_runs"]
+            .as_array()
+            .unwrap()
+            .iter()
             .any(|r| r["freshness"] == "stale");
         assert!(has_stale, "stale verification should be detectable");
     }

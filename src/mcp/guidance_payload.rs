@@ -703,7 +703,8 @@ mod tests {
 
     #[test]
     fn risk_coupling_no_matching_overview() {
-        let recs = vec![json!({"project_id": "proj_a", "recommended_next_action": "start_monitor"})];
+        let recs =
+            vec![json!({"project_id": "proj_a", "recommended_next_action": "start_monitor"})];
         let overviews = vec![json!({"project_id": "proj_b"})];
         let ws = json!({"global_strategy_mode": "defensive", "preferred_primary_tool": "opendog"});
         let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws);
@@ -712,7 +713,8 @@ mod tests {
 
     #[test]
     fn risk_coupling_null_risk_finding() {
-        let recs = vec![json!({"project_id": "proj_a", "recommended_next_action": "start_monitor"})];
+        let recs =
+            vec![json!({"project_id": "proj_a", "recommended_next_action": "start_monitor"})];
         let overviews = vec![json!({
             "project_id": "proj_a",
             "repo_status_risk": {"highest_priority_finding": null}
@@ -789,10 +791,7 @@ mod tests {
         })];
         let summary = execution_strategy_stabilization_summary(&recs);
         assert_eq!(summary.projects_requiring_repo_stabilization, 1);
-        assert_eq!(
-            summary.repo_stabilization_priority_projects,
-            vec!["proj_a"]
-        );
+        assert_eq!(summary.repo_stabilization_priority_projects, vec!["proj_a"]);
     }
 
     #[test]

@@ -86,12 +86,12 @@ use self::governance_handlers::{
 };
 pub(crate) use self::governance_layer::build_governance_layer;
 use self::guidance_handlers::handle_get_guidance;
-pub(crate) use self::guidance_payload::{
-    agent_guidance_payload, latest_verification_runs_for_project,
-    now_unix_secs, ProjectGuidanceData, ProjectGuidanceState,
-};
 #[cfg(test)]
 pub(crate) use self::guidance_payload::default_governance_layer;
+pub(crate) use self::guidance_payload::{
+    agent_guidance_payload, latest_verification_runs_for_project, now_unix_secs,
+    ProjectGuidanceData, ProjectGuidanceState,
+};
 use self::guidance_scaffold::{
     base_guidance_layers, default_shell_verification_commands, set_recommended_flow, tool_guidance,
 };
@@ -104,10 +104,10 @@ use self::orphan_handlers::{handle_scan_orphans, handle_verify_deletion_plan};
 pub use self::params::{
     AgentGuidanceParams, CloseGovernanceLaneParams, CompareSnapshotsParams,
     CreateGovernanceLaneParams, DataRiskParams, DecisionBriefParams, ExecuteVerificationParams,
-    GetGovernanceStateParams, GuidanceParams, ObservationRowsParams,
-    ProjectIdParams, RecordVerificationParams, RegisterProjectParams, ScanOrphansParams,
-    TimeWindowReportParams, UpsertGovernanceNodeParams, UsageTrendParams,
-    VerifyDeletionPlanParams, WorkspaceDataRiskParams,
+    GetGovernanceStateParams, GuidanceParams, ObservationRowsParams, ProjectIdParams,
+    RecordVerificationParams, RegisterProjectParams, ScanOrphansParams, TimeWindowReportParams,
+    UpsertGovernanceNodeParams, UsageTrendParams, VerifyDeletionPlanParams,
+    WorkspaceDataRiskParams,
 };
 pub(crate) use self::payloads::{
     build_info_payload, cleanup_project_data_payload, close_governance_lane_payload,
@@ -118,7 +118,7 @@ pub(crate) use self::payloads::{
     snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload_with_limit,
     stop_monitor_payload, time_window_report_payload, unused_files_payload_with_limit,
     update_global_config_payload, upsert_governance_node_payload, usage_trends_payload,
-    DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
+    BuildInfoPayloadInput, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
 };
 #[cfg(test)]
 pub(crate) use self::payloads::{stats_payload, unused_files_payload};

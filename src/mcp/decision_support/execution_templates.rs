@@ -136,14 +136,8 @@ mod tests {
 
     #[test]
     fn decision_execution_templates_no_project_id_adds_placeholder_hint() {
-        let result = decision_execution_templates(
-            "start_monitor",
-            None,
-            "available",
-            "low",
-            None,
-            None,
-        );
+        let result =
+            decision_execution_templates("start_monitor", None, "available", "low", None, None);
         let templates = result.as_array().unwrap();
         // First template should have placeholder hints because project_id is None
         let hints = templates[0]["placeholder_hints"].as_array().unwrap();
@@ -209,7 +203,7 @@ mod tests {
         let templates = result.as_array().unwrap();
         for t in templates {
             assert!(t["success_signal"].is_string());
-            assert!(t["success_signal"].as_str().unwrap().len() > 0);
+            assert!(!t["success_signal"].as_str().unwrap().is_empty());
         }
     }
 
@@ -225,7 +219,9 @@ mod tests {
             None,
         );
         let templates_blocked = result_blocked.as_array().unwrap();
-        let bc = templates_blocked[0]["blocking_conditions"].as_array().unwrap();
+        let bc = templates_blocked[0]["blocking_conditions"]
+            .as_array()
+            .unwrap();
         assert!(!bc.is_empty());
 
         // cleanup_ready = true
@@ -238,7 +234,9 @@ mod tests {
             None,
         );
         let templates_clear = result_clear.as_array().unwrap();
-        let bc2 = templates_clear[0]["blocking_conditions"].as_array().unwrap();
+        let bc2 = templates_clear[0]["blocking_conditions"]
+            .as_array()
+            .unwrap();
         assert!(bc2.is_empty());
     }
 

@@ -203,9 +203,14 @@ mod tests {
 
     #[test]
     fn unknown_scanner_name_is_rejected() {
-        let required = vec!["candidate_collector".to_string(), "fantasy_scanner".to_string()];
+        let required = vec![
+            "candidate_collector".to_string(),
+            "fantasy_scanner".to_string(),
+        ];
         let error = validate_required_scanners(Some(&required), &[]).unwrap_err();
-        assert!(error.to_string().contains("unknown required scanner 'fantasy_scanner'"));
+        assert!(error
+            .to_string()
+            .contains("unknown required scanner 'fantasy_scanner'"));
     }
 
     #[test]

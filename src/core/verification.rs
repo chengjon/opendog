@@ -84,11 +84,11 @@ fn summarize_execution(stdout_tail: &str, stderr_tail: &str, success: bool) -> O
 }
 
 pub fn command_contains_pipeline_operators(command: &str) -> bool {
-    let patterns = [" | ", "&& ", "|| ", "2>/dev/null", "> /dev/null"];
+    let patterns = ["|", "&&", "||", "2>/dev/null", "> /dev/null", ">/dev/null"];
     patterns.iter().any(|p| command.contains(p))
 }
 
-fn detect_suspicious_pass_signals(stdout_tail: &str, stderr_tail: &str) -> Vec<String> {
+pub fn detect_suspicious_pass_signals(stdout_tail: &str, stderr_tail: &str) -> Vec<String> {
     let error_patterns = [
         ("error TS", "TypeScript error in passed output"),
         ("FAILED", "FAILED keyword in passed output"),
@@ -275,7 +275,9 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err
+            .to_string()
+            .contains("kind must be one of: test, lint, build"));
         assert!(err.to_string().contains("deploy"));
     }
 
@@ -293,7 +295,9 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err
+            .to_string()
+            .contains("kind must be one of: test, lint, build"));
     }
 
     #[test]
@@ -411,14 +415,18 @@ mod tests {
     #[test]
     fn validate_kind_deploy_is_rejected() {
         let err = validate_kind("deploy").unwrap_err();
-        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err
+            .to_string()
+            .contains("kind must be one of: test, lint, build"));
         assert!(err.to_string().contains("deploy"));
     }
 
     #[test]
     fn validate_kind_empty_string_is_rejected() {
         let err = validate_kind("").unwrap_err();
-        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err
+            .to_string()
+            .contains("kind must be one of: test, lint, build"));
     }
 
     #[test]
@@ -431,22 +439,29 @@ mod tests {
 
     #[test]
     fn detect_pipeline_operators_finds_pipe() {
-        assert!(command_contains_pipeline_operators("npx vue-tsc --noEmit 2>&1 | tail -30"));
+        assert!(command_contains_pipeline_operators(
+            "npx vue-tsc --noEmit 2>&1 | tail -30"
+        ));
+        assert!(command_contains_pipeline_operators("cargo test|tail -20"));
     }
 
     #[test]
     fn detect_pipeline_operators_finds_double_ampersand() {
         assert!(command_contains_pipeline_operators("cargo test && echo ok"));
+        assert!(command_contains_pipeline_operators("cargo test&&echo ok"));
     }
 
     #[test]
     fn detect_pipeline_operators_finds_double_pipe() {
         assert!(command_contains_pipeline_operators("cargo test || true"));
+        assert!(command_contains_pipeline_operators("cargo test||true"));
     }
 
     #[test]
     fn detect_pipeline_operators_finds_redirect_to_dev_null() {
-        assert!(command_contains_pipeline_operators("cargo test 2>/dev/null"));
+        assert!(command_contains_pipeline_operators(
+            "cargo test 2>/dev/null"
+        ));
     }
 
     #[test]

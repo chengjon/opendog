@@ -646,10 +646,7 @@ mod tests {
         let repo_risk = clean_repo_risk();
         let result = recommend_project_action(&state, &repo_risk, &[]);
         assert_eq!(result["recommended_next_action"], "start_monitor");
-        assert_eq!(
-            result["strategy_mode"],
-            "collect_evidence_first"
-        );
+        assert_eq!(result["strategy_mode"], "collect_evidence_first");
         assert!(result["suggested_commands"]
             .as_array()
             .unwrap()

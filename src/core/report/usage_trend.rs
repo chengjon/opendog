@@ -26,23 +26,27 @@ pub fn get_usage_trend_report_at(
 
     let access_buckets = bucket_counts(
         db,
-        "file_sightings",
-        "seen_at",
-        None,
-        start_ts,
-        end_ts,
-        bucket_size,
-        limit,
+        BucketCountQuery {
+            table: "file_sightings",
+            time_column: "seen_at",
+            extra_filter: None,
+            start_ts,
+            end_ts,
+            bucket_size,
+            limit,
+        },
     )?;
     let modify_buckets = bucket_counts(
         db,
-        "file_events",
-        "event_time",
-        Some("event_type = 'modify'"),
-        start_ts,
-        end_ts,
-        bucket_size,
-        limit,
+        BucketCountQuery {
+            table: "file_events",
+            time_column: "event_time",
+            extra_filter: Some("event_type = 'modify'"),
+            start_ts,
+            end_ts,
+            bucket_size,
+            limit,
+        },
     )?;
 
     let mut files: HashMap<String, FileTrend> = HashMap::new();
@@ -131,19 +135,23 @@ pub fn get_usage_trend_report_at(
     })
 }
 
-fn bucket_counts(
-    db: &Database,
-    table: &str,
-    time_column: &str,
-    extra_filter: Option<&str>,
+struct BucketCountQuery<'a> {
+    table: &'a str,
+    time_column: &'a str,
+    extra_filter: Option<&'a str>,
     start_ts: i64,
     end_ts: i64,
     bucket_size: i64,
     limit: usize,
-) -> Result<Vec<(String, i64, i64)>> {
-    let filter = extra_filter
+}
+
+fn bucket_counts(db: &Database, query: BucketCountQuery<'_>) -> Result<Vec<(String, i64, i64)>> {
+    let filter = query
+        .extra_filter
         .map(|clause| format!("{} AND ", clause))
         .unwrap_or_default();
+    let table = query.table;
+    let time_column = query.time_column;
     let sql = format!(
         "SELECT file_path,
                 (?1 + ((CAST({time_column} AS INTEGER) - ?1) / ?3) * ?3) AS bucket_start,
@@ -156,7 +164,12 @@ fn bucket_counts(
     );
     db.prepare_and_query(
         &sql,
-        rusqlite::params![start_ts, end_ts, bucket_size, limit as i64],
+        rusqlite::params![
+            query.start_ts,
+            query.end_ts,
+            query.bucket_size,
+            query.limit as i64
+        ],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )
 }
@@ -227,18 +240,32 @@ mod tests {
     #[test]
     fn bucket_access_count_returns_matching_count() {
         let buckets = vec![
-            TrendBucket { bucket_start: 0, access_count: 5, modification_count: 0 },
-            TrendBucket { bucket_start: 60, access_count: 10, modification_count: 0 },
-            TrendBucket { bucket_start: 120, access_count: 3, modification_count: 0 },
+            TrendBucket {
+                bucket_start: 0,
+                access_count: 5,
+                modification_count: 0,
+            },
+            TrendBucket {
+                bucket_start: 60,
+                access_count: 10,
+                modification_count: 0,
+            },
+            TrendBucket {
+                bucket_start: 120,
+                access_count: 3,
+                modification_count: 0,
+            },
         ];
         assert_eq!(bucket_access_count(&buckets, 60), 10);
     }
 
     #[test]
     fn bucket_access_count_returns_zero_for_missing() {
-        let buckets = vec![
-            TrendBucket { bucket_start: 0, access_count: 5, modification_count: 0 },
-        ];
+        let buckets = vec![TrendBucket {
+            bucket_start: 0,
+            access_count: 5,
+            modification_count: 0,
+        }];
         assert_eq!(bucket_access_count(&buckets, 999), 0);
     }
 
@@ -251,8 +278,16 @@ mod tests {
     #[test]
     fn bucket_access_count_first_bucket() {
         let buckets = vec![
-            TrendBucket { bucket_start: 100, access_count: 7, modification_count: 0 },
-            TrendBucket { bucket_start: 200, access_count: 8, modification_count: 0 },
+            TrendBucket {
+                bucket_start: 100,
+                access_count: 7,
+                modification_count: 0,
+            },
+            TrendBucket {
+                bucket_start: 200,
+                access_count: 8,
+                modification_count: 0,
+            },
         ];
         assert_eq!(bucket_access_count(&buckets, 100), 7);
     }

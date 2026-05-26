@@ -115,7 +115,15 @@ fn path_is_generated_artifact(path_lower: &str) -> bool {
 }
 
 fn path_is_infrastructure(path_lower: &str) -> bool {
-    let infra_dirs = [".claude/", ".cursor/", ".agents/", ".amazonq/", ".zread/", ".vscode/", ".idea/"];
+    let infra_dirs = [
+        ".claude/",
+        ".cursor/",
+        ".agents/",
+        ".amazonq/",
+        ".zread/",
+        ".vscode/",
+        ".idea/",
+    ];
     infra_dirs.iter().any(|dir| path_lower.contains(dir))
 }
 
@@ -561,7 +569,10 @@ mod tests {
 
     #[test]
     fn test_count_keyword_hits_multiple() {
-        let hits = count_keyword_hits("customer invoice payment", &["customer", "invoice", "payment", "missing"]);
+        let hits = count_keyword_hits(
+            "customer invoice payment",
+            &["customer", "invoice", "payment", "missing"],
+        );
         assert_eq!(hits, 3);
     }
 
@@ -680,8 +691,14 @@ mod tests {
 
     #[test]
     fn test_classify_path_kind_generated_artifact_takes_precedence() {
-        assert_eq!(classify_path_kind("target/debug/test_main.rs"), "generated_artifact");
-        assert_eq!(classify_path_kind("dist/tests/test_bundle.js"), "generated_artifact");
+        assert_eq!(
+            classify_path_kind("target/debug/test_main.rs"),
+            "generated_artifact"
+        );
+        assert_eq!(
+            classify_path_kind("dist/tests/test_bundle.js"),
+            "generated_artifact"
+        );
     }
 
     #[test]
@@ -714,7 +731,10 @@ mod tests {
     fn test_classify_path_kind_precedence_generated_over_test() {
         // "build/" contains generated_artifact, "test/" contains test_only
         // generated_artifact has highest precedence
-        assert_eq!(classify_path_kind("build/test/output"), "generated_artifact");
+        assert_eq!(
+            classify_path_kind("build/test/output"),
+            "generated_artifact"
+        );
     }
 
     #[test]
@@ -737,7 +757,9 @@ mod tests {
 
     #[test]
     fn test_content_has_template_placeholder_angle_your() {
-        assert!(content_has_template_placeholder("enter <your_api_key> here"));
+        assert!(content_has_template_placeholder(
+            "enter <your_api_key> here"
+        ));
     }
 
     #[test]
@@ -752,7 +774,9 @@ mod tests {
 
     #[test]
     fn test_content_has_template_placeholder_no_match() {
-        assert!(!content_has_template_placeholder("normal text without placeholders"));
+        assert!(!content_has_template_placeholder(
+            "normal text without placeholders"
+        ));
         assert!(!content_has_template_placeholder(""));
     }
 
@@ -854,13 +878,21 @@ mod tests {
 
     #[test]
     fn test_matched_keywords_basic() {
-        let result = matched_keywords("mock fixture stub", &["mock", "fixture", "stub", "fake"], 10);
+        let result = matched_keywords(
+            "mock fixture stub",
+            &["mock", "fixture", "stub", "fake"],
+            10,
+        );
         assert_eq!(result, vec!["mock", "fixture", "stub"]);
     }
 
     #[test]
     fn test_matched_keywords_respects_limit() {
-        let result = matched_keywords("mock fixture stub fake", &["mock", "fixture", "stub", "fake"], 2);
+        let result = matched_keywords(
+            "mock fixture stub fake",
+            &["mock", "fixture", "stub", "fake"],
+            2,
+        );
         assert_eq!(result.len(), 2);
         assert_eq!(result[0], "mock");
         assert_eq!(result[1], "fixture");
@@ -911,8 +943,8 @@ mod tests {
         // "cafe\u{301}" = "caf\u{e9}" = "cafe" with combining accent
         // Actually let's use a simpler multibyte case
         let s = "héllo"; // 'é' is 2 bytes in UTF-8
-        // 'h' = 0..1, 'é' = 1..3, 'l' = 3..4, 'l' = 4..5, 'o' = 5..6
-        // index 2 is mid-character in 'é'
+                         // 'h' = 0..1, 'é' = 1..3, 'l' = 3..4, 'l' = 4..5, 'o' = 5..6
+                         // index 2 is mid-character in 'é'
         assert_eq!(previous_char_boundary(s, 2), 1);
         // index 1 is a valid boundary
         assert_eq!(previous_char_boundary(s, 1), 1);
@@ -946,7 +978,7 @@ mod tests {
     #[test]
     fn test_next_char_boundary_finds_boundary_in_multibyte() {
         let s = "héllo"; // 'é' is 2 bytes: positions 1..3
-        // index 2 is mid-character, should advance to 3
+                         // index 2 is mid-character, should advance to 3
         assert_eq!(next_char_boundary(s, 2), 3);
         // index 1 is a valid boundary
         assert_eq!(next_char_boundary(s, 1), 1);
@@ -983,11 +1015,26 @@ mod tests {
 
     #[test]
     fn classify_path_kind_infrastructure_claude_paths() {
-        assert_eq!(classify_path_kind(".claude/settings.json"), "infrastructure");
-        assert_eq!(classify_path_kind(".claude/build-checker.json"), "infrastructure");
-        assert_eq!(classify_path_kind(".claude/skills/playwright/references/guide.md"), "infrastructure");
-        assert_eq!(classify_path_kind(".cursor/rules/project.mdc"), "infrastructure");
-        assert_eq!(classify_path_kind(".agents/prompts/review.md"), "infrastructure");
+        assert_eq!(
+            classify_path_kind(".claude/settings.json"),
+            "infrastructure"
+        );
+        assert_eq!(
+            classify_path_kind(".claude/build-checker.json"),
+            "infrastructure"
+        );
+        assert_eq!(
+            classify_path_kind(".claude/skills/playwright/references/guide.md"),
+            "infrastructure"
+        );
+        assert_eq!(
+            classify_path_kind(".cursor/rules/project.mdc"),
+            "infrastructure"
+        );
+        assert_eq!(
+            classify_path_kind(".agents/prompts/review.md"),
+            "infrastructure"
+        );
     }
 
     #[test]

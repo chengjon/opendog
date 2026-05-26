@@ -167,8 +167,6 @@ pub(crate) fn project_data_risk_payload(
 mod tests {
     use super::*;
     use crate::mcp::data_risk::{DataCandidate, MockDataReport};
-    use serde_json::json;
-    use std::path::PathBuf;
     use tempfile::TempDir;
 
     fn empty_report() -> MockDataReport {
@@ -232,8 +230,14 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let guidance = data_risk_guidance(dir.path(), &empty_report());
         assert!(guidance["layers"]["workspace_observation"].is_object());
-        assert_eq!(guidance["layers"]["workspace_observation"]["mock_candidate_count"], 0);
-        assert_eq!(guidance["layers"]["workspace_observation"]["hardcoded_candidate_count"], 0);
+        assert_eq!(
+            guidance["layers"]["workspace_observation"]["mock_candidate_count"],
+            0
+        );
+        assert_eq!(
+            guidance["layers"]["workspace_observation"]["hardcoded_candidate_count"],
+            0
+        );
     }
 
     #[test]
@@ -247,7 +251,9 @@ mod tests {
     fn data_risk_guidance_empty_report_recommended_flow_mentions_no_candidates() {
         let dir = TempDir::new().unwrap();
         let guidance = data_risk_guidance(dir.path(), &empty_report());
-        let flow = guidance["layers"]["execution_strategy"]["recommended_flow"].as_array().unwrap();
+        let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
+            .as_array()
+            .unwrap();
         assert!(flow[0].as_str().unwrap().contains("No mock or hardcoded"));
     }
 
@@ -256,7 +262,9 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let guidance = data_risk_guidance(dir.path(), &report_with_hardcoded());
         assert_eq!(guidance["data_risk_focus"]["primary_focus"], "hardcoded");
-        let flow = guidance["layers"]["execution_strategy"]["recommended_flow"].as_array().unwrap();
+        let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
+            .as_array()
+            .unwrap();
         assert!(flow[0].as_str().unwrap().contains("hardcoded"));
     }
 
@@ -271,8 +279,14 @@ mod tests {
     fn data_risk_guidance_constraints_boundaries_has_counts() {
         let dir = TempDir::new().unwrap();
         let guidance = data_risk_guidance(dir.path(), &report_with_mock());
-        assert_eq!(guidance["layers"]["constraints_boundaries"]["mock_candidate_count"], 1);
-        assert_eq!(guidance["layers"]["constraints_boundaries"]["hardcoded_candidate_count"], 0);
+        assert_eq!(
+            guidance["layers"]["constraints_boundaries"]["mock_candidate_count"],
+            1
+        );
+        assert_eq!(
+            guidance["layers"]["constraints_boundaries"]["hardcoded_candidate_count"],
+            0
+        );
     }
 
     #[test]
@@ -280,8 +294,14 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let report = report_with_hardcoded();
         let guidance = data_risk_guidance(dir.path(), &report);
-        assert_eq!(guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"], 1);
-        assert_eq!(guidance["layers"]["execution_strategy"]["review_mock_data_before_cleanup"], true);
+        assert_eq!(
+            guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
+            1
+        );
+        assert_eq!(
+            guidance["layers"]["execution_strategy"]["review_mock_data_before_cleanup"],
+            true
+        );
     }
 
     #[test]

@@ -72,7 +72,9 @@ mod tests {
         req.vacuum = true;
         req.dry_run = true;
         let err = validate_request(&req).unwrap_err();
-        assert!(err.to_string().contains("vacuum cannot be combined with dry_run"));
+        assert!(err
+            .to_string()
+            .contains("vacuum cannot be combined with dry_run"));
     }
 
     #[test]

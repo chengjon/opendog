@@ -125,10 +125,13 @@ where
 {
     let agent_guidance = build_agent_guidance_for_projects(pm, projects, top, load_project_state);
     let pm_ref = pm;
-    let mut summaries =
-        collect_workspace_data_risk_summaries(projects, "all", "low", load_workspace_entries, |project_id: &str| {
-            pm_ref.open_project_db(project_id).ok()
-        });
+    let mut summaries = collect_workspace_data_risk_summaries(
+        projects,
+        "all",
+        "low",
+        load_workspace_entries,
+        |project_id: &str| pm_ref.open_project_db(project_id).ok(),
+    );
     summaries.truncate(top.max(1));
     let workspace_data_guidance = workspace_data_risk_overview_payload(&summaries, projects.len());
 
@@ -195,7 +198,9 @@ mod tests {
         trim_agent_guidance_payload(&mut payload, 2);
 
         // project_recommendations should be truncated to 2
-        let recs = payload["guidance"]["project_recommendations"].as_array().unwrap();
+        let recs = payload["guidance"]["project_recommendations"]
+            .as_array()
+            .unwrap();
         assert_eq!(recs.len(), 2);
         assert_eq!(recs[0]["project_id"], "a");
         assert_eq!(recs[1]["project_id"], "b");
@@ -237,7 +242,9 @@ mod tests {
             }
         });
         trim_agent_guidance_payload(&mut payload, 5);
-        let recs = payload["guidance"]["project_recommendations"].as_array().unwrap();
+        let recs = payload["guidance"]["project_recommendations"]
+            .as_array()
+            .unwrap();
         assert_eq!(recs.len(), 1);
     }
 
@@ -250,7 +257,9 @@ mod tests {
             }
         });
         trim_agent_guidance_payload(&mut payload, 0);
-        let recs = payload["guidance"]["project_recommendations"].as_array().unwrap();
+        let recs = payload["guidance"]["project_recommendations"]
+            .as_array()
+            .unwrap();
         assert_eq!(recs.len(), 0);
     }
 
@@ -281,11 +290,7 @@ mod tests {
 
     #[test]
     fn guidance_notes_multiple_projects() {
-        let notes = guidance_notes(&[
-            "alpha".to_string(),
-            "beta".to_string(),
-            "gamma".to_string(),
-        ]);
+        let notes = guidance_notes(&["alpha".to_string(), "beta".to_string(), "gamma".to_string()]);
         assert_eq!(notes.len(), 1);
         assert!(notes[0].contains("alpha"));
         assert!(notes[0].contains("beta"));

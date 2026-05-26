@@ -1,6 +1,9 @@
 use crate::error::{OpenDogError, Result};
 use crate::storage::database::Database;
-use crate::storage::queries::{self, get_data_risk_cache, GovernanceLane, GovernanceNode, NewGovernanceLane, UpsertGovernanceNode};
+use crate::storage::queries::{
+    self, get_data_risk_cache, GovernanceLane, GovernanceNode, NewGovernanceLane,
+    UpsertGovernanceNode,
+};
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -89,21 +92,21 @@ fn json_to_string(val: &Option<serde_json::Value>) -> Option<String> {
 }
 
 fn string_list_to_json(list: &Option<Vec<String>>) -> Option<String> {
-    list.as_ref().map(|items| serde_json::to_string(items).unwrap_or_else(|_| "[]".to_string()))
+    list.as_ref()
+        .map(|items| serde_json::to_string(items).unwrap_or_else(|_| "[]".to_string()))
 }
 
 fn compute_observation_hints(db: &Database) -> ObservationHints {
     // Snapshot freshness — check if any snapshot data exists
-    let snapshot_freshness =
-        if let Ok(entries) = queries::get_snapshot_paths(db) {
-            if !entries.is_empty() {
-                "fresh"
-            } else {
-                "unknown"
-            }
+    let snapshot_freshness = if let Ok(entries) = queries::get_snapshot_paths(db) {
+        if !entries.is_empty() {
+            "fresh"
         } else {
             "unknown"
-        };
+        }
+    } else {
+        "unknown"
+    };
 
     // Verification status
     let verification_status = match queries::get_latest_verification_runs(db) {
@@ -165,7 +168,9 @@ pub fn upsert_node(db: &Database, input: UpsertNodeInput) -> Result<UpsertNodeRe
 
     // On create, state is mandatory.
     if is_create && input.state.is_none() {
-        return Err(OpenDogError::GovernanceNodeStateRequired(input.node_id.clone()));
+        return Err(OpenDogError::GovernanceNodeStateRequired(
+            input.node_id.clone(),
+        ));
     }
 
     let upsert = UpsertGovernanceNode {
@@ -185,10 +190,12 @@ pub fn upsert_node(db: &Database, input: UpsertNodeInput) -> Result<UpsertNodeRe
 
     // Read back to get authoritative state.
     let nodes = queries::get_governance_nodes(db, None, Some(&input.node_id))?;
-    let node = nodes
-        .into_iter()
-        .next()
-        .ok_or_else(|| OpenDogError::GovernanceLaneNotFound(format!("node {} vanished after upsert", input.node_id)))?;
+    let node = nodes.into_iter().next().ok_or_else(|| {
+        OpenDogError::GovernanceLaneNotFound(format!(
+            "node {} vanished after upsert",
+            input.node_id
+        ))
+    })?;
 
     Ok(UpsertNodeResult {
         node_id: node.node_id,
@@ -199,12 +206,12 @@ pub fn upsert_node(db: &Database, input: UpsertNodeInput) -> Result<UpsertNodeRe
 }
 
 /// Retrieve governance state, optionally filtered by lane and/or node.
-pub fn get_governance_state(db: &Database, input: GetGovernanceStateInput) -> Result<GovernanceState> {
-    let nodes = queries::get_governance_nodes(
-        db,
-        input.lane_id.as_deref(),
-        input.node_id.as_deref(),
-    )?;
+pub fn get_governance_state(
+    db: &Database,
+    input: GetGovernanceStateInput,
+) -> Result<GovernanceState> {
+    let nodes =
+        queries::get_governance_nodes(db, input.lane_id.as_deref(), input.node_id.as_deref())?;
 
     let all_lanes = queries::get_governance_lanes(db)?;
 
@@ -221,9 +228,7 @@ pub fn get_governance_state(db: &Database, input: GetGovernanceStateInput) -> Re
 
     // Filter out non-active lanes when active_only is set
     let lanes_to_show: Vec<&crate::storage::queries::GovernanceLane> = if active_only {
-        all_lanes.iter()
-            .filter(|l| l.status == "active")
-            .collect()
+        all_lanes.iter().filter(|l| l.status == "active").collect()
     } else {
         all_lanes.iter().collect()
     };
@@ -624,7 +629,10 @@ mod tests {
 
         let nodes = queries::get_governance_nodes(&db, Some("lane-order"), None).unwrap();
         assert_eq!(nodes.len(), 2);
-        assert_eq!(nodes[0].node_id, "node-a", "most recently updated node should be first");
+        assert_eq!(
+            nodes[0].node_id, "node-a",
+            "most recently updated node should be first"
+        );
     }
 
     #[test]
@@ -903,10 +911,7 @@ mod tests {
 
         assert_eq!(state.nodes.len(), 1, "should return only the filtered node");
         assert_eq!(state.nodes[0].node_id, "node-nf-beta");
-        assert_eq!(
-            state.nodes[0].summary,
-            Some("Node beta".to_string())
-        );
+        assert_eq!(state.nodes[0].summary, Some("Node beta".to_string()));
     }
 
     /// D: close_lane on non-existent lane returns GovernanceLaneNotFound.
@@ -934,7 +939,9 @@ mod tests {
     /// E: compute_observation_hints coverage — seeds data and verifies hints.
     #[test]
     fn observation_hints_reflect_seeded_data() {
-        use crate::storage::queries::{insert_snapshot_batch, insert_verification_run, SnapshotEntry};
+        use crate::storage::queries::{
+            insert_snapshot_batch, insert_verification_run, SnapshotEntry,
+        };
 
         let db = test_db();
 
@@ -1009,7 +1016,10 @@ mod tests {
         assert_eq!(hints.snapshot_freshness, "fresh");
         assert_eq!(hints.verification_status, "passed");
         // The snapshot entry has no matching file_stats row, so it counts as unused.
-        assert_eq!(hints.unused_files, 1, "one snapshot file with no file_stats");
+        assert_eq!(
+            hints.unused_files, 1,
+            "one snapshot file with no file_stats"
+        );
         assert_eq!(hints.data_risk_candidates, 0, "no data-risk cache seeded");
 
         // Structural sanity: the lane and node are returned.

@@ -252,11 +252,6 @@ mod tests {
     // ---- SCHEMA_VERSION ----
 
     #[test]
-    fn schema_version_is_nonzero() {
-        assert!(SCHEMA_VERSION > 0);
-    }
-
-    #[test]
     fn schema_version_is_current() {
         // The version should match the latest migration state
         assert_eq!(SCHEMA_VERSION, 6);
@@ -274,7 +269,11 @@ mod tests {
     fn project_schema_has_multiple_statements() {
         // Count semicolons — should have many CREATE TABLE/INDEX statements
         let count = PROJECT_SCHEMA.matches(';').count();
-        assert!(count > 10, "expected many SQL statements, found {} semicolons", count);
+        assert!(
+            count > 10,
+            "expected many SQL statements, found {} semicolons",
+            count
+        );
     }
 
     #[test]

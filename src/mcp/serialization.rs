@@ -45,7 +45,10 @@ mod tests {
             name: String,
             value: i64,
         }
-        let input = Simple { name: "test".into(), value: 42 };
+        let input = Simple {
+            name: "test".into(),
+            value: 42,
+        };
         let result = to_value_or_error("Simple", input);
         assert_eq!(result["name"], "test");
         assert_eq!(result["value"], 42);

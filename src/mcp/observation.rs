@@ -211,8 +211,8 @@ pub(super) fn project_observation_layer(project: &ProjectGuidanceState) -> Value
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::queries::{StatsEntry, VerificationRun};
     use crate::mcp::guidance_payload::ProjectGuidanceState;
+    use crate::storage::queries::{StatsEntry, VerificationRun};
     use std::path::PathBuf;
 
     const NOW: i64 = 1_700_000_000;

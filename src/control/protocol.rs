@@ -320,7 +320,9 @@ mod tests {
 
     #[test]
     fn request_delete_project_round_trip() {
-        let req = ControlRequest::DeleteProject { id: "x".to_string() };
+        let req = ControlRequest::DeleteProject {
+            id: "x".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::DeleteProject { .. }));
@@ -344,7 +346,9 @@ mod tests {
 
     #[test]
     fn request_get_stats_round_trip() {
-        let req = ControlRequest::GetStats { id: "proj".to_string() };
+        let req = ControlRequest::GetStats {
+            id: "proj".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         if let ControlRequest::GetStats { id } = back {
@@ -364,7 +368,9 @@ mod tests {
 
     #[test]
     fn request_get_project_config_round_trip() {
-        let req = ControlRequest::GetProjectConfig { id: "p".to_string() };
+        let req = ControlRequest::GetProjectConfig {
+            id: "p".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::GetProjectConfig { .. }));
@@ -408,7 +414,9 @@ mod tests {
 
     #[test]
     fn request_reload_project_config_round_trip() {
-        let req = ControlRequest::ReloadProjectConfig { id: "r".to_string() };
+        let req = ControlRequest::ReloadProjectConfig {
+            id: "r".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::ReloadProjectConfig { .. }));
@@ -416,7 +424,9 @@ mod tests {
 
     #[test]
     fn request_get_unused_files_round_trip() {
-        let req = ControlRequest::GetUnusedFiles { id: "u".to_string() };
+        let req = ControlRequest::GetUnusedFiles {
+            id: "u".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::GetUnusedFiles { .. }));
@@ -450,7 +460,13 @@ mod tests {
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
-        if let ControlRequest::CompareSnapshots { id, base_run_id, head_run_id, limit } = back {
+        if let ControlRequest::CompareSnapshots {
+            id,
+            base_run_id,
+            head_run_id,
+            limit,
+        } = back
+        {
             assert_eq!(id, "cs");
             assert_eq!(base_run_id, Some(1));
             assert_eq!(head_run_id, Some(2));
@@ -489,7 +505,13 @@ mod tests {
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
-        if let ControlRequest::GetDataRiskCandidates { id, candidate_type, schema_version, .. } = back {
+        if let ControlRequest::GetDataRiskCandidates {
+            id,
+            candidate_type,
+            schema_version,
+            ..
+        } = back
+        {
             assert_eq!(id, "dr");
             assert_eq!(candidate_type, "all");
             assert_eq!(schema_version, "v1");
@@ -508,7 +530,12 @@ mod tests {
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
-        if let ControlRequest::GetWorkspaceDataRiskOverview { candidate_type, project_limit, .. } = back {
+        if let ControlRequest::GetWorkspaceDataRiskOverview {
+            candidate_type,
+            project_limit,
+            ..
+        } = back
+        {
             assert_eq!(candidate_type, "mock");
             assert_eq!(project_limit, 10);
         } else {
@@ -541,7 +568,12 @@ mod tests {
         };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
-        if let ControlRequest::GetDecisionBrief { project, top, schema_version } = back {
+        if let ControlRequest::GetDecisionBrief {
+            project,
+            top,
+            schema_version,
+        } = back
+        {
             assert!(project.is_none());
             assert_eq!(top, 5);
             assert_eq!(schema_version, "v1");
@@ -552,7 +584,9 @@ mod tests {
 
     #[test]
     fn request_get_verification_status_round_trip() {
-        let req = ControlRequest::GetVerificationStatus { id: "vs".to_string() };
+        let req = ControlRequest::GetVerificationStatus {
+            id: "vs".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::GetVerificationStatus { .. }));
@@ -560,7 +594,9 @@ mod tests {
 
     #[test]
     fn request_start_monitor_round_trip() {
-        let req = ControlRequest::StartMonitor { id: "sm".to_string() };
+        let req = ControlRequest::StartMonitor {
+            id: "sm".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::StartMonitor { .. }));
@@ -568,7 +604,9 @@ mod tests {
 
     #[test]
     fn request_stop_monitor_round_trip() {
-        let req = ControlRequest::StopMonitor { id: "st".to_string() };
+        let req = ControlRequest::StopMonitor {
+            id: "st".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::StopMonitor { .. }));
@@ -576,7 +614,9 @@ mod tests {
 
     #[test]
     fn request_take_snapshot_round_trip() {
-        let req = ControlRequest::TakeSnapshot { id: "ts".to_string() };
+        let req = ControlRequest::TakeSnapshot {
+            id: "ts".to_string(),
+        };
         let json = serde_json::to_string(&req).unwrap();
         let back: ControlRequest = serde_json::from_str(&json).unwrap();
         assert!(matches!(back, ControlRequest::TakeSnapshot { .. }));
@@ -687,7 +727,12 @@ mod tests {
         };
         let json = serde_json::to_string(&resp).unwrap();
         let back: ControlResponse = serde_json::from_str(&json).unwrap();
-        if let ControlResponse::Started { id, already_running, snapshot_taken } = back {
+        if let ControlResponse::Started {
+            id,
+            already_running,
+            snapshot_taken,
+        } = back
+        {
             assert_eq!(id, "s");
             assert!(!already_running);
             assert!(snapshot_taken);
@@ -723,7 +768,14 @@ mod tests {
         };
         let json = serde_json::to_string(&resp).unwrap();
         let back: ControlResponse = serde_json::from_str(&json).unwrap();
-        if let ControlResponse::GovernanceLaneClosed { id, lane_id, action_taken, status, nodes_affected } = back {
+        if let ControlResponse::GovernanceLaneClosed {
+            id,
+            lane_id,
+            action_taken,
+            status,
+            nodes_affected,
+        } = back
+        {
             assert_eq!(id, "p");
             assert_eq!(lane_id, "l");
             assert_eq!(action_taken, "complete");

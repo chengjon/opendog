@@ -212,8 +212,13 @@ mod tests {
     fn policy_fields_echo_preferred_tools() {
         let p = extract_payload("start_monitor", Some("proj1"));
         assert_eq!(p["tool_selection_policy"]["preferred_primary_tool"], "mcp");
-        assert_eq!(p["tool_selection_policy"]["preferred_secondary_tool"], "cli");
-        let fallback = p["tool_selection_policy"]["fallback_order"].as_array().unwrap();
+        assert_eq!(
+            p["tool_selection_policy"]["preferred_secondary_tool"],
+            "cli"
+        );
+        let fallback = p["tool_selection_policy"]["fallback_order"]
+            .as_array()
+            .unwrap();
         assert_eq!(fallback[0], "mcp");
         assert_eq!(fallback[1], "cli");
         assert_eq!(fallback[2], "shell");
@@ -250,7 +255,10 @@ mod tests {
     #[test]
     fn start_monitor_tools() {
         let p = extract_payload("start_monitor", Some("proj"));
-        assert_eq!(tools(&p), vec!["start_monitor", "take_snapshot", "get_stats"]);
+        assert_eq!(
+            tools(&p),
+            vec!["start_monitor", "take_snapshot", "get_stats"]
+        );
         let cmds = commands(&p);
         assert!(cmds.iter().all(|c| c.contains("--id proj")));
     }
@@ -258,7 +266,10 @@ mod tests {
     #[test]
     fn take_snapshot_tools() {
         let p = extract_payload("take_snapshot", Some("proj"));
-        assert_eq!(tools(&p), vec!["take_snapshot", "get_stats", "get_unused_files"]);
+        assert_eq!(
+            tools(&p),
+            vec!["take_snapshot", "get_stats", "get_unused_files"]
+        );
     }
 
     #[test]
@@ -286,7 +297,11 @@ mod tests {
         let p = extract_payload("review_unused_files", Some("p"));
         assert_eq!(
             tools(&p),
-            vec!["get_unused_files", "get_verification_status", "get_data_risk_candidates"]
+            vec![
+                "get_unused_files",
+                "get_verification_status",
+                "get_data_risk_candidates"
+            ]
         );
     }
 
@@ -295,7 +310,11 @@ mod tests {
         let p = extract_payload("inspect_hot_files", Some("p"));
         assert_eq!(
             tools(&p),
-            vec!["get_stats", "get_verification_status", "get_data_risk_candidates"]
+            vec![
+                "get_stats",
+                "get_verification_status",
+                "get_data_risk_candidates"
+            ]
         );
     }
 
@@ -327,11 +346,7 @@ mod tests {
     fn no_project_id_means_no_flag() {
         let p = extract_payload("start_monitor", None);
         for cmd in commands(&p) {
-            assert!(
-                !cmd.contains("--id"),
-                "unexpected --id in command: {}",
-                cmd
-            );
+            assert!(!cmd.contains("--id"), "unexpected --id in command: {}", cmd);
         }
     }
 
@@ -341,9 +356,21 @@ mod tests {
     fn selection_reasons_have_kind_target_why() {
         let p = extract_payload("review_failing_verification", Some("p"));
         for reason in reasons(&p) {
-            assert!(reason["kind"].is_string(), "reason missing kind: {:?}", reason);
-            assert!(reason["target"].is_string(), "reason missing target: {:?}", reason);
-            assert!(reason["why"].is_string(), "reason missing why: {:?}", reason);
+            assert!(
+                reason["kind"].is_string(),
+                "reason missing kind: {:?}",
+                reason
+            );
+            assert!(
+                reason["target"].is_string(),
+                "reason missing target: {:?}",
+                reason
+            );
+            assert!(
+                reason["why"].is_string(),
+                "reason missing why: {:?}",
+                reason
+            );
         }
     }
 }

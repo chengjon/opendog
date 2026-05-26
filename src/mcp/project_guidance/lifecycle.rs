@@ -175,7 +175,9 @@ mod tests {
             .as_array()
             .unwrap();
         assert!(!flow.is_empty());
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("registered")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("registered")));
     }
 
     #[test]
@@ -193,7 +195,9 @@ mod tests {
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("zero files")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("zero files")));
     }
 
     #[test]
@@ -207,7 +211,10 @@ mod tests {
     #[test]
     fn snapshot_guidance_with_files() {
         let guidance = snapshot_guidance(42);
-        assert!(guidance["summary"].as_str().unwrap().contains("Snapshot complete"));
+        assert!(guidance["summary"]
+            .as_str()
+            .unwrap()
+            .contains("Snapshot complete"));
     }
 
     #[test]
@@ -224,7 +231,9 @@ mod tests {
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("baseline")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("baseline")));
     }
 
     #[test]
@@ -238,11 +247,16 @@ mod tests {
     #[test]
     fn start_monitor_guidance_already_running() {
         let guidance = start_monitor_guidance(true, false);
-        assert!(guidance["summary"].as_str().unwrap().contains("already active"));
+        assert!(guidance["summary"]
+            .as_str()
+            .unwrap()
+            .contains("already active"));
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("already active")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("already active")));
     }
 
     #[test]
@@ -255,11 +269,16 @@ mod tests {
     #[test]
     fn start_monitor_guidance_not_running_with_snapshot() {
         let guidance = start_monitor_guidance(false, true);
-        assert!(guidance["summary"].as_str().unwrap().contains("initial snapshot"));
+        assert!(guidance["summary"]
+            .as_str()
+            .unwrap()
+            .contains("initial snapshot"));
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("baseline snapshot")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("baseline snapshot")));
     }
 
     #[test]
@@ -268,17 +287,24 @@ mod tests {
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("real project activity")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("real project activity")));
     }
 
     #[test]
     fn start_monitor_guidance_not_running_no_snapshot() {
         let guidance = start_monitor_guidance(false, false);
-        assert!(guidance["summary"].as_str().unwrap().contains("Monitoring is active"));
+        assert!(guidance["summary"]
+            .as_str()
+            .unwrap()
+            .contains("Monitoring is active"));
         let flow = guidance["layers"]["execution_strategy"]["recommended_flow"]
             .as_array()
             .unwrap();
-        assert!(flow.iter().any(|s| s.as_str().unwrap().contains("activity-derived")));
+        assert!(flow
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("activity-derived")));
     }
 
     #[test]

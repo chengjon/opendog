@@ -71,10 +71,7 @@ mod tests {
 
     #[test]
     fn validate_required_scanners_with_known_internal_scanners() {
-        let scanners: Vec<String> = INTERNAL_SCANNERS
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let scanners: Vec<String> = INTERNAL_SCANNERS.iter().map(|s| s.to_string()).collect();
         let result = validate_required_scanners(Some(&scanners), &[]).unwrap();
         // Result should contain all internal scanners (sorted BTreeSet order)
         assert_eq!(result.len(), INTERNAL_SCANNERS.len());
@@ -132,10 +129,7 @@ mod tests {
     #[test]
     fn validate_required_scanners_mixed_internal_and_external() {
         let report = make_external_report("ext_scanner");
-        let scanners = vec![
-            "candidate_collector".to_string(),
-            "ext_scanner".to_string(),
-        ];
+        let scanners = vec!["candidate_collector".to_string(), "ext_scanner".to_string()];
         let result = validate_required_scanners(Some(&scanners), &[report]).unwrap();
         assert_eq!(result.len(), 2);
         assert!(result.contains(&"candidate_collector".to_string()));

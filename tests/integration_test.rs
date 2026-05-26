@@ -7,6 +7,9 @@ mod storage_project_snapshot;
 #[path = "integration_test/cli_export.rs"]
 mod cli_export;
 #[cfg(unix)]
+#[path = "integration_test/cli_governance.rs"]
+mod cli_governance;
+#[cfg(unix)]
 #[path = "integration_test/cli_guidance.rs"]
 mod cli_guidance;
 #[cfg(unix)]
@@ -18,6 +21,3 @@ mod daemon_process_cli;
 #[cfg(unix)]
 #[path = "integration_test/mcp_session_reuse.rs"]
 mod mcp_session_reuse;
-#[cfg(unix)]
-#[path = "integration_test/cli_governance.rs"]
-mod cli_governance;

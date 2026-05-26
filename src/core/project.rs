@@ -195,12 +195,6 @@ mod tests {
         pm
     }
 
-    fn valid_root() -> tempfile::TempDir {
-        let dir = tempfile::tempdir().unwrap();
-        // with_data_dir needs a "data" subdirectory pattern
-        dir
-    }
-
     #[test]
     fn create_rejects_empty_project_id() {
         let pm = test_pm();
@@ -228,7 +222,9 @@ mod tests {
     #[test]
     fn create_rejects_relative_root_path() {
         let pm = test_pm();
-        let err = pm.create("valid-id", Path::new("relative/path")).unwrap_err();
+        let err = pm
+            .create("valid-id", Path::new("relative/path"))
+            .unwrap_err();
         assert!(matches!(err, OpenDogError::InvalidPath(_)));
     }
 

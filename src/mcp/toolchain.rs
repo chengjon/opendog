@@ -483,10 +483,7 @@ mod tests {
         assert_eq!(profile.project_type, "rust");
         assert_eq!(profile.confidence, "high");
         assert!(profile.test_commands.contains(&"cargo test".to_string()));
-        assert!(profile
-            .lint_commands
-            .iter()
-            .any(|c| c.contains("clippy")));
+        assert!(profile.lint_commands.iter().any(|c| c.contains("clippy")));
         assert!(profile.build_commands.contains(&"cargo check".to_string()));
     }
 
@@ -497,7 +494,9 @@ mod tests {
         assert_eq!(profile.confidence, "high");
         assert!(profile.test_commands.contains(&"npm test".to_string()));
         assert!(profile.lint_commands.contains(&"npm run lint".to_string()));
-        assert!(profile.build_commands.contains(&"npm run build".to_string()));
+        assert!(profile
+            .build_commands
+            .contains(&"npm run build".to_string()));
     }
 
     #[test]
@@ -517,7 +516,9 @@ mod tests {
         assert_eq!(profile.confidence, "high");
         assert!(profile.test_commands.contains(&"go test ./...".to_string()));
         assert!(profile.lint_commands.contains(&"go vet ./...".to_string()));
-        assert!(profile.build_commands.contains(&"go build ./...".to_string()));
+        assert!(profile
+            .build_commands
+            .contains(&"go build ./...".to_string()));
     }
 
     #[test]
@@ -560,7 +561,11 @@ mod tests {
     fn mixed_workspace_confidence_medium_high_with_workspace_and_manifests() {
         let dir = tempfile::tempdir().unwrap();
         // Create both Cargo.toml with [workspace] and package.json with workspaces
-        std::fs::write(dir.path().join("Cargo.toml"), "[workspace]\nmembers=[\"a\"]").unwrap();
+        std::fs::write(
+            dir.path().join("Cargo.toml"),
+            "[workspace]\nmembers=[\"a\"]",
+        )
+        .unwrap();
         std::fs::write(
             dir.path().join("package.json"),
             r#"{"workspaces": ["packages/*"]}"#,
@@ -574,7 +579,11 @@ mod tests {
     fn mixed_workspace_confidence_medium_when_workspace_but_only_one_manifest() {
         let dir = tempfile::tempdir().unwrap();
         // Cargo.toml with [workspace] but no package.json
-        std::fs::write(dir.path().join("Cargo.toml"), "[workspace]\nmembers=[\"a\"]").unwrap();
+        std::fs::write(
+            dir.path().join("Cargo.toml"),
+            "[workspace]\nmembers=[\"a\"]",
+        )
+        .unwrap();
         let confidence = mixed_workspace_confidence(dir.path(), &["rust"]);
         assert_eq!(confidence, "medium");
     }
@@ -640,7 +649,10 @@ mod tests {
         assert_eq!(result["projects_with_test_commands"], 1);
         assert_eq!(result["projects_with_lint_commands"], 1);
         assert_eq!(result["projects_with_build_commands"], 1);
-        assert!(result["low_confidence_projects"].as_array().unwrap().is_empty());
+        assert!(result["low_confidence_projects"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert!(result["summary"]
             .as_str()
             .unwrap()
@@ -758,6 +770,9 @@ mod tests {
         assert!(profile.lint_commands.is_empty());
         assert!(profile.build_commands.is_empty());
         assert_eq!(profile.search_commands.len(), 1);
-        assert_eq!(profile.search_commands[0], "rg \"<pattern>\" docs README.md");
+        assert_eq!(
+            profile.search_commands[0],
+            "rg \"<pattern>\" docs README.md"
+        );
     }
 }

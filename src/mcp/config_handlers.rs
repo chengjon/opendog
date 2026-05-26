@@ -7,8 +7,8 @@ use crate::error::OpenDogError;
 
 use super::{
     build_info_payload, error_json_for, global_config_payload, project_config_payload,
-    OpenDogServer, MCP_BUILD_INFO_V1, MCP_GLOBAL_CONFIG_V1, MCP_PROJECT_CONFIG_V1,
-    OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
+    BuildInfoPayloadInput, OpenDogServer, MCP_BUILD_INFO_V1, MCP_GLOBAL_CONFIG_V1,
+    MCP_PROJECT_CONFIG_V1, OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
 };
 
 pub(super) fn handle_get_global_config(server: &OpenDogServer) -> Json<Value> {
@@ -52,14 +52,14 @@ pub(super) fn handle_get_build_info(_server: &OpenDogServer) -> Json<Value> {
     let needs_rebuild = build_info_needs_rebuild();
     let daemon_running = DaemonClient::new().ping().is_ok();
     let opendog_home = crate::config::data_dir().display().to_string();
-    Json(build_info_payload(
-        MCP_BUILD_INFO_V1,
-        OPENDOG_VERSION,
-        OPENDOG_GIT_HASH,
-        OPENDOG_BUILD_TIME,
-        &binary_path,
+    Json(build_info_payload(BuildInfoPayloadInput {
+        schema_version: MCP_BUILD_INFO_V1,
+        version: OPENDOG_VERSION,
+        git_hash: OPENDOG_GIT_HASH,
+        build_time: OPENDOG_BUILD_TIME,
+        binary_path: &binary_path,
         needs_rebuild,
         daemon_running,
-        &opendog_home,
-    ))
+        opendog_home: &opendog_home,
+    }))
 }

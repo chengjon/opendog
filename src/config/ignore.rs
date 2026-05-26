@@ -133,12 +133,18 @@ mod tests {
 
     #[test]
     fn matches_path_middle_segment() {
-        assert!(matches_ignore_pattern("src/node_modules/pkg", "node_modules"));
+        assert!(matches_ignore_pattern(
+            "src/node_modules/pkg",
+            "node_modules"
+        ));
     }
 
     #[test]
     fn matches_path_suffix_segment() {
-        assert!(matches_ignore_pattern("src/main/node_modules", "node_modules"));
+        assert!(matches_ignore_pattern(
+            "src/main/node_modules",
+            "node_modules"
+        ));
     }
 
     #[test]

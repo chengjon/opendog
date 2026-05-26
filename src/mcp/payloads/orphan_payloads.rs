@@ -52,9 +52,7 @@ pub(crate) fn orphan_deletion_plan_payload(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::orphan::{
-        ClassifiedOrphanCandidate, DeletionPlanVerification, OrphanScanSummary, ScanOrphansResult,
-    };
+    use crate::core::orphan::{DeletionPlanVerification, OrphanScanSummary, ScanOrphansResult};
 
     fn sample_scan_result() -> ScanOrphansResult {
         ScanOrphansResult {
@@ -135,9 +133,14 @@ mod tests {
         assert_eq!(payload["status"], "review_required");
         assert_eq!(payload["safe_to_plan_deletion"], false);
         assert!(payload["blocked_targets"].as_array().unwrap().is_empty());
-        assert!(payload["review_required_targets"].as_array().unwrap().is_empty());
+        assert!(payload["review_required_targets"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert!(payload["remove_candidates"].as_array().unwrap().is_empty());
-        let cmds = payload["required_project_verification_commands"].as_array().unwrap();
+        let cmds = payload["required_project_verification_commands"]
+            .as_array()
+            .unwrap();
         assert_eq!(cmds.len(), 1);
         assert_eq!(cmds[0], "cargo test");
         let gaps = payload["evidence_gaps"].as_array().unwrap();

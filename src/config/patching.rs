@@ -249,7 +249,11 @@ mod tests {
 
     #[test]
     fn normalize_string_list_removes_whitespace_entries() {
-        let result = normalize_string_list(vec!["hello".to_string(), "   ".to_string(), "world".to_string()]);
+        let result = normalize_string_list(vec![
+            "hello".to_string(),
+            "   ".to_string(),
+            "world".to_string(),
+        ]);
         assert_eq!(result, vec!["hello", "world"]);
     }
 
@@ -370,12 +374,8 @@ mod tests {
     #[test]
     fn apply_list_patch_add_and_remove() {
         let current = vec!["a".to_string(), "b".to_string()];
-        let result = super::apply_list_patch(
-            &current,
-            None,
-            vec!["c".to_string()],
-            vec!["a".to_string()],
-        );
+        let result =
+            super::apply_list_patch(&current, None, vec!["c".to_string()], vec!["a".to_string()]);
         assert_eq!(result, vec!["b", "c"]);
     }
 
@@ -552,7 +552,10 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(result.ignore_patterns, Some(vec!["new_pattern".to_string()]));
+        assert_eq!(
+            result.ignore_patterns,
+            Some(vec!["new_pattern".to_string()])
+        );
     }
 
     #[test]

@@ -83,7 +83,7 @@ OPENDOG 的 AI 决策辅助通过 `get_guidance` MCP 工具暴露（`detail = "s
 
 ### Decision Brief
 
-`get_decision_brief` 返回单个项目的压缩决策包，包含 recommended next action、execution sequence、repo truth gaps、mandatory shell checks、external truth boundary、data risk focus、risk profile 和 action profile。AI 读取一个 JSON 就能获得完整的项目行动路线。
+`get_guidance(detail = "decision")` 返回单个项目的压缩决策包，包含 recommended next action、execution sequence、repo truth gaps、mandatory shell checks、external truth boundary、data risk focus、risk profile 和 action profile。CLI 中的对应入口是 `opendog decision-brief`。AI 读取一个 JSON 就能获得完整的项目行动路线。
 
 ### Risk-Strategy Coupling
 

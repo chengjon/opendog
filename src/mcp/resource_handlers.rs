@@ -101,19 +101,32 @@ mod tests {
 
     #[test]
     fn resource_kind_projects_uri() {
-        assert_eq!(read_resource_kind("opendog://projects"), Some(ResourceKind::Projects));
+        assert_eq!(
+            read_resource_kind("opendog://projects"),
+            Some(ResourceKind::Projects)
+        );
     }
 
     #[test]
     fn resource_kind_project_verification() {
         let kind = read_resource_kind("opendog://project/my-app/verification").unwrap();
-        assert_eq!(kind, ResourceKind::ProjectVerification { id: "my-app".to_string() });
+        assert_eq!(
+            kind,
+            ResourceKind::ProjectVerification {
+                id: "my-app".to_string()
+            }
+        );
     }
 
     #[test]
     fn resource_kind_project_verification_with_dashes() {
         let kind = read_resource_kind("opendog://project/my-cool-app/verification").unwrap();
-        assert_eq!(kind, ResourceKind::ProjectVerification { id: "my-cool-app".to_string() });
+        assert_eq!(
+            kind,
+            ResourceKind::ProjectVerification {
+                id: "my-cool-app".to_string()
+            }
+        );
     }
 
     #[test]
@@ -123,7 +136,10 @@ mod tests {
 
     #[test]
     fn resource_kind_slash_in_id_rejected() {
-        assert_eq!(read_resource_kind("opendog://project/a/b/verification"), None);
+        assert_eq!(
+            read_resource_kind("opendog://project/a/b/verification"),
+            None
+        );
     }
 
     #[test]
@@ -160,8 +176,8 @@ mod tests {
     fn json_resource_result_preserves_uri() {
         let value = json!({});
         let result = json_resource_result("opendog://projects", &value).unwrap();
-        let (uri, text_content) = match &result.contents[0] {
-            ResourceContents::TextResourceContents { uri, text, .. } => (uri.clone(), text.clone()),
+        let uri = match &result.contents[0] {
+            ResourceContents::TextResourceContents { uri, .. } => uri.clone(),
             other => panic!("expected TextResourceContents, got {:?}", other),
         };
         assert_eq!(uri, "opendog://projects");

@@ -177,7 +177,8 @@ mod tests {
     fn insert_history_and_query_runs() {
         let db = test_db();
         let run1 = insert_snapshot_history(&db, "100", &[entry("x.rs", 5)]).unwrap();
-        let run2 = insert_snapshot_history(&db, "200", &[entry("y.rs", 6), entry("z.rs", 7)]).unwrap();
+        let run2 =
+            insert_snapshot_history(&db, "200", &[entry("y.rs", 6), entry("z.rs", 7)]).unwrap();
         assert_ne!(run1.id, run2.id);
         assert_eq!(run1.file_count, 1);
         assert_eq!(run2.file_count, 2);
@@ -201,12 +202,8 @@ mod tests {
     #[test]
     fn get_history_entries_for_run() {
         let db = test_db();
-        let run = insert_snapshot_history(
-            &db,
-            "400",
-            &[entry("p.rs", 1), entry("q.rs", 2)],
-        )
-        .unwrap();
+        let run =
+            insert_snapshot_history(&db, "400", &[entry("p.rs", 1), entry("q.rs", 2)]).unwrap();
         let entries = get_snapshot_history_entries(&db, run.id).unwrap();
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].path, "p.rs"); // ORDER BY path

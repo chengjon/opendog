@@ -16,7 +16,8 @@ pub fn print_node_upserted(id: &str, result: &UpsertNodeResult) {
 
 pub fn print_governance_state(id: &str, state: &GovernanceState) {
     println!("Governance: {}", id);
-    println!("  Observation: snapshot={} | verification={} | unused={} | data_risk={}",
+    println!(
+        "  Observation: snapshot={} | verification={} | unused={} | data_risk={}",
         state.observation_hints.snapshot_freshness,
         state.observation_hints.verification_status,
         state.observation_hints.unused_files,
@@ -28,13 +29,33 @@ pub fn print_governance_state(id: &str, state: &GovernanceState) {
         println!("  Title: {} | Status: {}", lane.title, lane.status);
         println!();
 
-        let lane_nodes: Vec<_> = state.nodes.iter().filter(|n| n.lane_id == lane.lane_id).collect();
+        let lane_nodes: Vec<_> = state
+            .nodes
+            .iter()
+            .filter(|n| n.lane_id == lane.lane_id)
+            .collect();
         if !lane_nodes.is_empty() {
-            println!("  {:8} {:22} {:32} Suggested Next", "Node", "State", "Summary");
+            println!(
+                "  {:8} {:22} {:32} Suggested Next",
+                "Node", "State", "Summary"
+            );
             for node in lane_nodes {
-                let summary = node.summary.as_deref().unwrap_or("").chars().take(30).collect::<String>();
-                let suggested = node.suggested_next.as_deref().unwrap_or("").chars().take(30).collect::<String>();
-                println!("  {:8} {:22} {:32} {}",
+                let summary = node
+                    .summary
+                    .as_deref()
+                    .unwrap_or("")
+                    .chars()
+                    .take(30)
+                    .collect::<String>();
+                let suggested = node
+                    .suggested_next
+                    .as_deref()
+                    .unwrap_or("")
+                    .chars()
+                    .take(30)
+                    .collect::<String>();
+                println!(
+                    "  {:8} {:22} {:32} {}",
                     truncate_str(&node.node_id, 8),
                     truncate_str(&node.state, 22),
                     truncate_str(&summary, 32),
@@ -48,7 +69,10 @@ pub fn print_governance_state(id: &str, state: &GovernanceState) {
 
 pub fn print_lane_closed(id: &str, lane_id: &str, action: &str, status: &str, nodes: usize) {
     println!("Governance lane '{}' for project '{}'.", lane_id, id);
-    println!("  Action: {} | Result: {} | Nodes affected: {}", action, status, nodes);
+    println!(
+        "  Action: {} | Result: {} | Nodes affected: {}",
+        action, status, nodes
+    );
 }
 
 fn truncate_str(s: &str, max: usize) -> String {

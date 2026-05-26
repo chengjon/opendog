@@ -767,7 +767,8 @@ mod tests {
     #[test]
     fn project_attention_summary_failing_verification_adds_25() {
         let mut overview = minimal_overview();
-        overview["verification_evidence"]["failing_runs"] = json!([{"command": "cargo test", "status": "failed"}]);
+        overview["verification_evidence"]["failing_runs"] =
+            json!([{"command": "cargo test", "status": "failed"}]);
         let summary = project_attention_summary(&overview);
         // Base 30 + failing 25 = 55
         assert_eq!(summary.attention_score, 55);
@@ -888,7 +889,10 @@ mod tests {
         // safe_for_refactor default false => +6
         // Total: 20 + 4 + 18 + 9 + 8 + 12 + 6 + 6 = 83
         assert_eq!(summary.attention_score, 83);
-        assert_eq!(summary.priority_basis.recommended_next_action, "inspect_workspace_state");
+        assert_eq!(
+            summary.priority_basis.recommended_next_action,
+            "inspect_workspace_state"
+        );
         assert_eq!(summary.priority_basis.repo_risk_level, "unknown");
         assert!(!summary.priority_basis.safe_for_cleanup);
         assert!(!summary.priority_basis.safe_for_refactor);

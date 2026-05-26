@@ -683,7 +683,9 @@ mod tests {
         };
         let v = serde_json::to_value(&c).unwrap();
         assert!(v.get("projects_not_ready_for_cleanup").is_none());
-        assert!(v.get("projects_with_storage_maintenance_candidates").is_none());
+        assert!(v
+            .get("projects_with_storage_maintenance_candidates")
+            .is_none());
     }
 
     #[test]

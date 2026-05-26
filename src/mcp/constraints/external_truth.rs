@@ -246,7 +246,10 @@ mod tests {
         assert_eq!(result["repo_state_required"], false);
         assert_eq!(result["verification_required"], false);
         assert!(result["triggers"].as_array().unwrap().is_empty());
-        assert!(result["minimum_external_checks"].as_array().unwrap().is_empty());
+        assert!(result["minimum_external_checks"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert!(result["summary"].is_null());
     }
 
@@ -265,7 +268,10 @@ mod tests {
         assert_eq!(result["mode"], "must_switch_to_external_truth");
         assert_eq!(result["repo_state_required"], true);
         assert_eq!(result["verification_required"], false);
-        assert!(result["summary"].as_str().unwrap().contains("repository truth"));
+        assert!(result["summary"]
+            .as_str()
+            .unwrap()
+            .contains("repository truth"));
     }
 
     #[test]
@@ -304,7 +310,10 @@ mod tests {
         let result = external_truth_boundary_for_top_project(Some(&rec));
         assert_eq!(result["repo_state_required"], true);
         assert_eq!(result["verification_required"], true);
-        assert!(result["summary"].as_str().unwrap().contains("repository and verification"));
+        assert!(result["summary"]
+            .as_str()
+            .unwrap()
+            .contains("repository and verification"));
         let checks = result["minimum_external_checks"].as_array().unwrap();
         assert!(checks.iter().any(|c| c == "git status"));
         assert!(checks.iter().any(|c| c == "git diff"));
@@ -321,7 +330,10 @@ mod tests {
         });
         let result = external_truth_boundary_for_top_project(Some(&rec));
         assert_eq!(result["mode"], "opendog_guidance_can_continue");
-        assert!(result["summary"].as_str().unwrap().contains("continue under OPENDOG"));
+        assert!(result["summary"]
+            .as_str()
+            .unwrap()
+            .contains("continue under OPENDOG"));
     }
 
     #[test]
@@ -337,7 +349,10 @@ mod tests {
         });
         let result = external_truth_boundary_for_top_project(Some(&rec));
         let checks = result["minimum_external_checks"].as_array().unwrap();
-        let git_status_count = checks.iter().filter(|c| c.as_str() == Some("git status")).count();
+        let git_status_count = checks
+            .iter()
+            .filter(|c| c.as_str() == Some("git status"))
+            .count();
         assert_eq!(git_status_count, 1);
     }
 

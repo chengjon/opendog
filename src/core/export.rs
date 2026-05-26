@@ -268,7 +268,9 @@ mod tests {
     #[test]
     fn export_view_parse_rejects_invalid_value() {
         let err = ExportView::parse("html").unwrap_err();
-        assert!(err.to_string().contains("view must be one of: stats, unused, core"));
+        assert!(err
+            .to_string()
+            .contains("view must be one of: stats, unused, core"));
         assert!(err.to_string().contains("html"));
     }
 
@@ -314,10 +316,7 @@ mod tests {
 
     #[test]
     fn escape_csv_field_all_three_special_chars() {
-        assert_eq!(
-            escape_csv_field("a,\"b\nc"),
-            "\"a,\"\"b\nc\""
-        );
+        assert_eq!(escape_csv_field("a,\"b\nc"), "\"a,\"\"b\nc\"");
     }
 
     // ── render_csv_export edge-case tests ──
@@ -368,10 +367,7 @@ mod tests {
         let csv = render_csv_export(&[row]);
         let mut lines = csv.lines();
         let header = lines.next().unwrap();
-        assert_eq!(
-            header,
-            CSV_COLUMNS.join(",")
-        );
+        assert_eq!(header, CSV_COLUMNS.join(","));
         let data = lines.next().unwrap();
         let fields: Vec<&str> = data.split(',').collect();
         assert_eq!(fields[0], "p");

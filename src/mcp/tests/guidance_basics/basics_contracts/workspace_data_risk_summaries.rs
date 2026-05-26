@@ -37,31 +37,37 @@ fn collect_workspace_data_risk_summaries_sorts_by_hardcoded_priority() {
         },
     ];
 
-    let summaries = collect_workspace_data_risk_summaries(&projects, "all", "low", |project| {
-        if project.id == "alpha" {
-            vec![StatsEntry {
-                file_path: "tests/fixtures/demo.json".to_string(),
-                size: 10,
-                file_type: "json".to_string(),
-                access_count: 0,
-                estimated_duration_ms: 0,
-                modification_count: 0,
-                last_access_time: None,
-                first_seen_time: None,
-            }]
-        } else {
-            vec![StatsEntry {
-                file_path: "src/customer_seed.rs".to_string(),
-                size: 10,
-                file_type: "rs".to_string(),
-                access_count: 2,
-                estimated_duration_ms: 0,
-                modification_count: 0,
-                last_access_time: None,
-                first_seen_time: None,
-            }]
-        }
-    }, |_| None);
+    let summaries = collect_workspace_data_risk_summaries(
+        &projects,
+        "all",
+        "low",
+        |project| {
+            if project.id == "alpha" {
+                vec![StatsEntry {
+                    file_path: "tests/fixtures/demo.json".to_string(),
+                    size: 10,
+                    file_type: "json".to_string(),
+                    access_count: 0,
+                    estimated_duration_ms: 0,
+                    modification_count: 0,
+                    last_access_time: None,
+                    first_seen_time: None,
+                }]
+            } else {
+                vec![StatsEntry {
+                    file_path: "src/customer_seed.rs".to_string(),
+                    size: 10,
+                    file_type: "rs".to_string(),
+                    access_count: 2,
+                    estimated_duration_ms: 0,
+                    modification_count: 0,
+                    last_access_time: None,
+                    first_seen_time: None,
+                }]
+            }
+        },
+        |_| None,
+    );
 
     assert_eq!(summaries[0]["project_id"], "beta");
     assert_eq!(summaries[1]["project_id"], "alpha");

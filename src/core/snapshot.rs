@@ -148,7 +148,9 @@ mod tests {
         // Should be a non-empty string of digits (unix epoch seconds)
         assert!(!result.is_empty());
         assert!(result.chars().all(|c| c.is_ascii_digit()));
-        let secs: u64 = result.parse().expect("now_iso should return a valid number");
+        let secs: u64 = result
+            .parse()
+            .expect("now_iso should return a valid number");
         // Sanity: should be after year 2020 (~1577836800) and before year 2100 (~4102444800)
         assert!(secs > 1_577_836_800);
         assert!(secs < 4_102_444_800);

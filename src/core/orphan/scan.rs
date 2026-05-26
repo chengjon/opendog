@@ -158,8 +158,7 @@ mod tests {
     #[test]
     fn internal_scanners_find_source_files_and_classify() {
         let dir = create_test_project();
-        let result =
-            scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
+        let result = scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
 
         assert_eq!(result.status, "ok");
         // Should have found .rs and .py source files
@@ -188,10 +187,7 @@ mod tests {
         );
 
         // Summary should be internally consistent
-        assert_eq!(
-            result.summary.total_candidates,
-            result.candidates.len()
-        );
+        assert_eq!(result.summary.total_candidates, result.candidates.len());
     }
 
     // --- Test 2: Empty directory produces warnings ---
@@ -199,8 +195,7 @@ mod tests {
     #[test]
     fn empty_directory_produces_warning() {
         let dir = tempfile::tempdir().unwrap();
-        let result =
-            scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
+        let result = scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
 
         assert_eq!(result.status, "ok");
         assert!(result.candidates.is_empty());
@@ -318,8 +313,7 @@ mod tests {
             ..default_input()
         };
 
-        let result =
-            scan_project_orphans(dir.path(), &default_config(), input).unwrap();
+        let result = scan_project_orphans(dir.path(), &default_config(), input).unwrap();
 
         assert!(
             result.candidates.len() <= 2,
@@ -339,8 +333,7 @@ mod tests {
             ..default_input()
         };
 
-        let result =
-            scan_project_orphans(dir.path(), &default_config(), input).unwrap();
+        let result = scan_project_orphans(dir.path(), &default_config(), input).unwrap();
 
         for candidate in &result.candidates {
             assert!(
@@ -358,8 +351,7 @@ mod tests {
     fn summary_counts_match_candidates() {
         let dir = create_test_project();
 
-        let result =
-            scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
+        let result = scan_project_orphans(dir.path(), &default_config(), default_input()).unwrap();
 
         let remove = result.summary.remove_candidate_count;
         let review = result.summary.review_required_count;
@@ -370,9 +362,6 @@ mod tests {
             result.summary.total_candidates,
             "summary counts do not add up to total"
         );
-        assert_eq!(
-            result.summary.total_candidates,
-            result.candidates.len()
-        );
+        assert_eq!(result.summary.total_candidates, result.candidates.len());
     }
 }

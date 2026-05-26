@@ -103,7 +103,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.cleanup_gate_level = GateLevel::Caution;
         let scores = score_review_actions(&signals, &low_risk_repo(), &full_eligibility());
-        let cleanup = scores.iter().find(|s| s.action == "review_unused_files").unwrap();
+        let cleanup = scores
+            .iter()
+            .find(|s| s.action == "review_unused_files")
+            .unwrap();
         assert_eq!(cleanup.total, 80);
     }
 
@@ -112,7 +115,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.snapshot_stale = true;
         let scores = score_review_actions(&signals, &low_risk_repo(), &full_eligibility());
-        let cleanup = scores.iter().find(|s| s.action == "review_unused_files").unwrap();
+        let cleanup = scores
+            .iter()
+            .find(|s| s.action == "review_unused_files")
+            .unwrap();
         assert_eq!(cleanup.total, 60);
     }
 
@@ -122,7 +128,10 @@ mod tests {
         signals.cleanup_gate_level = GateLevel::Caution;
         signals.snapshot_stale = true;
         let scores = score_review_actions(&signals, &low_risk_repo(), &full_eligibility());
-        let cleanup = scores.iter().find(|s| s.action == "review_unused_files").unwrap();
+        let cleanup = scores
+            .iter()
+            .find(|s| s.action == "review_unused_files")
+            .unwrap();
         assert_eq!(cleanup.total, 40);
     }
 
@@ -131,7 +140,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.refactor_gate_level = GateLevel::Caution;
         let scores = score_review_actions(&signals, &low_risk_repo(), &full_eligibility());
-        let hotspot = scores.iter().find(|s| s.action == "inspect_hot_files").unwrap();
+        let hotspot = scores
+            .iter()
+            .find(|s| s.action == "inspect_hot_files")
+            .unwrap();
         assert_eq!(hotspot.total, 75);
     }
 
@@ -140,7 +152,10 @@ mod tests {
         let mut signals = allow_signals();
         signals.activity_stale = true;
         let scores = score_review_actions(&signals, &low_risk_repo(), &full_eligibility());
-        let hotspot = scores.iter().find(|s| s.action == "inspect_hot_files").unwrap();
+        let hotspot = scores
+            .iter()
+            .find(|s| s.action == "inspect_hot_files")
+            .unwrap();
         assert_eq!(hotspot.total, 60);
     }
 
@@ -152,7 +167,10 @@ mod tests {
         });
         let signals = allow_signals();
         let scores = score_review_actions(&signals, &repo, &full_eligibility());
-        let hotspot = scores.iter().find(|s| s.action == "inspect_hot_files").unwrap();
+        let hotspot = scores
+            .iter()
+            .find(|s| s.action == "inspect_hot_files")
+            .unwrap();
         assert_eq!(hotspot.total, 70);
     }
 
@@ -164,7 +182,10 @@ mod tests {
         });
         let signals = allow_signals();
         let scores = score_review_actions(&signals, &repo, &full_eligibility());
-        let hotspot = scores.iter().find(|s| s.action == "inspect_hot_files").unwrap();
+        let hotspot = scores
+            .iter()
+            .find(|s| s.action == "inspect_hot_files")
+            .unwrap();
         assert_eq!(hotspot.total, 90);
     }
 
@@ -178,7 +199,10 @@ mod tests {
             "large_diff": true,
         });
         let scores = score_review_actions(&signals, &repo, &full_eligibility());
-        let hotspot = scores.iter().find(|s| s.action == "inspect_hot_files").unwrap();
+        let hotspot = scores
+            .iter()
+            .find(|s| s.action == "inspect_hot_files")
+            .unwrap();
         // 100 - 25 (caution) - 40 (stale) - 30 (large diff) - 10 (high risk) = -5
         assert_eq!(hotspot.total, -5);
     }

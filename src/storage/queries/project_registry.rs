@@ -170,7 +170,8 @@ mod tests {
     #[test]
     fn update_config_rejects_unknown_project() {
         let db = test_db();
-        let err = update_project_config(&db, "ghost", &ProjectConfigOverrides::default()).unwrap_err();
+        let err =
+            update_project_config(&db, "ghost", &ProjectConfigOverrides::default()).unwrap_err();
         assert!(err.to_string().contains("ghost"));
     }
 

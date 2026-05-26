@@ -275,10 +275,7 @@ mod tests {
 
     #[test]
     fn project_list_header_format() {
-        let header = format!(
-            "  {:20} {:40} {:10} CREATED",
-            "ID", "ROOT PATH", "STATUS"
-        );
+        let header = format!("  {:20} {:40} {:10} CREATED", "ID", "ROOT PATH", "STATUS");
         assert!(header.starts_with("  "));
         assert!(header.contains("ID"));
         assert!(header.contains("ROOT PATH"));

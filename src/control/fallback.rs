@@ -386,11 +386,19 @@ mod tests {
         }
         fn list_projects(&self) -> Result<Vec<ProjectInfo>> {
             self.called.set(true);
-            if self.succeed { Ok(vec![]) } else { Err(OpenDogError::DaemonUnavailable) }
+            if self.succeed {
+                Ok(vec![])
+            } else {
+                Err(OpenDogError::DaemonUnavailable)
+            }
         }
         fn delete_project(&self, _id: &str) -> Result<bool> {
             self.called.set(true);
-            if self.succeed { Ok(true) } else { Err(OpenDogError::DaemonUnavailable) }
+            if self.succeed {
+                Ok(true)
+            } else {
+                Err(OpenDogError::DaemonUnavailable)
+            }
         }
     }
 
@@ -418,8 +426,13 @@ mod tests {
 
     #[test]
     fn daemon_success_skips_local_fallback() {
-        let daemon = StubDaemon { succeed: true, called: Cell::new(false) };
-        let local = StubLocal { called: Cell::new(false) };
+        let daemon = StubDaemon {
+            succeed: true,
+            called: Cell::new(false),
+        };
+        let local = StubLocal {
+            called: Cell::new(false),
+        };
         let lifecycle = FallbackLifecycle::new(daemon, local);
 
         let result = lifecycle.create_project("p1", "/tmp/p1");
@@ -430,8 +443,13 @@ mod tests {
 
     #[test]
     fn daemon_unavailable_cascades_to_local() {
-        let daemon = StubDaemon { succeed: false, called: Cell::new(false) };
-        let local = StubLocal { called: Cell::new(false) };
+        let daemon = StubDaemon {
+            succeed: false,
+            called: Cell::new(false),
+        };
+        let local = StubLocal {
+            called: Cell::new(false),
+        };
         let lifecycle = FallbackLifecycle::new(daemon, local);
 
         let result = lifecycle.list_projects();
@@ -447,16 +465,24 @@ mod tests {
             fn create_project(&self, _id: &str, _path: &str) -> Result<ProjectInfo> {
                 Err(OpenDogError::ProjectNotFound("nope".into()))
             }
-            fn list_projects(&self) -> Result<Vec<ProjectInfo>> { Ok(vec![]) }
-            fn delete_project(&self, _id: &str) -> Result<bool> { Ok(true) }
+            fn list_projects(&self) -> Result<Vec<ProjectInfo>> {
+                Ok(vec![])
+            }
+            fn delete_project(&self, _id: &str) -> Result<bool> {
+                Ok(true)
+            }
         }
         struct NeverLocal;
         impl ProjectLifecycle for NeverLocal {
             fn create_project(&self, _id: &str, _path: &str) -> Result<ProjectInfo> {
                 panic!("local should not be called for non-DaemonUnavailable errors");
             }
-            fn list_projects(&self) -> Result<Vec<ProjectInfo>> { Ok(vec![]) }
-            fn delete_project(&self, _id: &str) -> Result<bool> { Ok(true) }
+            fn list_projects(&self) -> Result<Vec<ProjectInfo>> {
+                Ok(vec![])
+            }
+            fn delete_project(&self, _id: &str) -> Result<bool> {
+                Ok(true)
+            }
         }
 
         let lifecycle = FallbackLifecycle::new(ErrorDaemon, NeverLocal);
@@ -466,8 +492,13 @@ mod tests {
 
     #[test]
     fn delete_project_cascades_on_daemon_unavailable() {
-        let daemon = StubDaemon { succeed: false, called: Cell::new(false) };
-        let local = StubLocal { called: Cell::new(false) };
+        let daemon = StubDaemon {
+            succeed: false,
+            called: Cell::new(false),
+        };
+        let local = StubLocal {
+            called: Cell::new(false),
+        };
         let lifecycle = FallbackLifecycle::new(daemon, local);
 
         let result = lifecycle.delete_project("p1");

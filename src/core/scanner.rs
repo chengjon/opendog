@@ -168,7 +168,9 @@ pub fn default_process_whitelist() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{mark_fd_seen, resolve_snapshot_relative_file_path, ProcScanner, default_process_whitelist};
+    use super::{
+        default_process_whitelist, mark_fd_seen, resolve_snapshot_relative_file_path, ProcScanner,
+    };
     use std::collections::HashSet;
     use std::path::Path;
 

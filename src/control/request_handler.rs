@@ -189,39 +189,45 @@ impl MonitorController {
             ControlRequest::TakeSnapshot { id } => respond(self.take_snapshot(&id), |result| {
                 ControlResponse::Snapshot { id, result }
             }),
-            ControlRequest::CreateGovernanceLane { id, input } => respond(
-                self.create_governance_lane(&id, input),
-                |lane| ControlResponse::GovernanceLaneCreated { id, lane },
-            ),
-            ControlRequest::UpsertGovernanceNode { id, input } => respond(
-                self.upsert_governance_node(&id, input),
-                |result| ControlResponse::GovernanceNodeUpserted { id, result },
-            ),
-            ControlRequest::GetGovernanceState { id, input } => respond(
-                self.get_governance_state(&id, input),
-                |state| ControlResponse::GovernanceState { id, state },
-            ),
+            ControlRequest::CreateGovernanceLane { id, input } => {
+                respond(self.create_governance_lane(&id, input), |lane| {
+                    ControlResponse::GovernanceLaneCreated { id, lane }
+                })
+            }
+            ControlRequest::UpsertGovernanceNode { id, input } => {
+                respond(self.upsert_governance_node(&id, input), |result| {
+                    ControlResponse::GovernanceNodeUpserted { id, result }
+                })
+            }
+            ControlRequest::GetGovernanceState { id, input } => {
+                respond(self.get_governance_state(&id, input), |state| {
+                    ControlResponse::GovernanceState { id, state }
+                })
+            }
             ControlRequest::CloseGovernanceLane { id, input } => {
                 let lane_id = input.lane_id.clone();
                 let action = input.action.clone();
-                respond(self.close_governance_lane(&id, input), move |(status, nodes_affected)| {
-                    ControlResponse::GovernanceLaneClosed {
+                respond(
+                    self.close_governance_lane(&id, input),
+                    move |(status, nodes_affected)| ControlResponse::GovernanceLaneClosed {
                         id,
                         lane_id,
                         action_taken: action,
                         status,
                         nodes_affected,
-                    }
+                    },
+                )
+            }
+            ControlRequest::ScanOrphans { id, input } => {
+                respond(self.scan_orphans(&id, input), |result| {
+                    ControlResponse::OrphansScanned { id, result }
                 })
             }
-            ControlRequest::ScanOrphans { id, input } => respond(
-                self.scan_orphans(&id, input),
-                |result| ControlResponse::OrphansScanned { id, result },
-            ),
-            ControlRequest::VerifyDeletionPlan { id, input } => respond(
-                self.verify_deletion_plan(&id, input),
-                |result| ControlResponse::DeletionPlanVerified { id, result },
-            ),
+            ControlRequest::VerifyDeletionPlan { id, input } => {
+                respond(self.verify_deletion_plan(&id, input), |result| {
+                    ControlResponse::DeletionPlanVerified { id, result }
+                })
+            }
         }
     }
 }
@@ -233,7 +239,7 @@ mod tests {
     #[test]
     fn respond_ok_maps_to_custom_response() {
         let result: crate::error::Result<i32> = Ok(42);
-        let response = respond(result, |value| ControlResponse::Pong);
+        let response = respond(result, |_| ControlResponse::Pong);
         // The ok closure is called, producing the mapped response
         assert!(matches!(response, ControlResponse::Pong));
     }
@@ -255,15 +261,16 @@ mod tests {
     #[test]
     fn respond_ok_with_complex_value() {
         let result: crate::error::Result<String> = Ok("hello".to_string());
-        let response = respond(result, |val| ControlResponse::Error {
-            message: val,
-        });
+        let response = respond(result, |val| ControlResponse::Error { message: val });
         // The ok closure receives the value and maps it
         match response {
             ControlResponse::Error { message } => {
                 assert_eq!(message, "hello");
             }
-            other => panic!("expected Error variant (used as test wrapper), got {:?}", other),
+            other => panic!(
+                "expected Error variant (used as test wrapper), got {:?}",
+                other
+            ),
         }
     }
 }

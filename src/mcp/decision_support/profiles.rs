@@ -171,9 +171,17 @@ mod tests {
             "generate_activity_then_stats",
         ] {
             let p = decision_action_profile(action, "standard");
-            assert_eq!(p["action_class"], "evidence_collection", "failed for {}", action);
+            assert_eq!(
+                p["action_class"], "evidence_collection",
+                "failed for {}",
+                action
+            );
             assert_eq!(p["phase"], "observe", "failed for {}", action);
-            assert_eq!(p["mutability_scope"], "non_code_state_change", "failed for {}", action);
+            assert_eq!(
+                p["mutability_scope"], "non_code_state_change",
+                "failed for {}",
+                action
+            );
             assert_eq!(p["verification_required"], false, "failed for {}", action);
         }
     }
@@ -244,7 +252,13 @@ mod tests {
     #[test]
     fn risk_profile_high_risk_actions() {
         for action in &["review_failing_verification", "stabilize_repository_state"] {
-            let r = decision_risk_profile(action, &minimal_overview(), "available", Some(true), Some(true));
+            let r = decision_risk_profile(
+                action,
+                &minimal_overview(),
+                "available",
+                Some(true),
+                Some(true),
+            );
             assert_eq!(r["risk_tier"], "high", "expected high tier for {}", action);
         }
     }
@@ -328,7 +342,8 @@ mod tests {
     #[test]
     fn risk_profile_inspect_hot_medium_when_refactor_gate_blocked() {
         let mut overview = minimal_overview();
-        overview["verification_evidence"]["gate_assessment"]["refactor"]["level"] = json!("blocked");
+        overview["verification_evidence"]["gate_assessment"]["refactor"]["level"] =
+            json!("blocked");
         let r = decision_risk_profile(
             "inspect_hot_files",
             &overview,
@@ -368,7 +383,11 @@ mod tests {
     fn risk_profile_manual_review_required_for_cleanup_and_refactor() {
         for action in &["review_unused_files", "inspect_hot_files"] {
             let r = decision_risk_profile(action, &minimal_overview(), "available", None, None);
-            assert_eq!(r["manual_review_required"], true, "expected manual review for {}", action);
+            assert_eq!(
+                r["manual_review_required"], true,
+                "expected manual review for {}",
+                action
+            );
         }
     }
 
@@ -376,7 +395,11 @@ mod tests {
     fn risk_profile_no_manual_review_for_other_actions() {
         for action in &["review_failing_verification", "start_monitor", "unknown"] {
             let r = decision_risk_profile(action, &minimal_overview(), "available", None, None);
-            assert_eq!(r["manual_review_required"], false, "expected no manual review for {}", action);
+            assert_eq!(
+                r["manual_review_required"], false,
+                "expected no manual review for {}",
+                action
+            );
         }
     }
 
@@ -430,7 +453,8 @@ mod tests {
     fn risk_profile_repo_risk_findings_propagated() {
         let mut overview = minimal_overview();
         overview["repo_status_risk"]["highest_priority_finding"] = json!("uncommitted changes");
-        overview["repo_status_risk"]["risk_findings"] = json!(["uncommitted changes", "dirty index"]);
+        overview["repo_status_risk"]["risk_findings"] =
+            json!(["uncommitted changes", "dirty index"]);
         overview["repo_status_risk"]["finding_counts"] = json!({"high": 1, "medium": 1});
         let r = decision_risk_profile(
             "stabilize_repository_state",

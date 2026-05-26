@@ -126,7 +126,6 @@ pub(crate) fn delete_project_payload(id: &str, deleted: bool) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
     use std::path::PathBuf;
 
     fn make_project_info(id: &str) -> ProjectInfo {
@@ -216,10 +215,7 @@ mod tests {
 
     #[test]
     fn list_projects_multiple() {
-        let projects = vec![
-            make_project_info("p1"),
-            make_project_info("p2"),
-        ];
+        let projects = vec![make_project_info("p1"), make_project_info("p2")];
         let result = list_projects_payload(&projects);
         assert_eq!(result["count"], 2);
         let list = result["projects"].as_array().unwrap();

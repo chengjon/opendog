@@ -6,9 +6,7 @@ mod snapshots;
 mod stats;
 mod verification;
 
-pub use self::data_risk::{
-    get_data_risk_cache, upsert_data_risk_cache, DataRiskCache,
-};
+pub use self::data_risk::{get_data_risk_cache, upsert_data_risk_cache, DataRiskCache};
 pub use self::governance::{
     count_active_nodes_for_lane, count_all_active_lanes, count_all_active_nodes,
     count_nodes_for_lane, delete_governance_lane, delete_governance_nodes_by_lane,
@@ -26,9 +24,9 @@ pub use self::retention::{
     delete_verification_runs_before, list_snapshot_run_ids_to_prune,
 };
 pub use self::snapshots::{
-    count_snapshot, get_snapshot_history_entries,
-    get_snapshot_paths, get_snapshot_run, insert_snapshot_batch, insert_snapshot_history,
-    list_snapshot_runs, HistoricalSnapshotEntry, SnapshotEntry, SnapshotRunRecord,
+    count_snapshot, get_snapshot_history_entries, get_snapshot_paths, get_snapshot_run,
+    insert_snapshot_batch, insert_snapshot_history, list_snapshot_runs, HistoricalSnapshotEntry,
+    SnapshotEntry, SnapshotRunRecord,
 };
 pub use self::stats::{
     count_accessed, count_unused, get_all_stats, get_core_files, get_file_detail,

@@ -450,10 +450,7 @@ mod tests {
         }];
         let anomalies = detect_lockfile_anomalies(&entries);
         assert_eq!(anomalies.len(), 1);
-        assert_eq!(
-            anomalies[0]["lockfile"].as_str().unwrap(),
-            "pnpm-lock.yaml"
-        );
+        assert_eq!(anomalies[0]["lockfile"].as_str().unwrap(), "pnpm-lock.yaml");
     }
 
     #[test]
@@ -485,10 +482,7 @@ mod tests {
             anomalies[0]["kind"].as_str().unwrap(),
             "manifest_without_lockfile_change"
         );
-        assert_eq!(
-            anomalies[0]["manifest"].as_str().unwrap(),
-            "pyproject.toml"
-        );
+        assert_eq!(anomalies[0]["manifest"].as_str().unwrap(), "pyproject.toml");
     }
 
     #[test]
@@ -523,11 +517,31 @@ mod tests {
     #[test]
     fn top_changed_dirs_multiple_directories() {
         let entries = vec![
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "src/a.rs".to_string() },
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "src/b.rs".to_string() },
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "src/c.rs".to_string() },
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "docs/readme.md".to_string() },
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "root_file.txt".to_string() },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "src/a.rs".to_string(),
+            },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "src/b.rs".to_string(),
+            },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "src/c.rs".to_string(),
+            },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "docs/readme.md".to_string(),
+            },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "root_file.txt".to_string(),
+            },
         ];
         let top = top_changed_directories(&entries);
         assert_eq!(top.len(), 3);
@@ -575,8 +589,16 @@ mod tests {
     #[test]
     fn top_changed_dirs_sorting_tiebreak_alphabetical() {
         let entries = vec![
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "beta/f1.rs".to_string() },
-            GitStatusEntry { staged: ' ', unstaged: 'M', path: "alpha/f2.rs".to_string() },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "beta/f1.rs".to_string(),
+            },
+            GitStatusEntry {
+                staged: ' ',
+                unstaged: 'M',
+                path: "alpha/f2.rs".to_string(),
+            },
         ];
         let top = top_changed_directories(&entries);
         // Both have count 1, so sorted alphabetically

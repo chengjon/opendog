@@ -21,6 +21,8 @@ pub fn get_time_window_report_at(
     limit: usize,
 ) -> Result<TimeWindowReport> {
     let (start_ts, end_ts) = window_bounds(window, end_ts);
+    let output_limit = limit.max(1);
+    let query_limit = output_limit + 1;
     let summary = TimeWindowSummary {
         total_sightings: count_rows_between(
             db,
@@ -55,7 +57,8 @@ pub fn get_time_window_report_at(
     };
 
     let mut files: HashMap<String, TimeWindowFile> = HashMap::new();
-    for (file_path, access_count, last_seen_at) in access_counts(db, start_ts, end_ts, limit)? {
+    for (file_path, access_count, last_seen_at) in access_counts(db, start_ts, end_ts, query_limit)?
+    {
         files.insert(
             file_path.clone(),
             TimeWindowFile {
@@ -69,7 +72,7 @@ pub fn get_time_window_report_at(
     }
 
     for (file_path, modification_count, last_modified_at) in
-        modification_counts(db, start_ts, end_ts, limit)?
+        modification_counts(db, start_ts, end_ts, query_limit)?
     {
         let entry = files
             .entry(file_path.clone())
@@ -92,8 +95,8 @@ pub fn get_time_window_report_at(
             .then_with(|| right.modification_count.cmp(&left.modification_count))
             .then_with(|| left.file_path.cmp(&right.file_path))
     });
-    let truncated = files.len() > limit;
-    files.truncate(limit.max(1));
+    let truncated = files.len() > output_limit;
+    files.truncate(output_limit);
 
     Ok(TimeWindowReport {
         window: window.as_str().to_string(),
@@ -109,7 +112,12 @@ fn count_rows_between(db: &Database, sql: &str, start_ts: i64, end_ts: i64) -> R
     db.query_row(sql, rusqlite::params![start_ts, end_ts], |row| row.get(0))
 }
 
-fn access_counts(db: &Database, start_ts: i64, end_ts: i64, limit: usize) -> Result<Vec<(String, i64, String)>> {
+fn access_counts(
+    db: &Database,
+    start_ts: i64,
+    end_ts: i64,
+    limit: usize,
+) -> Result<Vec<(String, i64, String)>> {
     db.prepare_and_query(
         "SELECT file_path, COUNT(*) AS access_count, MAX(CAST(seen_at AS INTEGER)) AS last_seen_at
          FROM file_sightings
