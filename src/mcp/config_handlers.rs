@@ -50,6 +50,8 @@ pub(super) fn handle_get_build_info(_server: &OpenDogServer) -> Json<Value> {
         .map(|p| p.display().to_string())
         .unwrap_or_else(|_| "unknown".to_string());
     let needs_rebuild = build_info_needs_rebuild();
+    let daemon_running = DaemonClient::new().ping().is_ok();
+    let opendog_home = crate::config::data_dir().display().to_string();
     Json(build_info_payload(
         MCP_BUILD_INFO_V1,
         OPENDOG_VERSION,
@@ -57,5 +59,7 @@ pub(super) fn handle_get_build_info(_server: &OpenDogServer) -> Json<Value> {
         OPENDOG_BUILD_TIME,
         &binary_path,
         needs_rebuild,
+        daemon_running,
+        &opendog_home,
     ))
 }
