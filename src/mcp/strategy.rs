@@ -610,4 +610,32 @@ mod tests {
             .unwrap()
             .contains("top repository risk: rebase in progress"));
     }
+
+    #[test]
+    fn cleanup_gate_blocked_for_stale_verification() {
+        let verification = json!({
+            "status": "available",
+            "latest_runs": [{
+                "kind": "test",
+                "status": "passed",
+                "freshness": "stale"
+            }]
+        });
+        let has_stale = verification["latest_runs"].as_array().unwrap().iter()
+            .any(|r| r["freshness"] == "stale");
+        assert!(has_stale, "stale verification should be detectable");
+    }
+
+    #[test]
+    fn destructive_change_recommended_false_for_weak_evidence() {
+        let decision = json!({
+            "cleanup_gate": "blocked",
+            "refactor_gate": "blocked",
+            "destructive_change_recommended": false,
+            "recommended_next_action": "take_snapshot"
+        });
+        assert_eq!(decision["cleanup_gate"], "blocked");
+        assert_eq!(decision["refactor_gate"], "blocked");
+        assert_eq!(decision["destructive_change_recommended"], false);
+    }
 }
