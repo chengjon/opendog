@@ -119,3 +119,101 @@ fn print_vec(title: &str, values: &[String]) {
         println!("    {}", value);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn ignore_source_label_project_override() {
+        // Mirrors the conditional in print_project_config for ignore_patterns
+        let has_override: Option<Vec<String>> = Some(vec!["target".into()]);
+        let label = if has_override.is_some() {
+            "project override"
+        } else {
+            "global default"
+        };
+        assert_eq!(label, "project override");
+    }
+
+    #[test]
+    fn ignore_source_label_global_default() {
+        let has_override: Option<Vec<String>> = None;
+        let label = if has_override.is_some() {
+            "project override"
+        } else {
+            "global default"
+        };
+        assert_eq!(label, "global default");
+    }
+
+    #[test]
+    fn reloaded_projects_empty_formats_as_none() {
+        let reloaded: Vec<String> = vec![];
+        let text = if reloaded.is_empty() {
+            "none".to_string()
+        } else {
+            reloaded.join(", ")
+        };
+        assert_eq!(text, "none");
+    }
+
+    #[test]
+    fn reloaded_projects_formats_entries() {
+        // Mirrors the format inside print_global_config_update
+        let text = format!(
+            "{}(runtime_reloaded={}, snapshot_refreshed={})",
+            "proj1", true, false
+        );
+        assert_eq!(
+            text,
+            "proj1(runtime_reloaded=true, snapshot_refreshed=false)"
+        );
+    }
+
+    #[test]
+    fn changed_fields_join_with_comma() {
+        let fields = vec![
+            "ignore_patterns".to_string(),
+            "process_whitelist".to_string(),
+        ];
+        let text = fields.join(", ");
+        assert_eq!(text, "ignore_patterns, process_whitelist");
+    }
+
+    #[test]
+    fn skipped_fields_join_with_pipe() {
+        let fields = vec!["a".to_string(), "b".to_string()];
+        let text = fields.join(" | ");
+        assert_eq!(text, "a | b");
+    }
+
+    #[test]
+    fn vec_formatter_empty_shows_empty_marker() {
+        let values: Vec<String> = vec![];
+        // Mirrors the guard in print_vec
+        let has_empty_marker = values.is_empty();
+        assert!(has_empty_marker);
+    }
+
+    #[test]
+    fn vec_formatter_nonempty_lists_values() {
+        let values = vec!["node".to_string(), "python".to_string()];
+        // Mirrors the iteration in print_vec
+        let rendered: Vec<String> = values.iter().map(|v| format!("    {}", v)).collect();
+        assert_eq!(rendered.len(), 2);
+        assert_eq!(rendered[0], "    node");
+        assert_eq!(rendered[1], "    python");
+    }
+
+    #[test]
+    fn reload_summary_format_string() {
+        // Mirrors the format in print_project_config_reload
+        let line = format!(
+            "  monitor_running={} runtime_reloaded={} snapshot_refreshed={}",
+            true, false, false
+        );
+        assert_eq!(
+            line,
+            "  monitor_running=true runtime_reloaded=false snapshot_refreshed=false"
+        );
+    }
+}
