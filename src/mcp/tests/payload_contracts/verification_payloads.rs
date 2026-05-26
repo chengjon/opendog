@@ -68,6 +68,8 @@ fn run_verification_payload_has_versioned_contract() {
             },
             stdout_tail: "done".to_string(),
             stderr_tail: String::new(),
+            pipeline_operators_detected: false,
+            suspicious_pass_signals: vec![],
         },
     );
 

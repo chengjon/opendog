@@ -28,6 +28,8 @@ pub struct ExecutedVerificationResult {
     pub run: VerificationRun,
     pub stdout_tail: String,
     pub stderr_tail: String,
+    pub pipeline_operators_detected: bool,
+    pub suspicious_pass_signals: Vec<String>,
 }
 
 fn now_timestamp() -> String {
@@ -79,6 +81,30 @@ fn summarize_execution(stdout_tail: &str, stderr_tail: &str, success: bool) -> O
         (true, None) => Some("Verification command succeeded.".to_string()),
         (false, None) => Some("Verification command failed.".to_string()),
     }
+}
+
+fn command_contains_pipeline_operators(command: &str) -> bool {
+    let patterns = [" | ", "&& ", "|| ", "2>/dev/null", "> /dev/null"];
+    patterns.iter().any(|p| command.contains(p))
+}
+
+fn detect_suspicious_pass_signals(stdout_tail: &str, stderr_tail: &str) -> Vec<String> {
+    let error_patterns = [
+        ("error TS", "TypeScript error in passed output"),
+        ("FAILED", "FAILED keyword in passed output"),
+        ("Traceback", "Python traceback in passed output"),
+        ("Error:", "Error: keyword in passed output"),
+        ("panic!", "Rust panic in passed output"),
+    ];
+    let combined = format!("{}\n{}", stdout_tail, stderr_tail);
+    let combined_lower = combined.to_ascii_lowercase();
+    let mut signals = Vec::new();
+    for (pattern, label) in &error_patterns {
+        if combined_lower.contains(&pattern.to_ascii_lowercase()) {
+            signals.push(label.to_string());
+        }
+    }
+    signals
 }
 
 pub fn record_verification_result(
@@ -142,6 +168,12 @@ pub fn execute_verification_command(
     let success = output.status.success();
     let stdout_tail = truncate_tail(&output.stdout, 800);
     let stderr_tail = truncate_tail(&output.stderr, 800);
+    let pipeline_operators_detected = command_contains_pipeline_operators(&input.command);
+    let suspicious_pass_signals = if success {
+        detect_suspicious_pass_signals(&stdout_tail, &stderr_tail)
+    } else {
+        Vec::new()
+    };
     let run = record_verification_result_at(
         db,
         RecordVerificationInput {
@@ -164,6 +196,8 @@ pub fn execute_verification_command(
         run,
         stdout_tail,
         stderr_tail,
+        pipeline_operators_detected,
+        suspicious_pass_signals,
     })
 }
 
@@ -391,5 +425,63 @@ mod tests {
     fn validate_kind_uppercase_is_rejected() {
         let err = validate_kind("TEST").unwrap_err();
         assert!(err.to_string().contains("TEST"));
+    }
+
+    // --- pipeline detection tests ---
+
+    #[test]
+    fn detect_pipeline_operators_finds_pipe() {
+        assert!(command_contains_pipeline_operators("npx vue-tsc --noEmit 2>&1 | tail -30"));
+    }
+
+    #[test]
+    fn detect_pipeline_operators_finds_double_ampersand() {
+        assert!(command_contains_pipeline_operators("cargo test && echo ok"));
+    }
+
+    #[test]
+    fn detect_pipeline_operators_finds_double_pipe() {
+        assert!(command_contains_pipeline_operators("cargo test || true"));
+    }
+
+    #[test]
+    fn detect_pipeline_operators_finds_redirect_to_dev_null() {
+        assert!(command_contains_pipeline_operators("cargo test 2>/dev/null"));
+    }
+
+    #[test]
+    fn detect_pipeline_operators_clean_command_returns_false() {
+        assert!(!command_contains_pipeline_operators("cargo test"));
+        assert!(!command_contains_pipeline_operators("npx vue-tsc --noEmit"));
+        assert!(!command_contains_pipeline_operators("pytest --co -q"));
+    }
+
+    // --- suspicious pass signal tests ---
+
+    #[test]
+    fn detect_suspicious_pass_signals_error_ts() {
+        let signals = detect_suspicious_pass_signals(
+            "src/App.vue(10,5): error TS2304: Cannot find name 'NonBlankString'",
+            "",
+        );
+        assert!(signals.iter().any(|s| s.contains("TypeScript error")));
+    }
+
+    #[test]
+    fn detect_suspicious_pass_signals_traceback() {
+        let signals = detect_suspicious_pass_signals("", "Traceback (most recent call last):");
+        assert!(signals.iter().any(|s| s.contains("traceback")));
+    }
+
+    #[test]
+    fn detect_suspicious_pass_signals_failed() {
+        let signals = detect_suspicious_pass_signals("3 tests FAILED out of 10", "");
+        assert!(signals.iter().any(|s| s.contains("FAILED keyword")));
+    }
+
+    #[test]
+    fn detect_suspicious_pass_signals_clean_output() {
+        let signals = detect_suspicious_pass_signals("all tests passed", "");
+        assert!(signals.is_empty());
     }
 }
