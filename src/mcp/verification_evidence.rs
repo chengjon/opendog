@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use crate::contracts::{
     MCP_RECORD_VERIFICATION_V1, MCP_RUN_VERIFICATION_V1, MCP_VERIFICATION_STATUS_V1,
 };
+use crate::core::verification::command_contains_pipeline_operators;
 use crate::core::verification::ExecutedVerificationResult;
 use crate::storage::queries::VerificationRun;
 
@@ -59,22 +60,34 @@ pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
     } else {
         let failing_runs: Vec<&VerificationRun> =
             runs.iter().filter(|r| r.status != "passed").collect();
+        let pipeline_caution_runs: Vec<&VerificationRun> = runs
+            .iter()
+            .filter(|r| r.status == "passed" && command_contains_pipeline_operators(&r.command))
+            .collect();
         json!({
             "status": "available",
-            "summary": if failing_runs.is_empty() {
+            "summary": if failing_runs.is_empty() && pipeline_caution_runs.is_empty() {
                 "Recorded verification results exist and the latest known runs are passing."
+            } else if !pipeline_caution_runs.is_empty() {
+                "Recorded verification results exist but some passed runs used pipeline commands whose exit codes may be masked."
             } else {
                 "Recorded verification results include failing or uncertain runs."
             },
-            "latest_runs": runs.iter().map(|run| json!({
-                "kind": run.kind,
-                "status": run.status,
-                "command": run.command,
-                "exit_code": run.exit_code,
-                "summary": run.summary,
-                "source": run.source,
-                "finished_at": run.finished_at,
-            })).collect::<Vec<_>>(),
+            "latest_runs": runs.iter().map(|run| {
+                let pipeline = command_contains_pipeline_operators(&run.command);
+                let masked = pipeline && run.status == "passed";
+                json!({
+                    "kind": run.kind,
+                    "status": run.status,
+                    "command": run.command,
+                    "exit_code": run.exit_code,
+                    "summary": run.summary,
+                    "source": run.source,
+                    "finished_at": run.finished_at,
+                    "exit_code_masked_possible": masked,
+                    "trust_level": if masked { "caution" } else { "trusted" },
+                })
+            }).collect::<Vec<_>>(),
             "latest_finished_at": latest_finished_at,
             "freshness": freshness,
             "failing_runs": failing_runs.iter().map(|run| json!({
@@ -438,6 +451,13 @@ fn failing_kinds(runs: &[VerificationRun]) -> Vec<&str> {
         .collect()
 }
 
+fn pipeline_caution_kinds(runs: &[VerificationRun]) -> Vec<&str> {
+    runs.iter()
+        .filter(|run| run.status == "passed" && command_contains_pipeline_operators(&run.command))
+        .map(|run| run.kind.as_str())
+        .collect()
+}
+
 fn blocker_reasons(
     target: &str,
     required_missing: &[&str],
@@ -557,8 +577,9 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
     let (required_missing, required_stale) = kind_state_sets(runs, required_kinds, now_secs);
     let (advisory_missing, advisory_stale) = kind_state_sets(runs, advisory_kinds, now_secs);
     let failing = failing_kinds(runs);
+    let pipeline_caution_kinds = pipeline_caution_kinds(runs);
     let blockers = blocker_reasons(target, &required_missing, &required_stale, &failing);
-    let reasons = gate_reasons(
+    let mut reasons = gate_reasons(
         target,
         &required_missing,
         &required_stale,
@@ -566,9 +587,18 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
         &advisory_stale,
         &failing,
     );
+    if !pipeline_caution_kinds.is_empty() {
+        reasons.push(format!(
+            "Passed {} verification used pipeline commands whose exit codes may be masked. Consider rerunning without pipes.",
+            pipeline_caution_kinds.join(", ")
+        ));
+    }
     let level = if !blockers.is_empty() {
         "blocked"
-    } else if !advisory_missing.is_empty() || !advisory_stale.is_empty() {
+    } else if !advisory_missing.is_empty()
+        || !advisory_stale.is_empty()
+        || !pipeline_caution_kinds.is_empty()
+    {
         "caution"
     } else {
         "allow"
@@ -585,6 +615,20 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
         .copied()
         .collect::<Vec<_>>();
 
+    let mut next_steps = gate_next_steps(
+        target,
+        &required_missing,
+        &required_stale,
+        &advisory_missing,
+        &advisory_stale,
+        &failing,
+    );
+    if !pipeline_caution_kinds.is_empty() {
+        next_steps.push(
+            "Rerun pipeline commands without pipes for more reliable exit-code capture.".to_string(),
+        );
+    }
+
     json!({
         "allowed": blockers.is_empty(),
         "level": level,
@@ -593,16 +637,10 @@ fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Val
         "missing_kinds": missing_kinds,
         "failing_kinds": failing,
         "stale_kinds": stale_kinds,
+        "pipeline_caution_kinds": pipeline_caution_kinds,
         "freshness_policy": freshness_policy(),
         "reasons": reasons,
-        "next_steps": gate_next_steps(
-            target,
-            &required_missing,
-            &required_stale,
-            &advisory_missing,
-            &advisory_stale,
-            &failing
-        ),
+        "next_steps": next_steps,
     })
 }
 
@@ -913,6 +951,66 @@ mod tests {
         let runs: Vec<VerificationRun> = vec![];
         let result = gate_assessment(&runs, "cleanup", NOW);
         assert!(result["freshness_policy"].is_object());
+    }
+
+    // ---- pipeline caution ----
+
+    fn make_pipeline_run(kind: &str, status: &str, finished_at: &str) -> VerificationRun {
+        VerificationRun {
+            id: 1,
+            kind: kind.to_string(),
+            status: status.to_string(),
+            command: "npx vue-tsc --noEmit 2>&1 | tail -30".to_string(),
+            exit_code: Some(0),
+            summary: Some(format!("{} summary", kind)),
+            source: "test".to_string(),
+            started_at: Some(finished_at.to_string()),
+            finished_at: finished_at.to_string(),
+        }
+    }
+
+    #[test]
+    fn gate_assessment_caution_when_pipeline_passed() {
+        let runs = vec![make_pipeline_run("test", "passed", &NOW.to_string())];
+        let result = gate_assessment(&runs, "cleanup", NOW);
+        assert_eq!(result["level"], "caution");
+        assert_eq!(result["pipeline_caution_kinds"], json!(["test"]));
+        assert!(result["reasons"].as_array().unwrap().iter().any(|r| r.as_str().unwrap().contains("pipeline")));
+        assert!(result["next_steps"].as_array().unwrap().iter().any(|s| s.as_str().unwrap().contains("without pipes")));
+    }
+
+    #[test]
+    fn gate_assessment_no_pipeline_caution_for_clean_commands() {
+        let runs = vec![make_run("test", "passed", &NOW.to_string())];
+        let result = gate_assessment(&runs, "cleanup", NOW);
+        assert!(result["pipeline_caution_kinds"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn gate_assessment_pipeline_does_not_block() {
+        let runs = vec![make_pipeline_run("test", "passed", &NOW.to_string())];
+        let result = gate_assessment(&runs, "cleanup", NOW);
+        assert_eq!(result["allowed"], true, "pipeline caution should not block");
+    }
+
+    #[test]
+    fn verification_status_layer_includes_trust_level() {
+        let ts = NOW.to_string();
+        let runs = vec![make_pipeline_run("test", "passed", &ts)];
+        let result = verification_status_layer(&runs);
+        let latest = result["latest_runs"].as_array().unwrap();
+        assert_eq!(latest[0]["trust_level"], "caution");
+        assert_eq!(latest[0]["exit_code_masked_possible"], true);
+    }
+
+    #[test]
+    fn verification_status_layer_trusted_for_clean_commands() {
+        let ts = NOW.to_string();
+        let runs = vec![make_run("test", "passed", &ts)];
+        let result = verification_status_layer(&runs);
+        let latest = result["latest_runs"].as_array().unwrap();
+        assert_eq!(latest[0]["trust_level"], "trusted");
+        assert_eq!(latest[0]["exit_code_masked_possible"], false);
     }
 
     // ---- gate_blockers ----

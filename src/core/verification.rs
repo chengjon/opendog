@@ -83,7 +83,7 @@ fn summarize_execution(stdout_tail: &str, stderr_tail: &str, success: bool) -> O
     }
 }
 
-fn command_contains_pipeline_operators(command: &str) -> bool {
+pub fn command_contains_pipeline_operators(command: &str) -> bool {
     let patterns = [" | ", "&& ", "|| ", "2>/dev/null", "> /dev/null"];
     patterns.iter().any(|p| command.contains(p))
 }
