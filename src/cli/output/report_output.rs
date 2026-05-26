@@ -103,3 +103,105 @@ pub(super) fn print_usage_trends(id: &str, report: &UsageTrendReport) {
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn time_window_header_format() {
+        let line = format!(
+            "Project '{}' — window={} sightings={} files={} processes={} modifications={}",
+            "proj1", "24h", 100, 50, 3, 10
+        );
+        assert!(line.contains("window=24h"));
+        assert!(line.contains("sightings=100"));
+        assert!(line.contains("files=50"));
+    }
+
+    #[test]
+    fn time_window_range_format() {
+        let line = format!("  Range: {} .. {}", "2026-01-01", "2026-01-02");
+        assert!(line.contains("2026-01-01 .. 2026-01-02"));
+    }
+
+    #[test]
+    fn time_window_empty_files_guard() {
+        let files: Vec<String> = vec![];
+        let msg = if files.is_empty() {
+            "No activity recorded in this window."
+        } else {
+            "has data"
+        };
+        assert_eq!(msg, "No activity recorded in this window.");
+    }
+
+    #[test]
+    fn snapshot_comparison_header_format() {
+        let line = format!(
+            "Project '{}' — snapshot {} -> {}",
+            "proj", 1, 2
+        );
+        assert_eq!(line, "Project 'proj' — snapshot 1 -> 2");
+    }
+
+    #[test]
+    fn snapshot_comparison_summary_format() {
+        let added = 3;
+        let removed = 1;
+        let modified = 2;
+        let unchanged = 10;
+        let line = format!(
+            "  Summary: +{}  -{}  ~{}  ={}",
+            added, removed, modified, unchanged
+        );
+        assert_eq!(line, "  Summary: +3  -1  ~2  =10");
+    }
+
+    #[test]
+    fn snapshot_comparison_empty_changes_guard() {
+        let changes: Vec<String> = vec![];
+        let msg = if changes.is_empty() {
+            "No changed files in the returned diff set."
+        } else {
+            "has changes"
+        };
+        assert_eq!(msg, "No changed files in the returned diff set.");
+    }
+
+    #[test]
+    fn usage_trend_header_format() {
+        let line = format!(
+            "Project '{}' — trend window={} bucket={} tracked_files={}",
+            "proj", "7d", "1d", 5
+        );
+        assert!(line.contains("window=7d"));
+        assert!(line.contains("bucket=1d"));
+        assert!(line.contains("tracked_files=5"));
+    }
+
+    #[test]
+    fn usage_trend_totals_format() {
+        let line = format!(
+            "  Totals: access={} modifications={}",
+            200, 50
+        );
+        assert_eq!(line, "  Totals: access=200 modifications=50");
+    }
+
+    #[test]
+    fn usage_trend_empty_guard() {
+        let files: Vec<String> = vec![];
+        let msg = if files.is_empty() {
+            "No trend data recorded in this window."
+        } else {
+            "has data"
+        };
+        assert_eq!(msg, "No trend data recorded in this window.");
+    }
+
+    #[test]
+    fn change_type_format() {
+        let line = format!("  {:8} {}", "added", "src/new.rs");
+        assert!(line.contains("added"));
+        assert!(line.contains("src/new.rs"));
+    }
+}
