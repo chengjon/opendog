@@ -30,7 +30,8 @@ pub fn migrate(conn: &Connection, kind: SchemaKind) -> Result<()> {
     let current_version = user_version(conn)?;
     if current_version > SCHEMA_VERSION {
         return Err(OpenDogError::SchemaMigration(format!(
-            "{} database schema version {} is newer than supported version {}",
+            "{} database schema version {} is newer than supported version {}. \
+             Restart the daemon and MCP session with the current binary, then retry.",
             kind.label(),
             current_version,
             SCHEMA_VERSION
@@ -170,6 +171,20 @@ mod tests {
         let err = migrate(&conn, SchemaKind::Project).expect_err("future schema rejected");
 
         assert!(err.to_string().contains("newer than supported"));
+    }
+
+    #[test]
+    fn newer_schema_version_error_includes_restart_advice() {
+        let conn = Connection::open_in_memory().expect("memory db opens");
+        set_user_version(&conn, SCHEMA_VERSION + 1).expect("future user_version set");
+
+        let err = migrate(&conn, SchemaKind::Project).expect_err("future schema rejected");
+        let message = err.to_string();
+        assert!(message.contains("newer than supported"), "should contain version mismatch: {message}");
+        assert!(
+            message.contains("Restart the daemon and MCP session"),
+            "should contain restart advice: {message}"
+        );
     }
 
     #[test]

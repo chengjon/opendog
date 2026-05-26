@@ -4,6 +4,7 @@ use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
     ProjectConfigView,
 };
+use crate::storage::schema::SCHEMA_VERSION;
 use crate::contracts::{versioned_payload, versioned_project_payload};
 use crate::core::export::PortableProjectExport;
 
@@ -27,6 +28,7 @@ pub(crate) fn build_info_payload(
 
     let mut fields: Vec<(&str, Value)> = vec![
         ("version", json!(version)),
+        ("schema_version", json!(SCHEMA_VERSION)),
         ("git_hash", json!(git_hash)),
         ("build_time", json!(build_time)),
         ("binary_path", json!(binary_path)),
@@ -396,5 +398,35 @@ mod tests {
         assert_eq!(result["row_count"], 50);
         assert_eq!(result["content"], "content-here");
         assert!(result["guidance"].is_object());
+    }
+
+    #[test]
+    fn build_info_payload_includes_schema_version() {
+        let payload = build_info_payload(
+            "1.0",
+            "0.1.0",
+            "abc123",
+            "2026-01-01",
+            "/usr/bin/opendog",
+            None,
+        );
+        assert_eq!(payload["schema_version"], 6);
+        assert_eq!(payload["version"], "0.1.0");
+    }
+
+    #[test]
+    fn build_info_payload_preserves_existing_fields() {
+        let payload = build_info_payload(
+            "1.0",
+            "0.1.0",
+            "abc123",
+            "2026-01-01",
+            "/usr/bin/opendog",
+            Some(true),
+        );
+        assert_eq!(payload["version"], "0.1.0");
+        assert_eq!(payload["git_hash"], "abc123");
+        assert_eq!(payload["needs_rebuild"], true);
+        assert!(payload["rebuild_hint"].is_string());
     }
 }
