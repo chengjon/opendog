@@ -66,7 +66,7 @@ OPENDOG 已经形成完整的本地产品闭环，包括：
 
 ### Guidance 系统
 
-OPENDOG 的 AI 决策辅助通过 `get_guidance` 和 `get_decision_brief` 两个 MCP 工具暴露。Guidance 系统内部由以下模块协作：
+OPENDOG 的 AI 决策辅助通过 `get_guidance` MCP 工具暴露（`detail = "summary"` 返回工作区态势，`detail = "decision"` 返回单项目决策包）。CLI 侧对应 `opendog agent-guidance` 和 `opendog decision-brief`。Guidance 系统内部由以下模块协作：
 
 - **workspace observation layer** — 汇总多项目的快照、活动、验证新鲜度，输出 analysis_state（empty / insufficient_activity / stale / ready）。
 - **execution strategy layer** — 将 project recommendation 排序后，生成 verification summary、observation summary、repo truth summary、stabilization summary、data risk focus summary 和 risk-strategy coupling，指导 AI 选择正确的工具和操作序列。
