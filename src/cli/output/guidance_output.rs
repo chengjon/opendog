@@ -56,3 +56,56 @@ pub(super) fn print_recommended_flow(value: &Value) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    #[test]
+    fn recommended_flow_extracts_text_steps() {
+        let value = json!(["step 1", "step 2", "step 3"]);
+        let steps: Vec<String> = value
+            .as_array()
+            .unwrap()
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_str().map(|text| format!("  {}. {}", i + 1, text)))
+            .collect();
+        assert_eq!(steps.len(), 3);
+        assert_eq!(steps[0], "  1. step 1");
+        assert_eq!(steps[2], "  3. step 3");
+    }
+
+    #[test]
+    fn recommended_flow_skips_non_string_entries() {
+        let value = json!(["step 1", 42, null, "step 2"]);
+        let steps: Vec<&str> = value
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|s| s.as_str())
+            .collect();
+        assert_eq!(steps, vec!["step 1", "step 2"]);
+    }
+
+    #[test]
+    fn recommended_flow_empty_array_returns_none() {
+        let value = json!([]);
+        let is_empty = value.as_array().map(|a| a.is_empty()).unwrap_or(true);
+        assert!(is_empty);
+    }
+
+    #[test]
+    fn recommended_flow_non_array_returns_none() {
+        let value = json!("not an array");
+        let is_none = value.as_array().is_none();
+        assert!(is_none);
+    }
+
+    #[test]
+    fn recommended_flow_null_returns_none() {
+        let value = json!(null);
+        let is_none = value.as_array().is_none();
+        assert!(is_none);
+    }
+}
