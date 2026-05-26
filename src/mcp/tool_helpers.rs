@@ -263,4 +263,66 @@ mod tests {
         let Json(value) = validation_error_json("v1", None, "err", "msg");
         assert!(value.get("remediation").is_none());
     }
+
+    // error_json_for remediation branch tests
+
+    #[test]
+    fn error_json_for_daemon_control_unavailable_includes_remediation() {
+        let err = OpenDogError::DaemonControlUnavailable;
+        let Json(value) = error_json_for("test.v1", None, &err);
+        assert_eq!(value["status"], "error");
+        assert_eq!(value["error_code"], "daemon_control_unavailable");
+        let socket = value["remediation"]["socket_path"].as_str().unwrap();
+        assert!(
+            socket.contains(".opendog"),
+            "socket_path should contain '.opendog', got: {socket}"
+        );
+        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        assert_eq!(actions.len(), 3);
+    }
+
+    #[test]
+    fn error_json_for_daemon_control_unavailable_with_project_id() {
+        let err = OpenDogError::DaemonControlUnavailable;
+        let Json(value) = error_json_for("test.v1", Some("proj-1"), &err);
+        assert_eq!(value["project_id"], "proj-1");
+        assert_eq!(value["error_code"], "daemon_control_unavailable");
+        assert!(value.get("remediation").is_some());
+        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        assert_eq!(actions.len(), 3);
+    }
+
+    #[test]
+    fn error_json_for_daemon_response_integrity_includes_remediation() {
+        let err = OpenDogError::DaemonResponseIntegrity("truncated".into());
+        let Json(value) = error_json_for("test.v1", None, &err);
+        assert_eq!(value["error_code"], "daemon_response_integrity_error");
+        let actions = value["remediation"]["suggested_actions"].as_array().unwrap();
+        assert_eq!(actions.len(), 3);
+        let has_retry = actions.iter().any(|a| a.as_str().unwrap().contains("Retry"));
+        assert!(has_retry, "suggested_actions should include an item containing 'Retry'");
+    }
+
+    #[test]
+    fn error_json_for_generic_error_has_no_remediation() {
+        let err = OpenDogError::ProjectNotFound("x".into());
+        let Json(value) = error_json_for("test.v1", None, &err);
+        assert_eq!(value["error_code"], "project_not_found");
+        assert!(
+            value.get("remediation").is_none(),
+            "generic errors should not include a remediation field"
+        );
+    }
+
+    #[test]
+    fn error_json_for_generic_error_with_project() {
+        let err = OpenDogError::ProjectNotFound("x".into());
+        let Json(value) = error_json_for("test.v1", Some("proj-2"), &err);
+        assert_eq!(value["project_id"], "proj-2");
+        assert_eq!(value["error_code"], "project_not_found");
+        assert!(
+            value.get("remediation").is_none(),
+            "generic errors should not include a remediation field even with project_id"
+        );
+    }
 }
