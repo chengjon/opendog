@@ -399,4 +399,40 @@ mod tests {
         assert_eq!(start, 100_000 - 24 * 60 * 60 + 1);
         assert_eq!(end, 100_000);
     }
+
+    #[test]
+    fn report_window_as_str_roundtrip() {
+        assert_eq!(ReportWindow::Hours24.as_str(), "24h");
+        assert_eq!(ReportWindow::Days7.as_str(), "7d");
+        assert_eq!(ReportWindow::Days30.as_str(), "30d");
+    }
+
+    #[test]
+    fn report_window_duration_secs_matches_window_name() {
+        assert_eq!(ReportWindow::Hours24.duration_secs(), 24 * 60 * 60);
+        assert_eq!(ReportWindow::Days7.duration_secs(), 7 * 24 * 60 * 60);
+        assert_eq!(ReportWindow::Days30.duration_secs(), 30 * 24 * 60 * 60);
+    }
+
+    #[test]
+    fn report_window_bucket_size_secs_returns_hourly_or_daily() {
+        assert_eq!(ReportWindow::Hours24.bucket_size_secs(), 60 * 60);
+        assert_eq!(ReportWindow::Days7.bucket_size_secs(), 24 * 60 * 60);
+        assert_eq!(ReportWindow::Days30.bucket_size_secs(), 24 * 60 * 60);
+    }
+
+    #[test]
+    fn report_window_bucket_size_label_returns_hour_or_day() {
+        assert_eq!(ReportWindow::Hours24.bucket_size_label(), "1h");
+        assert_eq!(ReportWindow::Days7.bucket_size_label(), "1d");
+        assert_eq!(ReportWindow::Days30.bucket_size_label(), "1d");
+    }
+
+    #[test]
+    fn report_window_parse_as_str_roundtrip() {
+        for input in &["24h", "7d", "30d"] {
+            let window = ReportWindow::parse(input).unwrap();
+            assert_eq!(window.as_str(), *input);
+        }
+    }
 }
