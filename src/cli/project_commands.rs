@@ -277,4 +277,57 @@ mod tests {
         let all = filter_entries_by_classification(&entries, FilePathClassificationFilter::All);
         assert_eq!(all.len(), 3);
     }
+
+    #[test]
+    fn parse_path_classification_filter_delegates_to_enum_parser() {
+        assert_eq!(
+            parse_path_classification_filter("source").unwrap(),
+            FilePathClassificationFilter::Source
+        );
+        assert_eq!(
+            parse_path_classification_filter("all").unwrap(),
+            FilePathClassificationFilter::All
+        );
+        assert_eq!(
+            parse_path_classification_filter("infrastructure").unwrap(),
+            FilePathClassificationFilter::Infrastructure
+        );
+    }
+
+    #[test]
+    fn parse_path_classification_filter_rejects_invalid_value() {
+        let err = parse_path_classification_filter("documents").unwrap_err();
+        assert!(err.to_string().contains("path_classification must be one of"));
+    }
+
+    #[test]
+    fn filter_entries_by_classification_empty_input_returns_empty() {
+        let entries: Vec<StatsEntry> = vec![];
+        let filtered =
+            filter_entries_by_classification(&entries, FilePathClassificationFilter::Source);
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn filter_entries_by_classification_infrastructure_filter() {
+        let entries = vec![
+            entry(".claude/settings.json"),
+            entry("src/main.rs"),
+        ];
+        let infra =
+            filter_entries_by_classification(&entries, FilePathClassificationFilter::Infrastructure);
+        assert_eq!(infra.len(), 1);
+        assert_eq!(infra[0].file_path, ".claude/settings.json");
+    }
+
+    #[test]
+    fn filter_entries_by_classification_no_matching_entries() {
+        let entries = vec![
+            entry("README.md"),
+            entry("LICENSE"),
+        ];
+        let source =
+            filter_entries_by_classification(&entries, FilePathClassificationFilter::Source);
+        assert!(source.is_empty());
+    }
 }
