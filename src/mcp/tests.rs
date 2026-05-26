@@ -43,7 +43,8 @@ use crate::contracts::{
     MCP_UPDATE_PROJECT_CONFIG_V1, MCP_VERIFICATION_STATUS_V1,
 };
 use crate::core::retention::{
-    CleanupCountBreakdown, CleanupMaintenanceStatus, ProjectDataCleanupResult, StorageMetrics,
+    CleanupCountBreakdown, CleanupMaintenanceStatus, EstimateMode, ProjectDataCleanupResult,
+    StorageMetrics,
 };
 use crate::core::stats::ProjectSummary;
 use crate::error::OpenDogError;

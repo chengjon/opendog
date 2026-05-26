@@ -386,6 +386,7 @@ fn cleanup_project_data_payload_has_versioned_contract() {
                 vacuumed: false,
             },
             notes: vec!["dry run".to_string()],
+            estimate_mode: EstimateMode::Full,
         },
     );
 

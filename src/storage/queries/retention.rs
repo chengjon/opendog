@@ -97,6 +97,12 @@ fn in_clause_sql(prefix: &str, ids: &[i64]) -> (String, Vec<i64>) {
     (prefix.replace("{}", &placeholders.join(", ")), ids.to_vec())
 }
 
+pub fn count_snapshot_runs(db: &Database) -> Result<i64> {
+    db.query_row("SELECT COUNT(*) FROM snapshot_runs", rusqlite::params![], |row| {
+        row.get(0)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +205,19 @@ mod tests {
         let (sql, ids) = in_clause_sql("SELECT * FROM t WHERE id IN ({})", &[10, 20, 30]);
         assert_eq!(sql, "SELECT * FROM t WHERE id IN (?1, ?2, ?3)");
         assert_eq!(ids, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn count_snapshot_runs_returns_total_count() {
+        let db = test_db();
+        assert_eq!(count_snapshot_runs(&db).unwrap(), 0);
+        for ts in ["100", "200", "300"] {
+            db.execute(
+                "INSERT INTO snapshot_runs (captured_at, file_count) VALUES (?1, 1)",
+                params![ts],
+            )
+            .unwrap();
+        }
+        assert_eq!(count_snapshot_runs(&db).unwrap(), 3);
     }
 }

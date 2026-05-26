@@ -21,9 +21,9 @@ pub use self::project_registry::{
 };
 pub use self::retention::{
     count_file_events_before, count_file_sightings_before, count_snapshot_history_for_runs,
-    count_verification_runs_before, delete_file_events_before, delete_file_sightings_before,
-    delete_snapshot_history_for_runs, delete_snapshot_runs_by_ids, delete_verification_runs_before,
-    list_snapshot_run_ids_to_prune,
+    count_snapshot_runs, count_verification_runs_before, delete_file_events_before,
+    delete_file_sightings_before, delete_snapshot_history_for_runs, delete_snapshot_runs_by_ids,
+    delete_verification_runs_before, list_snapshot_run_ids_to_prune,
 };
 pub use self::snapshots::{
     count_snapshot, get_snapshot_history_entries,

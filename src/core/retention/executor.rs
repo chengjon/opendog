@@ -4,8 +4,11 @@ use crate::storage::queries;
 
 use super::{
     collect_storage_metrics, now_secs, validate_request, CleanupCountBreakdown,
-    CleanupMaintenanceStatus, CleanupScope, ProjectDataCleanupRequest, ProjectDataCleanupResult,
+    CleanupMaintenanceStatus, CleanupScope, EstimateMode, ProjectDataCleanupRequest,
+    ProjectDataCleanupResult,
 };
+
+const SNAPSHOT_ESTIMATE_THRESHOLD: i64 = 100;
 
 pub fn cleanup_project_data(
     db: &Database,
@@ -30,6 +33,7 @@ pub fn cleanup_project_data_at(
     let mut deleted = CleanupCountBreakdown::default();
     let mut maintenance = CleanupMaintenanceStatus::default();
     let mut notes = Vec::new();
+    let mut estimate_mode = EstimateMode::Full;
 
     if matches!(request.scope, CleanupScope::Activity | CleanupScope::All) {
         if let Some(cutoff_ts) = cutoff_ts {
@@ -65,12 +69,25 @@ pub fn cleanup_project_data_at(
 
     if matches!(request.scope, CleanupScope::Snapshots | CleanupScope::All) {
         if let Some(keep_latest) = request.keep_snapshot_runs {
-            let run_ids = queries::list_snapshot_run_ids_to_prune(db, keep_latest)?;
-            deleted.snapshot_runs = run_ids.len() as i64;
-            deleted.snapshot_history = queries::count_snapshot_history_for_runs(db, &run_ids)?;
-            if !request.dry_run {
-                queries::delete_snapshot_history_for_runs(db, &run_ids)?;
-                queries::delete_snapshot_runs_by_ids(db, &run_ids)?;
+            let total_runs = queries::count_snapshot_runs(db)?;
+            let prunable_count = (total_runs - keep_latest as i64).max(0);
+
+            if request.dry_run && total_runs >= SNAPSHOT_ESTIMATE_THRESHOLD {
+                deleted.snapshot_runs = prunable_count;
+                deleted.snapshot_history = 0;
+                notes.push(format!(
+                    "estimate-only mode: {} snapshot_runs would be pruned; snapshot_history count skipped for performance (total_runs={}, threshold={})",
+                    prunable_count, total_runs, SNAPSHOT_ESTIMATE_THRESHOLD
+                ));
+                estimate_mode = EstimateMode::ScopeCountsOnly;
+            } else {
+                let run_ids = queries::list_snapshot_run_ids_to_prune(db, keep_latest)?;
+                deleted.snapshot_runs = run_ids.len() as i64;
+                deleted.snapshot_history = queries::count_snapshot_history_for_runs(db, &run_ids)?;
+                if !request.dry_run {
+                    queries::delete_snapshot_history_for_runs(db, &run_ids)?;
+                    queries::delete_snapshot_runs_by_ids(db, &run_ids)?;
+                }
             }
             notes.push(
                 "snapshot cleanup only prunes historical snapshot_runs and snapshot_history; current snapshot baseline is preserved"
@@ -122,5 +139,6 @@ pub fn cleanup_project_data_at(
         storage_after,
         maintenance,
         notes,
+        estimate_mode,
     })
 }
