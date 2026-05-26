@@ -662,4 +662,220 @@ mod tests {
         assert_eq!(priority[0]["project_id"], "with_vacuum");
         assert_eq!(priority[1]["project_id"], "no_vacuum");
     }
+
+    // --- storage_maintenance_execution_templates tests ---
+
+    #[test]
+    fn execution_templates_returns_empty_for_non_maintenance() {
+        let sm = json!({
+            "maintenance_candidate": false,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn execution_templates_returns_empty_for_missing_field() {
+        let sm = json!({});
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn execution_templates_returns_preview_template_with_project_id() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+        });
+        let result = storage_maintenance_execution_templates(Some("myproject"), &sm);
+        assert_eq!(result.len(), 1);
+        let tpl = &result[0];
+        assert_eq!(tpl["template_id"], "storage.cleanup.preview");
+        let cmd = tpl["command_template"].as_str().unwrap();
+        assert!(cmd.contains("myproject"));
+        let hints = tpl["placeholder_hints"].as_array().unwrap();
+        assert!(hints.is_empty());
+    }
+
+    #[test]
+    fn execution_templates_returns_preview_template_with_placeholder() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+        });
+        let result = storage_maintenance_execution_templates(None, &sm);
+        assert_eq!(result.len(), 1);
+        let hints = result[0]["placeholder_hints"].as_array().unwrap();
+        assert_eq!(hints.len(), 1);
+        assert_eq!(hints[0]["field"], "id");
+        assert_eq!(hints[0]["placeholder"], "<project>");
+        assert!(hints[0]["description"].as_str().unwrap().contains("project id"));
+    }
+
+    #[test]
+    fn execution_templates_returns_compact_template_for_vacuum_candidate() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": true,
+            "approx_reclaimable_bytes": 10_000_000,
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[1]["template_id"], "storage.cleanup.compact");
+        assert_eq!(result[1]["requires_human_confirmation"], true);
+    }
+
+    #[test]
+    fn execution_templates_compact_includes_reclaimable_bytes_in_success_signal() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": true,
+            "approx_reclaimable_bytes": 5000,
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert_eq!(result.len(), 2);
+        let signal = result[1]["success_signal"].as_str().unwrap();
+        assert!(signal.contains("5000"));
+    }
+
+    #[test]
+    fn execution_templates_preview_has_priority_1() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert_eq!(result[0]["priority"], 1);
+    }
+
+    #[test]
+    fn execution_templates_compact_has_priority_2() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": true,
+            "approx_reclaimable_bytes": 10_000_000,
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        assert_eq!(result[0]["priority"], 1);
+        assert_eq!(result[1]["priority"], 2);
+    }
+
+    // --- augment_entrypoints_for_storage_maintenance tests ---
+
+    #[test]
+    fn augment_no_op_for_non_maintenance() {
+        let mut entrypoints = json!({
+            "next_cli_commands": ["original_cmd"],
+            "selection_reasons": [{"kind": "other", "why": "original"}],
+            "execution_templates": [{"template_id": "existing", "priority": 1}],
+        });
+        let sm = json!({"maintenance_candidate": false});
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("proj"), &sm);
+        assert_eq!(entrypoints["next_cli_commands"][0], "original_cmd");
+        assert_eq!(entrypoints["selection_reasons"][0]["why"], "original");
+    }
+
+    #[test]
+    fn augment_prepends_cleanup_command() {
+        let mut entrypoints = json!({
+            "next_cli_commands": ["existing_cmd"],
+            "selection_reasons": [],
+            "execution_templates": [],
+        });
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+            "summary": "needs cleanup",
+        });
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("myproj"), &sm);
+        let cmds = entrypoints["next_cli_commands"].as_array().unwrap();
+        assert!(cmds[0].as_str().unwrap().contains("myproj"));
+        assert!(cmds[0].as_str().unwrap().contains("cleanup-data"));
+    }
+
+    #[test]
+    fn augment_prepends_selection_reason() {
+        let mut entrypoints = json!({
+            "next_cli_commands": [],
+            "selection_reasons": [],
+            "execution_templates": [],
+        });
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+            "summary": "database is large",
+        });
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("proj"), &sm);
+        let reasons = entrypoints["selection_reasons"].as_array().unwrap();
+        assert_eq!(reasons[0]["why"], "database is large");
+    }
+
+    #[test]
+    fn augment_prepends_execution_templates_and_renumbers() {
+        let mut entrypoints = json!({
+            "next_cli_commands": [],
+            "selection_reasons": [],
+            "execution_templates": [{"template_id": "existing", "priority": 99}],
+        });
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": true,
+            "approx_reclaimable_bytes": 10_000_000,
+            "summary": "needs vacuum",
+        });
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("proj"), &sm);
+        let templates = entrypoints["execution_templates"].as_array().unwrap();
+        assert_eq!(templates.len(), 3);
+        // Reverse insertion: compact inserted at 0, then preview inserted at 0, pushing compact to 1
+        assert_eq!(templates[0]["template_id"], "storage.cleanup.preview");
+        assert_eq!(templates[1]["template_id"], "storage.cleanup.compact");
+        assert_eq!(templates[2]["template_id"], "existing");
+        // All priorities renumbered sequentially
+        assert_eq!(templates[0]["priority"], 1);
+        assert_eq!(templates[1]["priority"], 2);
+        assert_eq!(templates[2]["priority"], 3);
+    }
+
+    #[test]
+    fn augment_uses_project_placeholder_when_none() {
+        let mut entrypoints = json!({
+            "next_cli_commands": [],
+            "selection_reasons": [],
+            "execution_templates": [],
+        });
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+            "summary": "needs cleanup",
+        });
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, None, &sm);
+        let cmds = entrypoints["next_cli_commands"].as_array().unwrap();
+        assert!(cmds[0].as_str().unwrap().contains("<project>"));
+    }
+
+    #[test]
+    fn augment_handles_missing_arrays_gracefully() {
+        let mut entrypoints = json!({
+            "unrelated_key": "preserved",
+        });
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": true,
+            "approx_reclaimable_bytes": 10_000_000,
+            "summary": "needs work",
+        });
+        // Should not panic and should not remove existing keys
+        augment_entrypoints_for_storage_maintenance(&mut entrypoints, Some("proj"), &sm);
+        assert_eq!(entrypoints["unrelated_key"], "preserved");
+        // No next_cli_commands, selection_reasons, or execution_templates arrays created
+        assert!(entrypoints.get("next_cli_commands").is_none_or(|v| v.is_null()));
+    }
 }
