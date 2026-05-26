@@ -280,4 +280,116 @@ mod tests {
         assert_eq!(result.run.status, "failed");
         assert_eq!(result.run.exit_code, Some(1));
     }
+
+    // --- truncate_tail tests ---
+
+    #[test]
+    fn truncate_tail_empty_input_returns_empty_string() {
+        assert_eq!(truncate_tail(b"", 100), "");
+    }
+
+    #[test]
+    fn truncate_tail_short_input_within_limit_returns_trimmed_input() {
+        assert_eq!(truncate_tail(b"hello world", 100), "hello world");
+    }
+
+    #[test]
+    fn truncate_tail_long_input_truncates_to_max_chars_from_end() {
+        let input = "abcdefghijklmnopqrstuvwxyz".as_bytes();
+        assert_eq!(truncate_tail(input, 5), "vwxyz");
+    }
+
+    #[test]
+    fn truncate_tail_trims_whitespace_before_truncation() {
+        assert_eq!(truncate_tail(b"  hello  ", 100), "hello");
+    }
+
+    #[test]
+    fn truncate_tail_handles_non_utf8_gracefully() {
+        // Invalid UTF-8 sequence: 0x80 is a continuation byte without a leading byte.
+        let input = &[0x80, 0x80];
+        let result = truncate_tail(input, 100);
+        // String::from_utf8_lossy replaces invalid sequences with the replacement char.
+        assert!(result.contains('\u{fffd}'));
+    }
+
+    #[test]
+    fn truncate_tail_exactly_max_chars_returned_in_full() {
+        let input = "abcde".as_bytes();
+        assert_eq!(truncate_tail(input, 5), "abcde");
+    }
+
+    // --- summarize_execution tests ---
+
+    #[test]
+    fn summarize_execution_stderr_present_returns_last_nonempty_line() {
+        let result = summarize_execution("stdout line\n", "err line A\nerr line B\n", false);
+        assert_eq!(result, Some("err line B".to_string()));
+    }
+
+    #[test]
+    fn summarize_execution_no_stderr_stdout_present_returns_last_nonempty_line() {
+        let result = summarize_execution("out A\nout B\n", "", true);
+        assert_eq!(result, Some("out B".to_string()));
+    }
+
+    #[test]
+    fn summarize_execution_empty_both_success_returns_succeeded_message() {
+        let result = summarize_execution("", "", true);
+        assert_eq!(result, Some("Verification command succeeded.".to_string()));
+    }
+
+    #[test]
+    fn summarize_execution_empty_both_failure_returns_failed_message() {
+        let result = summarize_execution("", "", false);
+        assert_eq!(result, Some("Verification command failed.".to_string()));
+    }
+
+    #[test]
+    fn summarize_execution_trailing_empty_lines_ignored() {
+        let result = summarize_execution("line1\n\n\n", "", true);
+        assert_eq!(result, Some("line1".to_string()));
+    }
+
+    #[test]
+    fn summarize_execution_single_nonempty_line_in_stderr() {
+        let result = summarize_execution("stdout stuff\n", "only err line\n", false);
+        assert_eq!(result, Some("only err line".to_string()));
+    }
+
+    // --- validate_kind tests ---
+
+    #[test]
+    fn validate_kind_test_is_valid() {
+        assert!(validate_kind("test").is_ok());
+    }
+
+    #[test]
+    fn validate_kind_lint_is_valid() {
+        assert!(validate_kind("lint").is_ok());
+    }
+
+    #[test]
+    fn validate_kind_build_is_valid() {
+        assert!(validate_kind("build").is_ok());
+    }
+
+    #[test]
+    fn validate_kind_deploy_is_rejected() {
+        let err = validate_kind("deploy").unwrap_err();
+        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+        assert!(err.to_string().contains("deploy"));
+    }
+
+    #[test]
+    fn validate_kind_empty_string_is_rejected() {
+        let err = validate_kind("").unwrap_err();
+        assert!(err.to_string().contains("kind must be one of: test, lint, build"));
+    }
+
+    #[test]
+    fn validate_kind_uppercase_is_rejected() {
+        let err = validate_kind("TEST").unwrap_err();
+        assert!(err.to_string().contains("TEST"));
+    }
 }

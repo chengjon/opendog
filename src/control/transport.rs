@@ -104,3 +104,70 @@ pub(super) fn map_connect_error_with_liveness(
         _ => OpenDogError::Io(error),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::OpenDogError;
+    use std::io;
+
+    #[test]
+    fn not_found_daemon_live_maps_to_daemon_control_unavailable() {
+        let error = io::Error::new(io::ErrorKind::NotFound, "socket not found");
+        let result = map_connect_error_with_liveness(error, true);
+        match result {
+            OpenDogError::DaemonControlUnavailable => (),
+            _ => panic!("expected DaemonControlUnavailable, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn not_found_daemon_not_live_maps_to_daemon_unavailable() {
+        let error = io::Error::new(io::ErrorKind::NotFound, "socket not found");
+        let result = map_connect_error_with_liveness(error, false);
+        match result {
+            OpenDogError::DaemonUnavailable => (),
+            _ => panic!("expected DaemonUnavailable, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn connection_refused_daemon_live_maps_to_daemon_control_unavailable() {
+        let error = io::Error::new(io::ErrorKind::ConnectionRefused, "connection refused");
+        let result = map_connect_error_with_liveness(error, true);
+        match result {
+            OpenDogError::DaemonControlUnavailable => (),
+            _ => panic!("expected DaemonControlUnavailable, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn connection_refused_daemon_not_live_maps_to_daemon_unavailable() {
+        let error = io::Error::new(io::ErrorKind::ConnectionRefused, "connection refused");
+        let result = map_connect_error_with_liveness(error, false);
+        match result {
+            OpenDogError::DaemonUnavailable => (),
+            _ => panic!("expected DaemonUnavailable, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn permission_denied_maps_to_io_error() {
+        let error = io::Error::new(io::ErrorKind::PermissionDenied, "access denied");
+        let result = map_connect_error_with_liveness(error, false);
+        match result {
+            OpenDogError::Io(e) => assert_eq!(e.kind(), io::ErrorKind::PermissionDenied),
+            _ => panic!("expected Io variant, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn timed_out_maps_to_io_error() {
+        let error = io::Error::new(io::ErrorKind::TimedOut, "timed out");
+        let result = map_connect_error_with_liveness(error, true);
+        match result {
+            OpenDogError::Io(e) => assert_eq!(e.kind(), io::ErrorKind::TimedOut),
+            _ => panic!("expected Io variant, got {:?}", result),
+        }
+    }
+}
