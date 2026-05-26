@@ -86,6 +86,7 @@ pub struct TimeWindowReport {
     pub end_time: String,
     pub summary: TimeWindowSummary,
     pub files: Vec<TimeWindowFile>,
+    pub truncated: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -434,5 +435,17 @@ mod tests {
             let window = ReportWindow::parse(input).unwrap();
             assert_eq!(window.as_str(), *input);
         }
+    }
+
+    #[test]
+    fn time_window_report_sql_limit_truncates_files() {
+        let db = test_db();
+        let end_ts = 2_000_000i64;
+        for i in 0..5 {
+            insert_sighting(&db, &format!("file{}.rs", i), "claude", 1, end_ts - 100 + i);
+        }
+        let report = get_time_window_report_at(&db, ReportWindow::Hours24, end_ts, 2).unwrap();
+        assert!(report.files.len() <= 2, "should respect limit at SQL level");
+        assert_eq!(report.summary.total_sightings, 5, "summary should still count all");
     }
 }

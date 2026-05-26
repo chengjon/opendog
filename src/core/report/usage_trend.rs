@@ -32,6 +32,7 @@ pub fn get_usage_trend_report_at(
         start_ts,
         end_ts,
         bucket_size,
+        limit,
     )?;
     let modify_buckets = bucket_counts(
         db,
@@ -41,6 +42,7 @@ pub fn get_usage_trend_report_at(
         start_ts,
         end_ts,
         bucket_size,
+        limit,
     )?;
 
     let mut files: HashMap<String, FileTrend> = HashMap::new();
@@ -137,6 +139,7 @@ fn bucket_counts(
     start_ts: i64,
     end_ts: i64,
     bucket_size: i64,
+    limit: usize,
 ) -> Result<Vec<(String, i64, i64)>> {
     let filter = extra_filter
         .map(|clause| format!("{} AND ", clause))
@@ -148,11 +151,12 @@ fn bucket_counts(
          FROM {table}
          WHERE {filter}CAST({time_column} AS INTEGER) BETWEEN ?1 AND ?2
          GROUP BY file_path, bucket_start
-         ORDER BY file_path, bucket_start"
+         ORDER BY file_path, bucket_start
+         LIMIT ?4"
     );
     db.prepare_and_query(
         &sql,
-        rusqlite::params![start_ts, end_ts, bucket_size],
+        rusqlite::params![start_ts, end_ts, bucket_size, limit as i64],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )
 }

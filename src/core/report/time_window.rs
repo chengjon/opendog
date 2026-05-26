@@ -55,7 +55,7 @@ pub fn get_time_window_report_at(
     };
 
     let mut files: HashMap<String, TimeWindowFile> = HashMap::new();
-    for (file_path, access_count, last_seen_at) in access_counts(db, start_ts, end_ts)? {
+    for (file_path, access_count, last_seen_at) in access_counts(db, start_ts, end_ts, limit)? {
         files.insert(
             file_path.clone(),
             TimeWindowFile {
@@ -69,7 +69,7 @@ pub fn get_time_window_report_at(
     }
 
     for (file_path, modification_count, last_modified_at) in
-        modification_counts(db, start_ts, end_ts)?
+        modification_counts(db, start_ts, end_ts, limit)?
     {
         let entry = files
             .entry(file_path.clone())
@@ -92,6 +92,7 @@ pub fn get_time_window_report_at(
             .then_with(|| right.modification_count.cmp(&left.modification_count))
             .then_with(|| left.file_path.cmp(&right.file_path))
     });
+    let truncated = files.len() > limit;
     files.truncate(limit.max(1));
 
     Ok(TimeWindowReport {
@@ -100,6 +101,7 @@ pub fn get_time_window_report_at(
         end_time: end_ts.to_string(),
         summary,
         files,
+        truncated,
     })
 }
 
@@ -107,14 +109,15 @@ fn count_rows_between(db: &Database, sql: &str, start_ts: i64, end_ts: i64) -> R
     db.query_row(sql, rusqlite::params![start_ts, end_ts], |row| row.get(0))
 }
 
-fn access_counts(db: &Database, start_ts: i64, end_ts: i64) -> Result<Vec<(String, i64, String)>> {
+fn access_counts(db: &Database, start_ts: i64, end_ts: i64, limit: usize) -> Result<Vec<(String, i64, String)>> {
     db.prepare_and_query(
         "SELECT file_path, COUNT(*) AS access_count, MAX(CAST(seen_at AS INTEGER)) AS last_seen_at
          FROM file_sightings
          WHERE CAST(seen_at AS INTEGER) BETWEEN ?1 AND ?2
          GROUP BY file_path
-         ORDER BY access_count DESC, file_path",
-        rusqlite::params![start_ts, end_ts],
+         ORDER BY access_count DESC, file_path
+         LIMIT ?3",
+        rusqlite::params![start_ts, end_ts, limit as i64],
         |row| Ok((row.get(0)?, row.get(1)?, row.get::<_, i64>(2)?.to_string())),
     )
 }
@@ -123,14 +126,16 @@ fn modification_counts(
     db: &Database,
     start_ts: i64,
     end_ts: i64,
+    limit: usize,
 ) -> Result<Vec<(String, i64, String)>> {
     db.prepare_and_query(
         "SELECT file_path, COUNT(*) AS modification_count, MAX(CAST(event_time AS INTEGER)) AS last_modified_at
          FROM file_events
          WHERE event_type = 'modify' AND CAST(event_time AS INTEGER) BETWEEN ?1 AND ?2
          GROUP BY file_path
-         ORDER BY modification_count DESC, file_path",
-        rusqlite::params![start_ts, end_ts],
+         ORDER BY modification_count DESC, file_path
+         LIMIT ?3",
+        rusqlite::params![start_ts, end_ts, limit as i64],
         |row| Ok((row.get(0)?, row.get(1)?, row.get::<_, i64>(2)?.to_string())),
     )
 }
