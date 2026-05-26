@@ -114,8 +114,15 @@ fn path_is_generated_artifact(path_lower: &str) -> bool {
     .any(|token| path_lower.contains(token))
 }
 
+fn path_is_infrastructure(path_lower: &str) -> bool {
+    let infra_dirs = [".claude/", ".cursor/", ".agents/", ".amazonq/", ".zread/", ".vscode/", ".idea/"];
+    infra_dirs.iter().any(|dir| path_lower.contains(dir))
+}
+
 fn classify_path_kind(path_lower: &str) -> &'static str {
-    if path_is_generated_artifact(path_lower) {
+    if path_is_infrastructure(path_lower) {
+        "infrastructure"
+    } else if path_is_generated_artifact(path_lower) {
         "generated_artifact"
     } else if path_is_test_only(path_lower) {
         "test_only"
@@ -407,7 +414,9 @@ pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> Mo
                 },
                 review_priority: if is_test_only {
                     "medium"
-                } else if path_classification == "generated_artifact" {
+                } else if path_classification == "generated_artifact"
+                    || path_classification == "infrastructure"
+                {
                     "low"
                 } else {
                     "high"
@@ -968,5 +977,21 @@ mod tests {
     #[test]
     fn test_discounted_weak_literal_hits_large() {
         assert_eq!(discounted_weak_literal_hits(100), 50);
+    }
+
+    // ---- path_is_infrastructure / infrastructure classification ----
+
+    #[test]
+    fn classify_path_kind_infrastructure_claude_paths() {
+        assert_eq!(classify_path_kind(".claude/settings.json"), "infrastructure");
+        assert_eq!(classify_path_kind(".claude/build-checker.json"), "infrastructure");
+        assert_eq!(classify_path_kind(".claude/skills/playwright/references/guide.md"), "infrastructure");
+        assert_eq!(classify_path_kind(".cursor/rules/project.mdc"), "infrastructure");
+        assert_eq!(classify_path_kind(".agents/prompts/review.md"), "infrastructure");
+    }
+
+    #[test]
+    fn infrastructure_paths_are_not_unknown() {
+        assert_ne!(classify_path_kind(".claude/settings.json"), "unknown");
     }
 }
