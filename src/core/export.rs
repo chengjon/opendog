@@ -278,4 +278,109 @@ mod tests {
         assert!(err.to_string().contains("format must be one of: json, csv"));
         assert!(err.to_string().contains("xml"));
     }
+
+    // ── escape_csv_field unit tests ──
+
+    #[test]
+    fn escape_csv_field_plain_string_returned_as_is() {
+        assert_eq!(escape_csv_field("hello"), "hello");
+        assert_eq!(escape_csv_field("src/main.rs"), "src/main.rs");
+    }
+
+    #[test]
+    fn escape_csv_field_comma_gets_quoted() {
+        assert_eq!(escape_csv_field("a,b"), "\"a,b\"");
+    }
+
+    #[test]
+    fn escape_csv_field_double_quote_gets_doubled_and_quoted() {
+        assert_eq!(escape_csv_field("say \"hi\""), "\"say \"\"hi\"\"\"");
+    }
+
+    #[test]
+    fn escape_csv_field_newline_gets_quoted() {
+        assert_eq!(escape_csv_field("line1\nline2"), "\"line1\nline2\"");
+    }
+
+    #[test]
+    fn escape_csv_field_comma_and_double_quote() {
+        assert_eq!(escape_csv_field("a,\"b"), "\"a,\"\"b\"");
+    }
+
+    #[test]
+    fn escape_csv_field_empty_string_returned_as_is() {
+        assert_eq!(escape_csv_field(""), "");
+    }
+
+    #[test]
+    fn escape_csv_field_all_three_special_chars() {
+        assert_eq!(
+            escape_csv_field("a,\"b\nc"),
+            "\"a,\"\"b\nc\""
+        );
+    }
+
+    // ── render_csv_export edge-case tests ──
+
+    #[test]
+    fn render_csv_export_empty_rows_produces_only_header() {
+        let csv = render_csv_export(&[]);
+        assert_eq!(
+            csv,
+            "file_path,file_type,size,access_count,estimated_duration_ms,modification_count,last_access_time,first_seen_time"
+        );
+        assert_eq!(csv.lines().count(), 1);
+    }
+
+    #[test]
+    fn render_csv_export_none_optional_fields_render_empty() {
+        let csv = render_csv_export(&[StatsEntry {
+            file_path: "x.rs".to_string(),
+            size: 10,
+            file_type: "rs".to_string(),
+            access_count: 0,
+            estimated_duration_ms: 0,
+            modification_count: 0,
+            last_access_time: None,
+            first_seen_time: None,
+        }]);
+        let mut lines = csv.lines();
+        let _header = lines.next().unwrap();
+        let data_line = lines.next().unwrap();
+        // The last two fields (optional timestamps) should be empty strings
+        assert!(data_line.ends_with(","));
+        // There should be exactly 8 comma-separated values (7 commas)
+        assert_eq!(data_line.matches(',').count(), 7);
+    }
+
+    #[test]
+    fn render_csv_export_column_order_matches_csv_columns() {
+        let row = StatsEntry {
+            file_path: "p".to_string(),
+            size: 1,
+            file_type: "py".to_string(),
+            access_count: 2,
+            estimated_duration_ms: 3,
+            modification_count: 4,
+            last_access_time: Some("T5".to_string()),
+            first_seen_time: Some("T6".to_string()),
+        };
+        let csv = render_csv_export(&[row]);
+        let mut lines = csv.lines();
+        let header = lines.next().unwrap();
+        assert_eq!(
+            header,
+            CSV_COLUMNS.join(",")
+        );
+        let data = lines.next().unwrap();
+        let fields: Vec<&str> = data.split(',').collect();
+        assert_eq!(fields[0], "p");
+        assert_eq!(fields[1], "py");
+        assert_eq!(fields[2], "1");
+        assert_eq!(fields[3], "2");
+        assert_eq!(fields[4], "3");
+        assert_eq!(fields[5], "4");
+        assert_eq!(fields[6], "T5");
+        assert_eq!(fields[7], "T6");
+    }
 }
