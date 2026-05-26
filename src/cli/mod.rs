@@ -480,4 +480,36 @@ mod tests {
             1
         );
     }
+
+    #[test]
+    fn format_error_lines_generic_error_is_single_line() {
+        let lines = format_error_lines(&OpenDogError::ProjectNotFound("my-proj".into()));
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].starts_with("Error:"));
+        assert!(lines[0].contains("my-proj"));
+    }
+
+    #[test]
+    fn format_error_lines_invalid_input_shows_message() {
+        let lines = format_error_lines(&OpenDogError::InvalidInput("bad value".into()));
+        assert!(lines[0].contains("bad value"));
+    }
+
+    #[test]
+    fn format_error_lines_daemon_unavailable_is_generic() {
+        let lines = format_error_lines(&OpenDogError::DaemonUnavailable);
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].starts_with("Error:"));
+    }
+
+    #[test]
+    fn format_error_lines_database_error_includes_detail() {
+        let lines =
+            format_error_lines(&OpenDogError::Database(rusqlite::Error::InvalidParameterName(
+                "x".into(),
+            )));
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].starts_with("Error:"));
+        assert!(lines[0].contains("x"));
+    }
 }
