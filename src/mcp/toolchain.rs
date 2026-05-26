@@ -736,4 +736,28 @@ mod tests {
         assert_eq!(result["project_type"], "docs_only");
         assert_eq!(result["confidence"], "medium-high");
     }
+
+    #[test]
+    fn unknown_profile_returns_low_confidence_with_search_commands() {
+        let profile = unknown_profile();
+        assert_eq!(profile.project_type, "unknown");
+        assert_eq!(profile.confidence, "low");
+        assert!(profile.test_commands.is_empty());
+        assert!(profile.lint_commands.is_empty());
+        assert!(profile.build_commands.is_empty());
+        assert_eq!(profile.search_commands.len(), 3);
+        assert_eq!(profile.search_commands[0], "rg \"<pattern>\" .");
+    }
+
+    #[test]
+    fn docs_only_profile_returns_medium_high_confidence_with_docs_search() {
+        let profile = docs_only_profile();
+        assert_eq!(profile.project_type, "docs_only");
+        assert_eq!(profile.confidence, "medium-high");
+        assert!(profile.test_commands.is_empty());
+        assert!(profile.lint_commands.is_empty());
+        assert!(profile.build_commands.is_empty());
+        assert_eq!(profile.search_commands.len(), 1);
+        assert_eq!(profile.search_commands[0], "rg \"<pattern>\" docs README.md");
+    }
 }
