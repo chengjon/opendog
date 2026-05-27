@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 
 mod external_truth;
+mod model;
 mod repo_truth;
 mod review_focus;
 
@@ -10,6 +11,7 @@ pub(crate) use self::repo_truth::repo_truth_gap_projection;
 pub(crate) use self::review_focus::review_focus_projection_for_top_project;
 use super::guidance_types::ConstraintsBoundariesLayer;
 use super::serialization::to_value_or_error;
+use model::{ProjectReadinessAssessment, ReadinessTarget};
 
 pub(super) struct WorkspaceCounts {
     pub(super) projects_not_ready_for_cleanup: usize,
@@ -58,116 +60,23 @@ pub(super) fn default_destructive_operations() -> Vec<String> {
     ]
 }
 
+#[cfg(test)]
 pub(super) fn project_readiness_reasons(
     repo_risk: &Value,
     verification_layer: &Value,
     target: &str,
 ) -> Vec<String> {
-    let mut reasons = match target {
-        "refactor" => string_array_field(verification_layer, "refactor_blockers"),
-        _ => string_array_field(verification_layer, "cleanup_blockers"),
-    };
-
-    let operation_states = string_array_field(repo_risk, "operation_states");
-    if !operation_states.is_empty() {
-        reasons.push(format!(
-            "Repository is mid-operation: {}.",
-            operation_states.join(", ")
-        ));
-    }
-
-    let conflicted_count = repo_risk["conflicted_count"].as_u64().unwrap_or(0);
-    if conflicted_count > 0 {
-        reasons.push(format!(
-            "Repository has {} conflicted paths in the working tree.",
-            conflicted_count
-        ));
-    }
-
-    let lockfile_anomalies = repo_risk["lockfile_anomalies"]
-        .as_array()
-        .map(|items| items.len())
-        .unwrap_or(0);
-    if lockfile_anomalies > 0 {
-        reasons.push(format!(
-            "Dependency manifest/lockfile mismatches are present ({} signals).",
-            lockfile_anomalies
-        ));
-    }
-
-    if target == "refactor" && repo_risk["large_diff"].as_bool().unwrap_or(false) {
-        let changed_file_count = repo_risk["changed_file_count"].as_u64().unwrap_or(0);
-        reasons.push(format!(
-            "Working tree already has a large diff ({} changed files), so broad refactors should wait.",
-            changed_file_count
-        ));
-    }
-
-    reasons
+    ProjectReadinessAssessment::from_layers(repo_risk, verification_layer)
+        .reasons_for(ReadinessTarget::from_name(target))
+        .to_vec()
 }
 
 pub(super) fn project_readiness_snapshot(repo_risk: &Value, verification_layer: &Value) -> Value {
-    let cleanup_blockers = project_readiness_reasons(repo_risk, verification_layer, "cleanup");
-    let refactor_blockers = project_readiness_reasons(repo_risk, verification_layer, "refactor");
-    let verification_safe_for_cleanup = verification_layer["safe_for_cleanup"]
-        .as_bool()
-        .unwrap_or(false);
-    let verification_safe_for_refactor = verification_layer["safe_for_refactor"]
-        .as_bool()
-        .unwrap_or(false);
-    let cleanup_level = verification_layer["gate_assessment"]["cleanup"]["level"]
-        .as_str()
-        .unwrap_or(if verification_safe_for_cleanup {
-            "allow"
-        } else {
-            "blocked"
-        });
-    let refactor_level = verification_layer["gate_assessment"]["refactor"]["level"]
-        .as_str()
-        .unwrap_or(if verification_safe_for_refactor {
-            "allow"
-        } else {
-            "blocked"
-        });
-    let safe_for_cleanup = verification_safe_for_cleanup && cleanup_blockers.is_empty();
-    let safe_for_refactor = verification_safe_for_refactor && refactor_blockers.is_empty();
-
-    json!({
-        "verification_safe_for_cleanup": verification_safe_for_cleanup,
-        "verification_safe_for_refactor": verification_safe_for_refactor,
-        "cleanup_gate_level": cleanup_level,
-        "refactor_gate_level": refactor_level,
-        "safe_for_cleanup": safe_for_cleanup,
-        "safe_for_cleanup_reason": readiness_reason_summary("cleanup", safe_for_cleanup, &cleanup_blockers),
-        "cleanup_blockers": cleanup_blockers,
-        "safe_for_refactor": safe_for_refactor,
-        "safe_for_refactor_reason": readiness_reason_summary("refactor", safe_for_refactor, &refactor_blockers),
-        "refactor_blockers": refactor_blockers,
-    })
+    ProjectReadinessAssessment::from_layers(repo_risk, verification_layer).to_json()
 }
 
 pub(super) fn readiness_reason_summary(target: &str, safe: bool, reasons: &[String]) -> String {
-    if safe {
-        match target {
-            "refactor" => {
-                "Current evidence supports scoped refactor work: verification gates passed and no repository-level blocker is active."
-                    .to_string()
-            }
-            _ => {
-                "Current evidence supports cleanup review: required verification gates passed and no repository-level blocker is active."
-                    .to_string()
-            }
-        }
-    } else if let Some(reason) = reasons.first() {
-        reason.clone()
-    } else {
-        match target {
-            "refactor" => {
-                "Refactor readiness is blocked by missing evidence or repository risk.".to_string()
-            }
-            _ => "Cleanup readiness is blocked by missing evidence or repository risk.".to_string(),
-        }
-    }
+    ReadinessTarget::from_name(target).reason_summary(safe, reasons)
 }
 
 pub(super) fn build_constraints_boundaries_layer(

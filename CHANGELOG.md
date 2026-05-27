@@ -27,6 +27,7 @@ All notable changes to OPENDOG are documented here.
 - Decision-support action profiles now use a typed internal model for action class, phase, mutability scope, verification requirement, and primary-goal text before rendering MCP JSON.
 - Decision-support risk profiles now use a typed internal model for risk-tier selection, gate fallback, blockers, repo-risk findings, and manual-review flags before rendering MCP JSON.
 - Decision-support entrypoint recommendations now use a typed plan for next MCP tools, CLI commands, selection reasons, and tool-selection policy before rendering MCP JSON.
+- Constraints readiness snapshots now use a typed internal model for cleanup/refactor blockers, verification gate fallback, repository-risk signals, and readiness reasons before rendering MCP JSON.
 
 ### Fixed
 
