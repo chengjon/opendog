@@ -1,5 +1,6 @@
-use serde_json::{json, Value};
+use serde_json::Value;
 
+use super::super::guidance_types::ExternalTruthBoundary;
 use super::string_array_field;
 
 fn push_once(items: &mut Vec<String>, value: &str) {
@@ -48,19 +49,11 @@ fn verification_commands_for(recommendation: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub(crate) fn external_truth_boundary_for_top_project(top_recommendation: Option<&Value>) -> Value {
+pub(crate) fn external_truth_boundary_for_top_project(
+    top_recommendation: Option<&Value>,
+) -> ExternalTruthBoundary {
     let Some(recommendation) = top_recommendation else {
-        return json!({
-            "status": "no_priority_project",
-            "source": Value::Null,
-            "source_project_id": Value::Null,
-            "mode": Value::Null,
-            "repo_state_required": false,
-            "verification_required": false,
-            "triggers": [],
-            "minimum_external_checks": [],
-            "summary": Value::Null
-        });
+        return ExternalTruthBoundary::no_priority_project();
     };
 
     let repo_triggers = repo_state_triggers_for(recommendation);
@@ -100,22 +93,24 @@ pub(crate) fn external_truth_boundary_for_top_project(top_recommendation: Option
         }
     };
 
-    json!({
-        "status": "available",
-        "source": "top_priority_project",
-        "source_project_id": recommendation["project_id"].clone(),
-        "mode": mode,
-        "repo_state_required": repo_state_required,
-        "verification_required": verification_required,
-        "triggers": triggers,
-        "minimum_external_checks": minimum_external_checks,
-        "summary": summary,
-    })
+    ExternalTruthBoundary::available(
+        recommendation["project_id"].clone(),
+        mode,
+        repo_state_required,
+        verification_required,
+        triggers,
+        minimum_external_checks,
+        summary,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn boundary_value(boundary: ExternalTruthBoundary) -> Value {
+        serde_json::to_value(boundary).unwrap()
+    }
 
     // --- repo_state_triggers_for ---
 
@@ -238,7 +233,7 @@ mod tests {
 
     #[test]
     fn none_returns_no_priority_project() {
-        let result = external_truth_boundary_for_top_project(None);
+        let result = boundary_value(external_truth_boundary_for_top_project(None));
         assert_eq!(result["status"], "no_priority_project");
         assert!(result["source"].is_null());
         assert!(result["source_project_id"].is_null());
@@ -261,7 +256,7 @@ mod tests {
             "mandatory_shell_checks": ["git status"],
             "execution_sequence": {"mode": "proceed_normally", "verification_commands": []}
         });
-        let result = external_truth_boundary_for_top_project(Some(&rec));
+        let result = boundary_value(external_truth_boundary_for_top_project(Some(&rec)));
         assert_eq!(result["status"], "available");
         assert_eq!(result["source"], "top_priority_project");
         assert_eq!(result["source_project_id"], "proj1");
@@ -285,7 +280,7 @@ mod tests {
                 "verification_commands": ["cargo test"]
             }
         });
-        let result = external_truth_boundary_for_top_project(Some(&rec));
+        let result = boundary_value(external_truth_boundary_for_top_project(Some(&rec)));
         assert_eq!(result["status"], "available");
         assert_eq!(result["repo_state_required"], false);
         assert_eq!(result["verification_required"], true);
@@ -307,7 +302,7 @@ mod tests {
                 "verification_commands": ["npm test"]
             }
         });
-        let result = external_truth_boundary_for_top_project(Some(&rec));
+        let result = boundary_value(external_truth_boundary_for_top_project(Some(&rec)));
         assert_eq!(result["repo_state_required"], true);
         assert_eq!(result["verification_required"], true);
         assert!(result["summary"]
@@ -328,7 +323,7 @@ mod tests {
             "mandatory_shell_checks": [],
             "execution_sequence": {"mode": "proceed_normally", "verification_commands": []}
         });
-        let result = external_truth_boundary_for_top_project(Some(&rec));
+        let result = boundary_value(external_truth_boundary_for_top_project(Some(&rec)));
         assert_eq!(result["mode"], "opendog_guidance_can_continue");
         assert!(result["summary"]
             .as_str()
@@ -347,7 +342,7 @@ mod tests {
                 "verification_commands": ["git status"]
             }
         });
-        let result = external_truth_boundary_for_top_project(Some(&rec));
+        let result = boundary_value(external_truth_boundary_for_top_project(Some(&rec)));
         let checks = result["minimum_external_checks"].as_array().unwrap();
         let git_status_count = checks
             .iter()

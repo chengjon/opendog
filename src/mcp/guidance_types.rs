@@ -264,6 +264,64 @@ impl ReviewFocusProjection {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ExternalTruthBoundaryStatus {
+    NoPriorityProject,
+    Available,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub(crate) struct ExternalTruthBoundary {
+    status: ExternalTruthBoundaryStatus,
+    source: Option<String>,
+    source_project_id: Value,
+    mode: Option<String>,
+    repo_state_required: bool,
+    verification_required: bool,
+    triggers: Vec<String>,
+    minimum_external_checks: Vec<String>,
+    summary: Option<String>,
+}
+
+impl ExternalTruthBoundary {
+    pub(crate) fn no_priority_project() -> Self {
+        Self {
+            status: ExternalTruthBoundaryStatus::NoPriorityProject,
+            source: None,
+            source_project_id: Value::Null,
+            mode: None,
+            repo_state_required: false,
+            verification_required: false,
+            triggers: Vec::new(),
+            minimum_external_checks: Vec::new(),
+            summary: None,
+        }
+    }
+
+    pub(crate) fn available(
+        source_project_id: Value,
+        mode: &str,
+        repo_state_required: bool,
+        verification_required: bool,
+        triggers: Vec<String>,
+        minimum_external_checks: Vec<String>,
+        summary: &str,
+    ) -> Self {
+        Self {
+            status: ExternalTruthBoundaryStatus::Available,
+            source: Some("top_priority_project".to_string()),
+            source_project_id,
+            mode: Some(mode.to_string()),
+            repo_state_required,
+            verification_required,
+            triggers,
+            minimum_external_checks,
+            summary: Some(summary.to_string()),
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct StabilizationSummary {
     pub(crate) projects_requiring_repo_stabilization: u64,
@@ -346,7 +404,7 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) preferred_secondary_tool: String,
     pub(crate) evidence_priority: Vec<String>,
     pub(crate) risk_strategy_coupling: RepoRiskCoupling,
-    pub(crate) external_truth_boundary: Value,
+    pub(crate) external_truth_boundary: ExternalTruthBoundary,
     pub(crate) review_focus_projection: ReviewFocusProjection,
     pub(crate) when_to_use_opendog: Vec<&'static str>,
     pub(crate) when_to_use_shell: Vec<&'static str>,
@@ -856,7 +914,7 @@ mod tests {
                 json!("evidence_first"),
                 json!("opendog"),
             ),
-            external_truth_boundary: json!({}),
+            external_truth_boundary: ExternalTruthBoundary::no_priority_project(),
             review_focus_projection: ReviewFocusProjection::no_priority_project(),
             when_to_use_opendog: vec![],
             when_to_use_shell: vec![],
@@ -898,6 +956,15 @@ mod tests {
         assert_eq!(v["preferred_secondary_tool"], "shell");
         assert_eq!(v["evidence_priority"][0], "verification");
         assert_eq!(v["evidence_priority"][1], "activity");
+        assert_eq!(
+            v["external_truth_boundary"]["status"],
+            "no_priority_project"
+        );
+        assert!(v["external_truth_boundary"]["mode"].is_null());
+        assert!(v["external_truth_boundary"]["triggers"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert_eq!(
             v["review_focus_projection"]["status"],
             "no_priority_project"
