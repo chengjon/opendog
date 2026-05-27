@@ -5,9 +5,9 @@ mod orphan_payloads;
 mod project_payloads;
 
 pub(crate) use self::analysis_payloads::{
-    cleanup_project_data_payload, snapshot_comparison_payload, stats_payload_with_limit,
-    time_window_report_payload, unused_files_payload_with_limit, usage_trends_payload,
-    DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
+    activity_rollups_payload, cleanup_project_data_payload, snapshot_comparison_payload,
+    stats_payload_with_limit, time_window_report_payload, unused_files_payload_with_limit,
+    usage_trends_payload, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
 };
 #[cfg(test)]
 pub(crate) use self::analysis_payloads::{stats_payload, unused_files_payload};

@@ -72,6 +72,40 @@ fn unused_files_payload_has_versioned_contract() {
 }
 
 #[test]
+fn activity_rollups_payload_has_versioned_contract() {
+    let report = ActivityRollupReport {
+        window: "7d".to_string(),
+        start_time: "100".to_string(),
+        end_time: "200".to_string(),
+        summary: ActivityRollupSummary {
+            bucket_size: "1d".to_string(),
+            bucket_count: 7,
+            total_access_count: 8,
+            total_modification_count: 3,
+            total_event_count: 4,
+            rollup_days: 1,
+            returned_days: 1,
+            truncated: false,
+        },
+        days: vec![ActivityRollupDay {
+            day_start: 86_400,
+            access_count: 8,
+            modification_count: 3,
+            event_count: 4,
+        }],
+    };
+
+    let value = activity_rollups_payload(MCP_ACTIVITY_ROLLUPS_V1, "demo", &report);
+
+    assert_eq!(value["schema_version"], MCP_ACTIVITY_ROLLUPS_V1);
+    assert_eq!(value["project_id"], "demo");
+    assert_eq!(value["window"], "7d");
+    assert_eq!(value["summary"]["total_access_count"], 8);
+    assert_eq!(value["days"][0]["day_start"], 86_400);
+    assert!(value["guidance"].is_object());
+}
+
+#[test]
 fn stats_payload_is_bounded_by_default_for_large_result_sets() {
     let summary = ProjectSummary {
         total_files: 55,
@@ -373,6 +407,10 @@ fn cleanup_project_data_payload_has_versioned_contract() {
                 snapshot_runs: 0,
                 snapshot_history: 0,
             },
+            rolled_up: ActivityRollupCounts {
+                file_sightings: 4,
+                file_events: 2,
+            },
             storage_before: StorageMetrics {
                 page_size: 4096,
                 page_count: 10,
@@ -394,5 +432,6 @@ fn cleanup_project_data_payload_has_versioned_contract() {
     assert_eq!(value["project_id"], "demo");
     assert_eq!(value["scope"], "activity");
     assert_eq!(value["deleted"]["file_sightings"], 4);
+    assert_eq!(value["rolled_up"]["file_events"], 2);
     assert_eq!(value["guidance"]["schema_version"], MCP_GUIDANCE_V1);
 }

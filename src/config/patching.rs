@@ -13,6 +13,7 @@ impl Default for ProjectConfig {
                 .map(|s| s.to_string())
                 .collect(),
             process_whitelist: default_process_whitelist(),
+            retention: Default::default(),
         }
     }
 }
@@ -22,6 +23,7 @@ impl ConfigPatch {
         let normalized = self.clone().normalized();
         normalized.ignore_patterns.is_none()
             && normalized.process_whitelist.is_none()
+            && normalized.retention.is_none()
             && normalized.add_ignore_patterns.is_empty()
             && normalized.remove_ignore_patterns.is_empty()
             && normalized.add_process_whitelist.is_empty()
@@ -48,12 +50,14 @@ impl ProjectConfigPatch {
         let normalized = self.clone().normalized();
         normalized.ignore_patterns.is_none()
             && normalized.process_whitelist.is_none()
+            && normalized.retention.is_none()
             && normalized.add_ignore_patterns.is_empty()
             && normalized.remove_ignore_patterns.is_empty()
             && normalized.add_process_whitelist.is_empty()
             && normalized.remove_process_whitelist.is_empty()
             && !normalized.inherit_ignore_patterns
             && !normalized.inherit_process_whitelist
+            && !normalized.inherit_retention
     }
 
     pub fn normalized(mut self) -> Self {
@@ -84,6 +88,10 @@ pub fn resolve_project_config(
             .process_whitelist
             .clone()
             .unwrap_or_else(|| global_defaults.process_whitelist.clone()),
+        retention: overrides
+            .retention
+            .clone()
+            .unwrap_or_else(|| global_defaults.retention.clone()),
     }
 }
 
@@ -102,6 +110,7 @@ pub fn apply_global_config_patch(current: &ProjectConfig, patch: ConfigPatch) ->
             patch.add_process_whitelist,
             patch.remove_process_whitelist,
         ),
+        retention: patch.retention.unwrap_or_else(|| current.retention.clone()),
     }
 }
 
@@ -128,6 +137,11 @@ pub fn apply_project_config_patch(
             patch.remove_process_whitelist,
             patch.inherit_process_whitelist,
         ),
+        retention: apply_project_retention_patch(
+            &current.retention,
+            patch.retention,
+            patch.inherit_retention,
+        ),
     }
 }
 
@@ -139,6 +153,9 @@ pub fn changed_config_fields(before: &ProjectConfig, after: &ProjectConfig) -> V
     if before.process_whitelist != after.process_whitelist {
         changed.push("process_whitelist".to_string());
     }
+    if before.retention != after.retention {
+        changed.push("retention".to_string());
+    }
     changed
 }
 
@@ -146,6 +163,7 @@ pub fn normalize_project_config(config: ProjectConfig) -> ProjectConfig {
     ProjectConfig {
         ignore_patterns: normalize_string_list(config.ignore_patterns),
         process_whitelist: normalize_string_list(config.process_whitelist),
+        retention: config.retention,
     }
 }
 
@@ -153,6 +171,7 @@ pub fn normalize_project_overrides(overrides: ProjectConfigOverrides) -> Project
     ProjectConfigOverrides {
         ignore_patterns: overrides.ignore_patterns.map(normalize_string_list),
         process_whitelist: overrides.process_whitelist.map(normalize_string_list),
+        retention: overrides.retention,
     }
 }
 
@@ -212,6 +231,20 @@ fn apply_project_list_patch(
         None
     } else {
         Some(patched)
+    }
+}
+
+fn apply_project_retention_patch(
+    current: &Option<super::RetentionPolicy>,
+    replacement: Option<super::RetentionPolicy>,
+    inherit: bool,
+) -> Option<super::RetentionPolicy> {
+    if inherit {
+        None
+    } else if let Some(replacement) = replacement {
+        Some(replacement)
+    } else {
+        current.clone()
     }
 }
 
@@ -300,6 +333,7 @@ mod tests {
         let after = ProjectConfig {
             ignore_patterns: vec!["logs".to_string()],
             process_whitelist: before.process_whitelist.clone(),
+            ..before.clone()
         };
         let changed = changed_config_fields(&before, &after);
         assert_eq!(changed, vec!["ignore_patterns".to_string()]);
@@ -311,6 +345,7 @@ mod tests {
         let after = ProjectConfig {
             ignore_patterns: before.ignore_patterns.clone(),
             process_whitelist: vec!["gpt".to_string()],
+            ..before.clone()
         };
         let changed = changed_config_fields(&before, &after);
         assert_eq!(changed, vec!["process_whitelist".to_string()]);
@@ -322,6 +357,7 @@ mod tests {
         let after = ProjectConfig {
             ignore_patterns: vec!["logs".to_string()],
             process_whitelist: vec!["gpt".to_string()],
+            ..before.clone()
         };
         let changed = changed_config_fields(&before, &after);
         assert_eq!(changed.len(), 2);
@@ -456,10 +492,12 @@ mod tests {
         let global = ProjectConfig {
             ignore_patterns: vec!["dist".to_string()],
             process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
         };
         let overrides = ProjectConfigOverrides {
             ignore_patterns: Some(vec!["logs".to_string()]),
             process_whitelist: Some(vec!["gpt".to_string()]),
+            ..Default::default()
         };
         let resolved = resolve_project_config(&global, &overrides);
         assert_eq!(resolved.ignore_patterns, vec!["logs"]);
@@ -471,10 +509,12 @@ mod tests {
         let global = ProjectConfig {
             ignore_patterns: vec!["dist".to_string()],
             process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
         };
         let overrides = ProjectConfigOverrides {
             ignore_patterns: None,
             process_whitelist: None,
+            ..Default::default()
         };
         let resolved = resolve_project_config(&global, &overrides);
         assert_eq!(resolved.ignore_patterns, global.ignore_patterns);
@@ -486,10 +526,12 @@ mod tests {
         let global = ProjectConfig {
             ignore_patterns: vec!["dist".to_string()],
             process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
         };
         let overrides = ProjectConfigOverrides {
             ignore_patterns: Some(vec!["logs".to_string()]),
             process_whitelist: None,
+            ..Default::default()
         };
         let resolved = resolve_project_config(&global, &overrides);
         assert_eq!(resolved.ignore_patterns, vec!["logs"]);
@@ -527,6 +569,7 @@ mod tests {
         let current = ProjectConfigOverrides {
             ignore_patterns: Some(vec!["logs".to_string()]),
             process_whitelist: None,
+            ..Default::default()
         };
         let effective = ProjectConfig::default();
         let result = apply_project_config_patch(
@@ -563,10 +606,12 @@ mod tests {
         let current = ProjectConfigOverrides {
             ignore_patterns: Some(vec!["dist".to_string()]),
             process_whitelist: None,
+            ..Default::default()
         };
         let effective = ProjectConfig {
             ignore_patterns: vec!["dist".to_string()],
             process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
         };
         let result = apply_project_config_patch(
             &current,

@@ -161,6 +161,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec!["node_modules".to_string(), "*.pyc".to_string()],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(should_ignore("src/node_modules/pkg/index.js", &config));
         assert!(should_ignore("build/output.pyc", &config));
@@ -171,6 +172,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec!["node_modules".to_string()],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(!should_ignore("src/main.rs", &config));
         assert!(!should_ignore("lib/core/mod.rs", &config));
@@ -181,6 +183,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec![],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(!should_ignore("any/path.rs", &config));
     }
@@ -199,6 +202,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec!["node_modules".to_string()],
             process_whitelist: vec![],
+            ..Default::default()
         };
         // Backslash normalization is handled by should_ignore_path
         assert!(should_ignore("src\\node_modules\\pkg", &config));

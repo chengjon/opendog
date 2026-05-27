@@ -70,6 +70,16 @@ CREATE TABLE IF NOT EXISTS verification_runs (
     finished_at   TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS activity_daily_rollups (
+    day_start     INTEGER NOT NULL,
+    source_table  TEXT NOT NULL,
+    activity      TEXT NOT NULL,
+    row_count     INTEGER NOT NULL DEFAULT 0,
+    max_source_id INTEGER NOT NULL DEFAULT 0,
+    updated_at    TEXT NOT NULL,
+    PRIMARY KEY (day_start, source_table, activity)
+);
+
 CREATE INDEX IF NOT EXISTS idx_snapshot_file_type ON snapshot(file_type);
 CREATE INDEX IF NOT EXISTS idx_snapshot_runs_time ON snapshot_runs(captured_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshot_runs_time_int ON snapshot_runs(CAST(captured_at AS INTEGER) DESC, id DESC);
@@ -84,6 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_file_events_time ON file_events(event_time);
 CREATE INDEX IF NOT EXISTS idx_file_events_modify_time_int ON file_events(CAST(event_time AS INTEGER)) WHERE event_type = 'modify';
 CREATE INDEX IF NOT EXISTS idx_verification_runs_kind_time ON verification_runs(kind, finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_verification_runs_finished_time_int ON verification_runs(CAST(finished_at AS INTEGER));
+CREATE INDEX IF NOT EXISTS idx_activity_daily_rollups_day ON activity_daily_rollups(day_start DESC);
 
 CREATE TABLE IF NOT EXISTS governance_lanes (
     lane_id     TEXT PRIMARY KEY,
@@ -122,7 +133,7 @@ CREATE TABLE IF NOT EXISTS data_risk_cache (
 );
 "#;
 
-pub const SCHEMA_VERSION: u32 = 6;
+pub const SCHEMA_VERSION: u32 = 7;
 
 #[cfg(test)]
 mod tests {
@@ -193,6 +204,11 @@ mod tests {
     }
 
     #[test]
+    fn project_schema_contains_activity_daily_rollups_table() {
+        assert!(PROJECT_SCHEMA.contains("CREATE TABLE IF NOT EXISTS activity_daily_rollups"));
+    }
+
+    #[test]
     fn project_schema_contains_governance_lanes_table() {
         assert!(PROJECT_SCHEMA.contains("CREATE TABLE IF NOT EXISTS governance_lanes"));
     }
@@ -230,6 +246,11 @@ mod tests {
     }
 
     #[test]
+    fn project_schema_has_activity_daily_rollups_day_index() {
+        assert!(PROJECT_SCHEMA.contains("idx_activity_daily_rollups_day"));
+    }
+
+    #[test]
     fn project_schema_has_file_events_file_index() {
         assert!(PROJECT_SCHEMA.contains("idx_file_events_file"));
     }
@@ -254,7 +275,7 @@ mod tests {
     #[test]
     fn schema_version_is_current() {
         // The version should match the latest migration state
-        assert_eq!(SCHEMA_VERSION, 6);
+        assert_eq!(SCHEMA_VERSION, 7);
     }
 
     // ---- Structural integrity checks ----

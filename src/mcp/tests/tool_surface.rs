@@ -124,6 +124,13 @@ fn governance_tools_are_exposed() {
 }
 
 #[test]
+fn activity_rollup_tool_is_exposed() {
+    let inventory_names: BTreeSet<&str> =
+        mcp_tool_inventory().iter().map(|tool| tool.name).collect();
+    assert!(inventory_names.contains("get_activity_rollups"));
+}
+
+#[test]
 fn mcp_resource_templates_expose_readonly_project_state_uris() {
     let templates = mcp_resource_templates();
     let uris: Vec<&str> = templates

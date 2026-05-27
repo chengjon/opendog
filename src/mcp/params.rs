@@ -167,6 +167,15 @@ pub struct UsageTrendParams {
 }
 
 #[derive(Deserialize, schemars::JsonSchema)]
+pub struct ActivityRollupParams {
+    pub id: String,
+    /// Optional window: "24h", "7d", or "30d". Defaults to "30d".
+    pub window: Option<String>,
+    /// Optional day limit, defaults to 30.
+    pub limit: Option<usize>,
+}
+
+#[derive(Deserialize, schemars::JsonSchema)]
 pub struct DataRiskParams {
     pub id: String,
     /// Optional filter: "all" (default), "mock", or "hardcoded"

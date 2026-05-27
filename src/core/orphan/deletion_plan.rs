@@ -83,6 +83,7 @@ mod tests {
         ProjectConfig {
             ignore_patterns: vec![],
             process_whitelist: vec![],
+            ..Default::default()
         }
     }
 

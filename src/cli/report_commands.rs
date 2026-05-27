@@ -1,11 +1,17 @@
 use clap::Subcommand;
 
-use crate::contracts::{CLI_SNAPSHOT_COMPARE_V1, CLI_TIME_WINDOW_REPORT_V1, CLI_USAGE_TRENDS_V1};
+use crate::contracts::{
+    CLI_ACTIVITY_ROLLUPS_V1, CLI_SNAPSHOT_COMPARE_V1, CLI_TIME_WINDOW_REPORT_V1,
+    CLI_USAGE_TRENDS_V1,
+};
 use crate::control::DaemonClient;
 use crate::core::project::ProjectManager;
 use crate::core::report::{self, ReportWindow};
 use crate::error::OpenDogError;
-use crate::mcp::{snapshot_comparison_payload, time_window_report_payload, usage_trends_payload};
+use crate::mcp::{
+    activity_rollups_payload, snapshot_comparison_payload, time_window_report_payload,
+    usage_trends_payload,
+};
 
 use super::output;
 
@@ -46,6 +52,17 @@ pub(super) enum ReportCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Show daily activity rollups preserved by retention cleanup
+    Rollup {
+        #[arg(short, long)]
+        id: String,
+        #[arg(long, default_value = "30d")]
+        window: String,
+        #[arg(long, default_value_t = 30)]
+        limit: usize,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 pub(super) fn cmd_report(pm: &ProjectManager, command: ReportCommand) -> Result<(), OpenDogError> {
@@ -69,6 +86,12 @@ pub(super) fn cmd_report(pm: &ProjectManager, command: ReportCommand) -> Result<
             limit,
             json,
         } => cmd_report_trend(pm, &id, &window, limit, json),
+        ReportCommand::Rollup {
+            id,
+            window,
+            limit,
+            json,
+        } => cmd_report_rollup(pm, &id, &window, limit, json),
     }
 }
 
@@ -159,6 +182,26 @@ fn cmd_report_trend(
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {
         output::print_usage_trends(id, &report);
+    }
+    Ok(())
+}
+
+fn cmd_report_rollup(
+    pm: &ProjectManager,
+    id: &str,
+    window: &str,
+    limit: usize,
+    json_output: bool,
+) -> Result<(), OpenDogError> {
+    let window = ReportWindow::parse(window)?;
+    let db = pm.open_project_db(id)?;
+    let report = report::get_activity_rollup_report(&db, window, limit)?;
+
+    if json_output {
+        let payload = activity_rollups_payload(CLI_ACTIVITY_ROLLUPS_V1, id, &report);
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        output::print_activity_rollups(id, &report);
     }
     Ok(())
 }

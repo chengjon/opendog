@@ -1,5 +1,5 @@
 use crate::error::{OpenDogError, Result};
-use crate::storage::database::Database;
+use crate::storage::{database::Database, queries};
 use serde::{Deserialize, Serialize};
 
 mod executor;
@@ -69,6 +69,15 @@ pub struct StorageMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StorageEvidenceCounts {
+    pub file_sightings: i64,
+    pub file_events: i64,
+    pub activity_daily_rollups: i64,
+    pub verification_runs: i64,
+    pub snapshot_runs: i64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CleanupMaintenanceStatus {
     pub optimized: bool,
     pub vacuumed: bool,
@@ -82,6 +91,7 @@ pub struct ProjectDataCleanupResult {
     pub keep_snapshot_runs: Option<usize>,
     pub vacuum: bool,
     pub deleted: CleanupCountBreakdown,
+    pub rolled_up: queries::ActivityRollupCounts,
     pub storage_before: StorageMetrics,
     pub storage_after: Option<StorageMetrics>,
     pub maintenance: CleanupMaintenanceStatus,
@@ -118,6 +128,16 @@ pub(crate) fn collect_storage_metrics(db: &Database) -> Result<StorageMetrics> {
         freelist_count,
         approx_db_size_bytes: page_size.saturating_mul(page_count),
         approx_reclaimable_bytes: page_size.saturating_mul(freelist_count),
+    })
+}
+
+pub(crate) fn collect_storage_evidence_counts(db: &Database) -> Result<StorageEvidenceCounts> {
+    Ok(StorageEvidenceCounts {
+        file_sightings: queries::count_file_sightings(db)?,
+        file_events: queries::count_file_events(db)?,
+        activity_daily_rollups: queries::count_activity_daily_rollups(db)?,
+        verification_runs: queries::count_verification_runs(db)?,
+        snapshot_runs: queries::count_snapshot_runs(db)?,
     })
 }
 

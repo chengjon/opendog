@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-use crate::config::{ConfigPatch, ProjectConfigPatch};
+use crate::config::{ConfigPatch, ProjectConfigPatch, RetentionPolicy};
 use crate::contracts::{
     CLI_GLOBAL_CONFIG_V1, CLI_PROJECT_CONFIG_V1, CLI_RELOAD_PROJECT_CONFIG_V1,
     CLI_UPDATE_GLOBAL_CONFIG_V1, CLI_UPDATE_PROJECT_CONFIG_V1,
@@ -78,6 +78,10 @@ pub(super) enum ConfigCommand {
             ]
         )]
         inherit_process_whitelist: bool,
+        #[arg(long = "retention-policy-json", conflicts_with = "inherit_retention")]
+        retention_policy_json: Option<String>,
+        #[arg(long, conflicts_with = "retention_policy_json")]
+        inherit_retention: bool,
         #[arg(long)]
         json: bool,
     },
@@ -101,6 +105,8 @@ pub(super) enum ConfigCommand {
         add_process_whitelist: Vec<String>,
         #[arg(long = "remove-process")]
         remove_process_whitelist: Vec<String>,
+        #[arg(long = "retention-policy-json")]
+        retention_policy_json: Option<String>,
         #[arg(long)]
         json: bool,
     },
@@ -126,30 +132,37 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
             remove_process_whitelist,
             inherit_ignore_patterns,
             inherit_process_whitelist,
+            retention_policy_json,
+            inherit_retention,
             json,
-        } => cmd_config_set_project(
-            pm,
-            &id,
-            ProjectConfigPatch {
-                ignore_patterns: if ignore_patterns.is_empty() {
-                    None
-                } else {
-                    Some(ignore_patterns)
+        } => {
+            let retention = parse_retention_policy_json(retention_policy_json)?;
+            cmd_config_set_project(
+                pm,
+                &id,
+                ProjectConfigPatch {
+                    ignore_patterns: if ignore_patterns.is_empty() {
+                        None
+                    } else {
+                        Some(ignore_patterns)
+                    },
+                    add_ignore_patterns,
+                    remove_ignore_patterns,
+                    process_whitelist: if process_whitelist.is_empty() {
+                        None
+                    } else {
+                        Some(process_whitelist)
+                    },
+                    retention,
+                    add_process_whitelist,
+                    remove_process_whitelist,
+                    inherit_ignore_patterns,
+                    inherit_process_whitelist,
+                    inherit_retention,
                 },
-                add_ignore_patterns,
-                remove_ignore_patterns,
-                process_whitelist: if process_whitelist.is_empty() {
-                    None
-                } else {
-                    Some(process_whitelist)
-                },
-                add_process_whitelist,
-                remove_process_whitelist,
-                inherit_ignore_patterns,
-                inherit_process_whitelist,
-            },
-            json,
-        ),
+                json,
+            )
+        }
         ConfigCommand::SetGlobal {
             ignore_patterns,
             add_ignore_patterns,
@@ -157,29 +170,49 @@ pub(super) fn cmd_config(pm: &ProjectManager, command: ConfigCommand) -> Result<
             process_whitelist,
             add_process_whitelist,
             remove_process_whitelist,
+            retention_policy_json,
             json,
-        } => cmd_config_set_global(
-            pm,
-            ConfigPatch {
-                ignore_patterns: if ignore_patterns.is_empty() {
-                    None
-                } else {
-                    Some(ignore_patterns)
+        } => {
+            let retention = parse_retention_policy_json(retention_policy_json)?;
+            cmd_config_set_global(
+                pm,
+                ConfigPatch {
+                    ignore_patterns: if ignore_patterns.is_empty() {
+                        None
+                    } else {
+                        Some(ignore_patterns)
+                    },
+                    add_ignore_patterns,
+                    remove_ignore_patterns,
+                    process_whitelist: if process_whitelist.is_empty() {
+                        None
+                    } else {
+                        Some(process_whitelist)
+                    },
+                    retention,
+                    add_process_whitelist,
+                    remove_process_whitelist,
                 },
-                add_ignore_patterns,
-                remove_ignore_patterns,
-                process_whitelist: if process_whitelist.is_empty() {
-                    None
-                } else {
-                    Some(process_whitelist)
-                },
-                add_process_whitelist,
-                remove_process_whitelist,
-            },
-            json,
-        ),
+                json,
+            )
+        }
         ConfigCommand::Reload { id, json } => cmd_config_reload(pm, &id, json),
     }
+}
+
+fn parse_retention_policy_json(
+    value: Option<String>,
+) -> Result<Option<RetentionPolicy>, OpenDogError> {
+    value
+        .map(|raw| {
+            serde_json::from_str::<RetentionPolicy>(&raw).map_err(|err| {
+                OpenDogError::InvalidInput(format!(
+                    "retention policy JSON must match the RetentionPolicy schema: {}",
+                    err
+                ))
+            })
+        })
+        .transpose()
 }
 
 fn cmd_config_show(
@@ -360,5 +393,39 @@ mod tests {
         assert!(help.contains("--remove-ignore-pattern"));
         assert!(help.contains("--add-process"));
         assert!(help.contains("--remove-process"));
+        assert!(help.contains("--retention-policy-json"));
+        assert!(help.contains("--inherit-retention"));
+    }
+
+    #[test]
+    fn config_cli_rejects_inherit_and_retention_policy_json() {
+        let result = super::super::Cli::try_parse_from([
+            "opendog",
+            "config",
+            "set-project",
+            "--id",
+            "demo",
+            "--inherit-retention",
+            "--retention-policy-json",
+            "{}",
+        ]);
+        let error = match result {
+            Ok(_) => panic!("expected clap to reject inherit and retention policy JSON"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn retention_policy_json_accepts_partial_policy_with_defaults() {
+        let policy = super::parse_retention_policy_json(Some(
+            r#"{"activity_rows_threshold":42}"#.to_string(),
+        ))
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(policy.activity_rows_threshold, 42);
+        assert_eq!(policy.keep_snapshot_runs, 20);
     }
 }

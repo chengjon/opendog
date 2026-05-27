@@ -96,6 +96,7 @@ pub(crate) fn project_config_payload(schema_version: &str, view: &ProjectConfigV
                 json!({
                     "ignore_patterns": view.project_overrides.ignore_patterns.is_none(),
                     "process_whitelist": view.project_overrides.process_whitelist.is_none(),
+                    "retention": view.project_overrides.retention.is_none(),
                 }),
             ),
             (
@@ -254,6 +255,7 @@ mod tests {
         ProjectConfig {
             ignore_patterns: vec!["*.log".to_string()],
             process_whitelist: vec!["claude".to_string()],
+            ..Default::default()
         }
     }
 
@@ -328,6 +330,7 @@ mod tests {
             project_overrides: ProjectConfigOverrides {
                 ignore_patterns: Some(vec!["target/".to_string()]),
                 process_whitelist: None,
+                ..Default::default()
             },
             effective: sample_config(),
         };
@@ -438,7 +441,7 @@ mod tests {
         input.schema_version = "1.0";
         input.build_time = "2026-01-01";
         let payload = build_info_payload(input);
-        assert_eq!(payload["schema_version"], 6);
+        assert_eq!(payload["schema_version"], json!(SCHEMA_VERSION));
         assert_eq!(payload["version"], "0.1.0");
     }
 

@@ -5,7 +5,9 @@ use crate::contracts::{versioned_project_payload, MCP_STATS_V1, MCP_UNUSED_FILES
 use crate::core::file_classification::{
     classify_file_path, FilePathClassification, FilePathClassificationFilter,
 };
-use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
+use crate::core::report::{
+    ActivityRollupReport, SnapshotComparison, TimeWindowReport, UsageTrendReport,
+};
 use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::stats::ProjectSummary;
 use crate::storage::queries::{StatsEntry, VerificationRun};
@@ -311,6 +313,43 @@ pub(crate) fn usage_trends_payload(
     )
 }
 
+pub(crate) fn activity_rollups_payload(
+    schema_version: &str,
+    id: &str,
+    report: &ActivityRollupReport,
+) -> Value {
+    versioned_project_payload(
+        schema_version,
+        id,
+        [
+            ("window", json!(report.window)),
+            (
+                "range",
+                json!({
+                    "start_time": report.start_time,
+                    "end_time": report.end_time,
+                }),
+            ),
+            ("summary", json!(report.summary)),
+            ("days", json!(report.days)),
+            (
+                "guidance",
+                tool_guidance(
+                    "Use activity rollups to inspect long-lived usage volume after raw activity rows have been compacted.",
+                    &[
+                        "Rollups preserve daily counts, not per-file or per-process raw detail",
+                        "Use usage trends for recent file-level detail before retention cleanup removes raw rows",
+                    ],
+                    &["get_usage_trends", "get_time_window_report", "cleanup-data"],
+                    Some(
+                        "Activity rollups are safe for historical volume checks but cannot reconstruct deleted raw activity rows.",
+                    ),
+                ),
+            ),
+        ],
+    )
+}
+
 pub(crate) fn cleanup_project_data_payload(
     schema_version: &str,
     id: &str,
@@ -326,6 +365,7 @@ pub(crate) fn cleanup_project_data_payload(
             ("keep_snapshot_runs", json!(result.keep_snapshot_runs)),
             ("vacuum", json!(result.vacuum)),
             ("deleted", json!(result.deleted)),
+            ("rolled_up", json!(result.rolled_up)),
             ("storage_before", json!(result.storage_before)),
             ("storage_after", json!(result.storage_after)),
             ("maintenance", json!(result.maintenance)),
@@ -336,12 +376,13 @@ pub(crate) fn cleanup_project_data_payload(
                     "Selective cleanup only removes retained OPENDOG evidence; it does not delete source files.",
                     &[
                         "Use dry_run first when pruning shared or long-lived project evidence",
+                        "Activity cleanup preserves daily rollup counts before deleting raw activity rows",
                         "Keep at least 2 snapshot runs when snapshot comparison should remain immediately available",
                         "Use vacuum only after large cleanup batches because it rewrites the SQLite file for that project",
                     ],
                     &["get_time_window_report", "compare_snapshots", "get_verification_status"],
                     Some(
-                        "Cleanup removes OPENDOG-retained evidence only; validate whether you still need historical trends before deleting raw activity or verification rows, and reserve VACUUM for explicit space-reclaim passes.",
+                        "Cleanup removes OPENDOG-retained evidence only; activity cleanup preserves daily counts but removes raw per-row detail, and VACUUM should be reserved for explicit space-reclaim passes.",
                     ),
                 ),
             ),

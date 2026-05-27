@@ -246,4 +246,27 @@ mod tests {
             .unwrap();
         assert_eq!(version, SCHEMA_VERSION as i64);
     }
+
+    #[test]
+    fn migrates_v6_project_database_to_v7_activity_rollups() {
+        let conn = Connection::open_in_memory().expect("memory db opens");
+        set_user_version(&conn, 6).expect("v6 user_version set");
+
+        migrate(&conn, SchemaKind::Project).expect("v6 migrates forward");
+
+        let table_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type='table' AND name='activity_daily_rollups'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("activity rollup table exists");
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("user_version reads");
+
+        assert_eq!(table_count, 1);
+        assert_eq!(version, SCHEMA_VERSION as i64);
+    }
 }

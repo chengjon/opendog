@@ -1,10 +1,11 @@
 use crate::contracts::{
-    MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1, MCP_CREATE_GOVERNANCE_LANE_V1,
-    MCP_DATA_RISK_V1, MCP_DELETE_PROJECT_V1, MCP_GET_GOVERNANCE_STATE_V1, MCP_GLOBAL_CONFIG_V1,
-    MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1,
-    MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1,
-    MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1,
-    MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
+    MCP_ACTIVITY_ROLLUPS_V1, MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1,
+    MCP_CREATE_GOVERNANCE_LANE_V1, MCP_DATA_RISK_V1, MCP_DELETE_PROJECT_V1,
+    MCP_GET_GOVERNANCE_STATE_V1, MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1,
+    MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1, MCP_PROJECT_CONFIG_V1,
+    MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1, MCP_RUN_VERIFICATION_V1,
+    MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STATS_V1,
+    MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
     MCP_UPSERT_GOVERNANCE_NODE_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
     MCP_WORKSPACE_DATA_RISK_V1,
 };
@@ -136,6 +137,15 @@ pub(crate) const MCP_TOOL_INVENTORY: &[McpToolSpec] = &[
         payload_builder: "usage_trends_payload",
         handler_module: "analysis_handlers",
         handler: "handle_get_usage_trends",
+        test_owner: "mcp::tests::payload_contracts::analysis_payloads",
+    },
+    McpToolSpec {
+        name: "get_activity_rollups",
+        contract: MCP_ACTIVITY_ROLLUPS_V1,
+        params_type: Some("ActivityRollupParams"),
+        payload_builder: "activity_rollups_payload",
+        handler_module: "analysis_handlers",
+        handler: "handle_get_activity_rollups",
         test_owner: "mcp::tests::payload_contracts::analysis_payloads",
     },
     McpToolSpec {
@@ -274,9 +284,9 @@ mod tests {
     }
 
     #[test]
-    fn mcp_tool_inventory_has_26_tools() {
+    fn mcp_tool_inventory_has_27_tools() {
         let inventory = mcp_tool_inventory();
-        assert_eq!(inventory.len(), 26);
+        assert_eq!(inventory.len(), 27);
     }
 
     #[test]
@@ -377,6 +387,7 @@ mod tests {
         assert!(names.contains(&"run_verification_command"));
         assert!(names.contains(&"get_data_risk_candidates"));
         assert!(names.contains(&"get_workspace_data_risk_overview"));
+        assert!(names.contains(&"get_activity_rollups"));
         assert!(names.contains(&"scan_orphans"));
         assert!(names.contains(&"verify_deletion_plan"));
         assert!(names.contains(&"create_governance_lane"));

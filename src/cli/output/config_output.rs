@@ -1,12 +1,13 @@
 use crate::config::{
     GlobalConfigUpdateResult, ProjectConfig, ProjectConfigReload, ProjectConfigUpdateResult,
-    ProjectConfigView,
+    ProjectConfigView, RetentionPolicy,
 };
 
 pub(super) fn print_global_config(config: &ProjectConfig) {
     println!("Global defaults:");
     print_vec("  Ignore patterns", &config.ignore_patterns);
     print_vec("  Process whitelist", &config.process_whitelist);
+    print_retention_policy("  Retention policy", &config.retention);
 }
 
 pub(super) fn print_project_config(view: &ProjectConfigView) {
@@ -19,6 +20,7 @@ pub(super) fn print_project_config(view: &ProjectConfigView) {
         "  Effective process whitelist",
         &view.effective.process_whitelist,
     );
+    print_retention_policy("  Effective retention policy", &view.effective.retention);
     println!();
     println!(
         "  Ignore patterns source: {}",
@@ -31,6 +33,14 @@ pub(super) fn print_project_config(view: &ProjectConfigView) {
     println!(
         "  Process whitelist source: {}",
         if view.project_overrides.process_whitelist.is_some() {
+            "project override"
+        } else {
+            "global default"
+        }
+    );
+    println!(
+        "  Retention policy source: {}",
+        if view.project_overrides.retention.is_some() {
             "project override"
         } else {
             "global default"
@@ -93,6 +103,7 @@ pub(super) fn print_project_config_reload(
         "  Effective process whitelist",
         &effective.process_whitelist,
     );
+    print_retention_policy("  Effective retention policy", &effective.retention);
 }
 
 fn print_reload_summary(id: &str, reload: &ProjectConfigReload) {
@@ -118,6 +129,43 @@ fn print_vec(title: &str, values: &[String]) {
     for value in values {
         println!("    {}", value);
     }
+}
+
+fn print_retention_policy(title: &str, policy: &RetentionPolicy) {
+    println!("{}:", title);
+    println!(
+        "    cleanup_review_db_bytes_threshold={}",
+        policy.cleanup_review_db_bytes_threshold
+    );
+    println!(
+        "    vacuum_reclaimable_bytes_threshold={}",
+        policy.vacuum_reclaimable_bytes_threshold
+    );
+    println!(
+        "    vacuum_reclaim_ratio_threshold_percent={}",
+        policy.vacuum_reclaim_ratio_threshold_percent
+    );
+    println!(
+        "    activity_rows_threshold={}",
+        policy.activity_rows_threshold
+    );
+    println!(
+        "    verification_runs_threshold={}",
+        policy.verification_runs_threshold
+    );
+    println!(
+        "    snapshot_runs_threshold={}",
+        policy.snapshot_runs_threshold
+    );
+    println!(
+        "    activity_retention_days={}",
+        policy.activity_retention_days
+    );
+    println!(
+        "    verification_retention_days={}",
+        policy.verification_retention_days
+    );
+    println!("    keep_snapshot_runs={}", policy.keep_snapshot_runs);
 }
 
 #[cfg(test)]

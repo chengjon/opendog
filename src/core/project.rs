@@ -295,6 +295,7 @@ mod tests {
             .update_global_config(ConfigPatch {
                 ignore_patterns: None,
                 process_whitelist: None,
+                retention: None,
                 add_ignore_patterns: vec![],
                 remove_ignore_patterns: vec![],
                 add_process_whitelist: vec![],
@@ -315,12 +316,14 @@ mod tests {
                 ProjectConfigPatch {
                     ignore_patterns: None,
                     process_whitelist: None,
+                    retention: None,
                     add_ignore_patterns: vec![],
                     remove_ignore_patterns: vec![],
                     add_process_whitelist: vec![],
                     remove_process_whitelist: vec![],
                     inherit_ignore_patterns: false,
                     inherit_process_whitelist: false,
+                    inherit_retention: false,
                 },
             )
             .unwrap_err();
@@ -336,12 +339,14 @@ mod tests {
                 ProjectConfigPatch {
                     ignore_patterns: Some(vec!["*.log".to_string()]),
                     process_whitelist: None,
+                    retention: None,
                     add_ignore_patterns: vec![],
                     remove_ignore_patterns: vec![],
                     add_process_whitelist: vec![],
                     remove_process_whitelist: vec![],
                     inherit_ignore_patterns: false,
                     inherit_process_whitelist: false,
+                    inherit_retention: false,
                 },
             )
             .unwrap_err();

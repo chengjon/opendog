@@ -8,11 +8,11 @@ use crate::core::stats;
 use crate::error::OpenDogError;
 
 use super::{
-    error_json_for, latest_verification_runs_for_project, snapshot_comparison_payload,
-    stats_payload_with_limit, time_window_report_payload, unused_files_payload_with_limit,
-    usage_trends_payload, OpenDogServer, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
-    MCP_SNAPSHOT_COMPARE_V1, MCP_STATS_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
-    MCP_USAGE_TRENDS_V1,
+    activity_rollups_payload, error_json_for, latest_verification_runs_for_project,
+    snapshot_comparison_payload, stats_payload_with_limit, time_window_report_payload,
+    unused_files_payload_with_limit, usage_trends_payload, OpenDogServer,
+    DEFAULT_OBSERVATION_PAYLOAD_LIMIT, MCP_ACTIVITY_ROLLUPS_V1, MCP_SNAPSHOT_COMPARE_V1,
+    MCP_STATS_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1, MCP_USAGE_TRENDS_V1,
 };
 
 pub(super) fn handle_get_stats(
@@ -232,5 +232,32 @@ pub(super) fn handle_get_usage_trends(
     match result {
         Ok(report) => Json(usage_trends_payload(MCP_USAGE_TRENDS_V1, id, &report)),
         Err(e) => error_json_for(MCP_USAGE_TRENDS_V1, Some(id), &e),
+    }
+}
+
+pub(super) fn handle_get_activity_rollups(
+    server: &OpenDogServer,
+    id: &str,
+    window: Option<String>,
+    limit: Option<usize>,
+) -> Json<Value> {
+    let window_name = window.unwrap_or_else(|| "30d".to_string());
+    let window = match ReportWindow::parse(&window_name) {
+        Ok(window) => window,
+        Err(e) => return error_json_for(MCP_ACTIVITY_ROLLUPS_V1, Some(id), &e),
+    };
+    let limit = limit.unwrap_or(30).max(1);
+
+    let result = (|| -> crate::error::Result<_> {
+        let (db, _) = server.get_project(id)?;
+        report::get_activity_rollup_report(&db, window, limit)
+    })();
+    match result {
+        Ok(report) => Json(activity_rollups_payload(
+            MCP_ACTIVITY_ROLLUPS_V1,
+            id,
+            &report,
+        )),
+        Err(e) => error_json_for(MCP_ACTIVITY_ROLLUPS_V1, Some(id), &e),
     }
 }

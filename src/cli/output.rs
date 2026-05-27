@@ -11,7 +11,9 @@ use crate::config::{
 };
 use crate::core::file_classification::FilePathClassificationFilter;
 use crate::core::governance::{GovernanceState, UpsertNodeResult};
-use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
+use crate::core::report::{
+    ActivityRollupReport, SnapshotComparison, TimeWindowReport, UsageTrendReport,
+};
 use crate::core::retention::ProjectDataCleanupResult;
 use crate::core::snapshot::SnapshotResult;
 use crate::core::stats::ProjectSummary;
@@ -56,6 +58,10 @@ pub fn print_snapshot_comparison(id: &str, comparison: &SnapshotComparison) {
 
 pub fn print_usage_trends(id: &str, report: &UsageTrendReport) {
     report_output::print_usage_trends(id, report);
+}
+
+pub fn print_activity_rollups(id: &str, report: &ActivityRollupReport) {
+    report_output::print_activity_rollups(id, report);
 }
 
 pub fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupResult) {

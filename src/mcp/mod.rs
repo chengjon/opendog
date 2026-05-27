@@ -5,12 +5,13 @@ use serde_json::Value;
 
 use crate::contracts::{
     versioned_error_payload, versioned_project_error_payload, versioned_project_payload,
-    MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1, MCP_CREATE_GOVERNANCE_LANE_V1,
-    MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1, MCP_GET_GOVERNANCE_STATE_V1,
-    MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1, MCP_ORPHAN_DELETION_PLAN_V1,
-    MCP_ORPHAN_SCAN_V1, MCP_PROJECT_CONFIG_V1, MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1,
-    MCP_RUN_VERIFICATION_V1, MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1,
-    MCP_STATS_V1, MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
+    MCP_ACTIVITY_ROLLUPS_V1, MCP_BUILD_INFO_V1, MCP_CLOSE_GOVERNANCE_LANE_V1,
+    MCP_CREATE_GOVERNANCE_LANE_V1, MCP_DATA_RISK_V1, MCP_DECISION_BRIEF_V1, MCP_DELETE_PROJECT_V1,
+    MCP_GET_GOVERNANCE_STATE_V1, MCP_GLOBAL_CONFIG_V1, MCP_GUIDANCE_V1, MCP_LIST_PROJECTS_V1,
+    MCP_ORPHAN_DELETION_PLAN_V1, MCP_ORPHAN_SCAN_V1, MCP_PROJECT_CONFIG_V1,
+    MCP_RECORD_VERIFICATION_V1, MCP_REGISTER_PROJECT_V1, MCP_RUN_VERIFICATION_V1,
+    MCP_SNAPSHOT_COMPARE_V1, MCP_SNAPSHOT_V1, MCP_START_MONITOR_V1, MCP_STATS_V1,
+    MCP_STOP_MONITOR_V1, MCP_TIME_WINDOW_REPORT_V1, MCP_UNUSED_FILES_V1,
     MCP_UPSERT_GOVERNANCE_NODE_V1, MCP_USAGE_TRENDS_V1, MCP_VERIFICATION_STATUS_V1,
     MCP_WORKSPACE_DATA_RISK_V1, OPENDOG_BUILD_TIME, OPENDOG_GIT_HASH, OPENDOG_VERSION,
 };
@@ -55,8 +56,8 @@ mod workspace_decision;
 pub(crate) use self::tool_inventory::mcp_tool_inventory;
 
 use self::analysis_handlers::{
-    handle_compare_snapshots, handle_get_stats, handle_get_time_window_report,
-    handle_get_unused_files, handle_get_usage_trends,
+    handle_compare_snapshots, handle_get_activity_rollups, handle_get_stats,
+    handle_get_time_window_report, handle_get_unused_files, handle_get_usage_trends,
 };
 use self::attention::{
     enrich_project_overview_with_attention, sort_project_recommendations, workspace_portfolio_layer,
@@ -101,24 +102,17 @@ use self::observation::{
     project_observation_layer, snapshot_is_stale, verification_is_stale,
 };
 use self::orphan_handlers::{handle_scan_orphans, handle_verify_deletion_plan};
-pub use self::params::{
-    AgentGuidanceParams, CloseGovernanceLaneParams, CompareSnapshotsParams,
-    CreateGovernanceLaneParams, DataRiskParams, DecisionBriefParams, ExecuteVerificationParams,
-    GetGovernanceStateParams, GuidanceParams, ObservationRowsParams, ProjectIdParams,
-    RecordVerificationParams, RegisterProjectParams, ScanOrphansParams, TimeWindowReportParams,
-    UpsertGovernanceNodeParams, UsageTrendParams, VerifyDeletionPlanParams,
-    WorkspaceDataRiskParams,
-};
+pub use self::params::*;
 pub(crate) use self::payloads::{
-    build_info_payload, cleanup_project_data_payload, close_governance_lane_payload,
-    create_governance_lane_payload, delete_project_payload, export_project_evidence_payload,
-    get_governance_state_payload, global_config_payload, list_projects_payload,
-    orphan_deletion_plan_payload, orphan_scan_payload, project_config_payload,
-    project_config_reload_payload, project_config_update_payload, register_project_payload,
-    snapshot_comparison_payload, snapshot_payload, start_monitor_payload, stats_payload_with_limit,
-    stop_monitor_payload, time_window_report_payload, unused_files_payload_with_limit,
-    update_global_config_payload, upsert_governance_node_payload, usage_trends_payload,
-    BuildInfoPayloadInput, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
+    activity_rollups_payload, build_info_payload, cleanup_project_data_payload,
+    close_governance_lane_payload, create_governance_lane_payload, delete_project_payload,
+    export_project_evidence_payload, get_governance_state_payload, global_config_payload,
+    list_projects_payload, orphan_deletion_plan_payload, orphan_scan_payload,
+    project_config_payload, project_config_reload_payload, project_config_update_payload,
+    register_project_payload, snapshot_comparison_payload, snapshot_payload, start_monitor_payload,
+    stats_payload_with_limit, stop_monitor_payload, time_window_report_payload,
+    unused_files_payload_with_limit, update_global_config_payload, upsert_governance_node_payload,
+    usage_trends_payload, BuildInfoPayloadInput, DEFAULT_OBSERVATION_PAYLOAD_LIMIT,
 };
 #[cfg(test)]
 pub(crate) use self::payloads::{stats_payload, unused_files_payload};
@@ -140,7 +134,7 @@ use self::risk_handlers::{
 };
 pub use self::server_core::{run_stdio, OpenDogServer};
 use self::storage_maintenance::{
-    augment_entrypoints_for_storage_maintenance, project_storage_maintenance,
+    augment_entrypoints_for_storage_maintenance, project_storage_maintenance_with_policy,
     storage_maintenance_layer,
 };
 use self::strategy::{
@@ -329,6 +323,17 @@ impl OpenDogServer {
         Parameters(UsageTrendParams { id, window, limit }): Parameters<UsageTrendParams>,
     ) -> ToolResult {
         structured_tool_output(handle_get_usage_trends(self, &id, window, limit))
+    }
+
+    #[tool(
+        name = "get_activity_rollups",
+        description = "Return daily activity rollups preserved by retention cleanup for one project. Required param: id. Optional params: window (24h|7d|30d, default 30d), limit (default 30)."
+    )]
+    fn get_activity_rollups(
+        &self,
+        Parameters(ActivityRollupParams { id, window, limit }): Parameters<ActivityRollupParams>,
+    ) -> ToolResult {
+        structured_tool_output(handle_get_activity_rollups(self, &id, window, limit))
     }
 
     #[tool(

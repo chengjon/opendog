@@ -158,6 +158,7 @@ mod tests {
         let new_config = ProjectConfigOverrides {
             ignore_patterns: Some(vec!["target/**".to_string()]),
             process_whitelist: Some(vec!["codex".to_string()]),
+            ..Default::default()
         };
         update_project_config(&db, "proj-3", &new_config).unwrap();
         let updated = get_project(&db, "proj-3").unwrap().unwrap();

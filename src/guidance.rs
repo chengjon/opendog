@@ -81,8 +81,9 @@ pub(crate) fn build_agent_guidance_for_projects<F>(
 where
     F: FnMut(&ProjectInfo) -> ProjectGuidanceData,
 {
+    let global_defaults = pm.global_config().unwrap_or_default();
     let (monitored_projects, recommendations, project_overviews) =
-        collect_project_guidance_context(projects, load_project_state);
+        collect_project_guidance_context(projects, &global_defaults, load_project_state);
     let notes = guidance_notes(&monitored_projects);
 
     let governance = {

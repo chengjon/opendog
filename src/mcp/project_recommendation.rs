@@ -5,7 +5,7 @@ pub(crate) mod reasoning;
 pub(crate) mod scoring;
 pub(crate) mod sequencing;
 
-use crate::config::ProjectInfo;
+use crate::config::{resolve_project_config, ProjectConfig, ProjectInfo};
 use crate::core::retention;
 use crate::storage::database::Database;
 use crate::storage::queries::VerificationRun;
@@ -21,7 +21,7 @@ use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
     latest_verification_timestamp, now_unix_secs, project_observation_layer,
-    project_readiness_snapshot, project_storage_maintenance, project_toolchain_layer,
+    project_readiness_snapshot, project_storage_maintenance_with_policy, project_toolchain_layer,
     repo_status_risk_layer, snapshot_is_stale, strategy_profile, verification_has_failures,
     verification_is_missing, verification_is_stale, verification_status_layer, ProjectGuidanceData,
     ProjectGuidanceState,
@@ -73,6 +73,7 @@ pub(crate) fn project_overview(
 
 pub(crate) fn collect_project_guidance_context<F>(
     projects: &[ProjectInfo],
+    global_defaults: &ProjectConfig,
     mut load_project_state: F,
 ) -> (Vec<String>, Vec<Value>, Vec<Value>)
 where
@@ -88,12 +89,17 @@ where
 
     for project in projects {
         let guidance_data = load_project_state(project);
-        let storage_metrics = if project.db_path.exists() {
-            Database::open_project(&project.db_path)
-                .ok()
-                .and_then(|db| retention::collect_storage_metrics(&db).ok())
+        let effective_config = resolve_project_config(global_defaults, &project.config);
+        let (storage_metrics, storage_evidence_counts) = if project.db_path.exists() {
+            match Database::open_project(&project.db_path) {
+                Ok(db) => (
+                    retention::collect_storage_metrics(&db).ok(),
+                    retention::collect_storage_evidence_counts(&db).ok(),
+                ),
+                Err(_) => (None, None),
+            }
         } else {
-            None
+            (None, None)
         };
         let guidance_state = ProjectGuidanceState {
             id: project.id.clone(),
@@ -116,7 +122,11 @@ where
         let mock_data_summary =
             detect_mock_data_report(&guidance_state.root_path, &guidance_data.stats_entries)
                 .to_value(3);
-        let storage_maintenance = project_storage_maintenance(storage_metrics.as_ref());
+        let storage_maintenance = project_storage_maintenance_with_policy(
+            storage_metrics.as_ref(),
+            storage_evidence_counts.as_ref(),
+            &effective_config.retention,
+        );
         project_overviews.push(project_overview(
             &guidance_state,
             &repo_risk,

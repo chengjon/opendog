@@ -254,6 +254,7 @@ fn handle_request_applies_incremental_global_config_updates() {
     let response = controller.handle_request(ControlRequest::UpdateGlobalConfig(ConfigPatch {
         ignore_patterns: None,
         process_whitelist: Some(vec!["claude".to_string(), "codex".to_string()]),
+        retention: None,
         add_ignore_patterns: vec!["logs".to_string()],
         remove_ignore_patterns: vec!["node_modules".to_string()],
         add_process_whitelist: vec!["roo".to_string()],

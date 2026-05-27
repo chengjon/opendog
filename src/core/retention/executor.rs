@@ -31,26 +31,30 @@ pub fn cleanup_project_data_at(
     });
     let storage_before = collect_storage_metrics(db)?;
     let mut deleted = CleanupCountBreakdown::default();
+    let mut rolled_up = queries::ActivityRollupCounts::default();
     let mut maintenance = CleanupMaintenanceStatus::default();
     let mut notes = Vec::new();
     let mut estimate_mode = EstimateMode::Full;
 
     if matches!(request.scope, CleanupScope::Activity | CleanupScope::All) {
         if let Some(cutoff_ts) = cutoff_ts {
-            deleted.file_sightings = if request.dry_run {
-                queries::count_file_sightings_before(db, cutoff_ts)?
+            if request.dry_run {
+                deleted.file_sightings = queries::count_file_sightings_before(db, cutoff_ts)?;
+                deleted.file_events = queries::count_file_events_before(db, cutoff_ts)?;
             } else {
-                queries::delete_file_sightings_before(db, cutoff_ts)? as i64
-            };
-            deleted.file_events = if request.dry_run {
-                queries::count_file_events_before(db, cutoff_ts)?
+                rolled_up =
+                    queries::rollup_file_activity_before(db, cutoff_ts, &now_ts.to_string())?;
+                deleted.file_sightings =
+                    queries::delete_file_sightings_before(db, cutoff_ts)? as i64;
+                deleted.file_events = queries::delete_file_events_before(db, cutoff_ts)? as i64;
+            }
+            notes.push(if request.dry_run {
+                "activity cleanup preview counts raw sightings and events; real cleanup rolls up daily activity counts before deleting raw rows"
+                    .to_string()
             } else {
-                queries::delete_file_events_before(db, cutoff_ts)? as i64
-            };
-            notes.push(
-                "activity cleanup only removes raw sightings and events; aggregate file_stats are preserved"
-                    .to_string(),
-            );
+                "activity cleanup rolls up daily activity counts before removing raw sightings and events; aggregate file_stats are preserved"
+                    .to_string()
+            });
         }
     }
 
@@ -135,6 +139,7 @@ pub fn cleanup_project_data_at(
         keep_snapshot_runs: request.keep_snapshot_runs,
         vacuum: request.vacuum,
         deleted,
+        rolled_up,
         storage_before,
         storage_after,
         maintenance,

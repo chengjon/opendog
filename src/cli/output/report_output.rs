@@ -1,4 +1,6 @@
-use crate::core::report::{SnapshotComparison, TimeWindowReport, UsageTrendReport};
+use crate::core::report::{
+    ActivityRollupReport, SnapshotComparison, TimeWindowReport, UsageTrendReport,
+};
 
 use super::truncate;
 
@@ -104,6 +106,42 @@ pub(super) fn print_usage_trends(id: &str, report: &UsageTrendReport) {
     }
 }
 
+pub(super) fn print_activity_rollups(id: &str, report: &ActivityRollupReport) {
+    println!(
+        "Project '{}' — activity rollups window={} bucket={} returned_days={}/{}",
+        id,
+        report.window,
+        report.summary.bucket_size,
+        report.summary.returned_days,
+        report.summary.rollup_days
+    );
+    println!("  Range: {} .. {}", report.start_time, report.end_time);
+    println!(
+        "  Totals: access={} modifications={} events={}",
+        report.summary.total_access_count,
+        report.summary.total_modification_count,
+        report.summary.total_event_count
+    );
+    println!();
+
+    if report.days.is_empty() {
+        println!("  No activity rollups recorded in this window.");
+        return;
+    }
+
+    println!(
+        "  {:>12} {:>8} {:>8} {:>8}",
+        "DAY_START", "ACCESS", "MODS", "EVENTS"
+    );
+    println!("{}", "─".repeat(50));
+    for day in &report.days {
+        println!(
+            "  {:>12} {:>8} {:>8} {:>8}",
+            day.day_start, day.access_count, day.modification_count, day.event_count,
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -190,6 +228,16 @@ mod tests {
             "has data"
         };
         assert_eq!(msg, "No trend data recorded in this window.");
+    }
+
+    #[test]
+    fn activity_rollup_header_format() {
+        let line = format!(
+            "Project '{}' — activity rollups window={} bucket={} returned_days={}/{}",
+            "proj", "30d", "1d", 2, 3
+        );
+        assert!(line.contains("activity rollups"));
+        assert!(line.contains("returned_days=2/3"));
     }
 
     #[test]

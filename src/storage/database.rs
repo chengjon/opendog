@@ -224,6 +224,7 @@ mod tests {
             "snapshot_runs",
             "snapshot_history",
             "verification_runs",
+            "activity_daily_rollups",
             "governance_lanes",
             "governance_nodes",
             "data_risk_cache",

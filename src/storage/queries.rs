@@ -18,10 +18,12 @@ pub use self::project_registry::{
     delete_project, get_project, insert_project, list_projects, update_project_config,
 };
 pub use self::retention::{
-    count_file_events_before, count_file_sightings_before, count_snapshot_history_for_runs,
-    count_snapshot_runs, count_verification_runs_before, delete_file_events_before,
-    delete_file_sightings_before, delete_snapshot_history_for_runs, delete_snapshot_runs_by_ids,
-    delete_verification_runs_before, list_snapshot_run_ids_to_prune,
+    count_activity_daily_rollups, count_file_events, count_file_events_before,
+    count_file_sightings, count_file_sightings_before, count_snapshot_history_for_runs,
+    count_snapshot_runs, count_verification_runs, count_verification_runs_before,
+    delete_file_events_before, delete_file_sightings_before, delete_snapshot_history_for_runs,
+    delete_snapshot_runs_by_ids, delete_verification_runs_before, list_snapshot_run_ids_to_prune,
+    rollup_file_activity_before, ActivityRollupCounts,
 };
 pub use self::snapshots::{
     count_snapshot, get_snapshot_history_entries, get_snapshot_paths, get_snapshot_run,

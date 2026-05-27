@@ -165,6 +165,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec!["node_modules".to_string(), "*.pyc".to_string()],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(should_ignore_path("src/node_modules/pkg/index.js", &config));
         assert!(should_ignore_path("build/app.pyc", &config));
@@ -176,6 +177,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec![],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(!should_ignore_path("any/path.rs", &config));
     }
@@ -194,6 +196,7 @@ mod tests {
         let config = ProjectConfig {
             ignore_patterns: vec!["node_modules".to_string()],
             process_whitelist: vec![],
+            ..Default::default()
         };
         assert!(should_ignore_path("src\\node_modules\\pkg", &config));
     }

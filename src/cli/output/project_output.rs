@@ -137,6 +137,10 @@ pub(super) fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupRes
         result.deleted.snapshot_runs,
         result.deleted.snapshot_history,
     );
+    println!(
+        "  rolled_up: sightings={} events={}",
+        result.rolled_up.file_sightings, result.rolled_up.file_events,
+    );
     if let Some(storage_after) = &result.storage_after {
         println!(
             "  storage_after: page_count={} free_pages={} approx_db_bytes={} approx_reclaimable_bytes={}",

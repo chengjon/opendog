@@ -148,6 +148,84 @@ fn usage_trend_report_builds_bucketed_deltas() {
 }
 
 #[test]
+fn activity_rollup_report_reads_daily_rollups() {
+    let db = test_db();
+    let end_ts = 3_000_000i64;
+    let today = (end_ts / 86_400) * 86_400;
+    let yesterday = today - 86_400;
+
+    db.execute(
+        "INSERT INTO activity_daily_rollups
+         (day_start, source_table, activity, row_count, max_source_id, updated_at)
+         VALUES (?1, 'file_sightings', 'seen', 8, 10, ?2)",
+        params![yesterday, end_ts.to_string()],
+    )
+    .unwrap();
+    db.execute(
+        "INSERT INTO activity_daily_rollups
+         (day_start, source_table, activity, row_count, max_source_id, updated_at)
+         VALUES (?1, 'file_events', 'modify', 3, 20, ?2)",
+        params![yesterday, end_ts.to_string()],
+    )
+    .unwrap();
+    db.execute(
+        "INSERT INTO activity_daily_rollups
+         (day_start, source_table, activity, row_count, max_source_id, updated_at)
+         VALUES (?1, 'file_sightings', 'seen', 2, 12, ?2)",
+        params![today, end_ts.to_string()],
+    )
+    .unwrap();
+
+    let report = get_activity_rollup_report_at(&db, ReportWindow::Days7, end_ts, 10).unwrap();
+
+    assert_eq!(report.window, "7d");
+    assert_eq!(report.summary.bucket_size, "1d");
+    assert_eq!(report.summary.total_access_count, 10);
+    assert_eq!(report.summary.total_modification_count, 3);
+    assert_eq!(report.summary.rollup_days, 2);
+    assert_eq!(report.summary.returned_days, 2);
+    assert!(!report.summary.truncated);
+    assert_eq!(report.days[0].day_start, yesterday);
+    assert_eq!(report.days[0].access_count, 8);
+    assert_eq!(report.days[0].modification_count, 3);
+    assert_eq!(report.days[1].day_start, today);
+    assert_eq!(report.days[1].access_count, 2);
+}
+
+#[test]
+fn activity_rollup_report_summary_counts_all_days_when_limited() {
+    let db = test_db();
+    let end_ts = 3_000_000i64;
+    let today = (end_ts / 86_400) * 86_400;
+
+    for (index, day) in [today - 2 * 86_400, today - 86_400, today]
+        .iter()
+        .enumerate()
+    {
+        db.execute(
+            "INSERT INTO activity_daily_rollups
+             (day_start, source_table, activity, row_count, max_source_id, updated_at)
+             VALUES (?1, 'file_sightings', 'seen', ?2, ?3, ?4)",
+            params![
+                day,
+                (index + 1) as i64,
+                (index + 10) as i64,
+                end_ts.to_string()
+            ],
+        )
+        .unwrap();
+    }
+
+    let report = get_activity_rollup_report_at(&db, ReportWindow::Days7, end_ts, 2).unwrap();
+
+    assert_eq!(report.summary.total_access_count, 6);
+    assert_eq!(report.summary.rollup_days, 3);
+    assert_eq!(report.summary.returned_days, 2);
+    assert!(report.summary.truncated);
+    assert_eq!(report.days.len(), 2);
+}
+
+#[test]
 fn report_window_parse_rejects_unknown_values() {
     let error = ReportWindow::parse("90d").unwrap_err();
     assert!(error.to_string().contains("window must be one of"));

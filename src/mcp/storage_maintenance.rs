@@ -1,10 +1,7 @@
 use serde_json::{json, Value};
 
-use crate::core::retention::StorageMetrics;
-
-const STORAGE_CLEANUP_REVIEW_DB_BYTES_THRESHOLD: i64 = 16 * 1024 * 1024;
-const STORAGE_VACUUM_RECLAIMABLE_BYTES_THRESHOLD: i64 = 8 * 1024 * 1024;
-const STORAGE_VACUUM_RECLAIM_RATIO_THRESHOLD: f64 = 0.20;
+use crate::config::RetentionPolicy;
+use crate::core::retention::{StorageEvidenceCounts, StorageMetrics};
 
 fn storage_reclaim_ratio(metrics: &StorageMetrics) -> f64 {
     if metrics.approx_db_size_bytes <= 0 {
@@ -14,34 +11,288 @@ fn storage_reclaim_ratio(metrics: &StorageMetrics) -> f64 {
     }
 }
 
-pub(super) fn project_storage_maintenance(metrics: Option<&StorageMetrics>) -> Value {
+fn evidence_counts_json(counts: Option<&StorageEvidenceCounts>) -> Value {
+    counts.map_or(Value::Null, |counts| {
+        json!({
+            "file_sightings": counts.file_sightings,
+            "file_events": counts.file_events,
+            "activity_daily_rollups": counts.activity_daily_rollups,
+            "verification_runs": counts.verification_runs,
+            "snapshot_runs": counts.snapshot_runs,
+        })
+    })
+}
+
+fn storage_cleanup_recommendations(
+    counts: Option<&StorageEvidenceCounts>,
+    policy: &RetentionPolicy,
+) -> Vec<Value> {
+    let Some(counts) = counts else {
+        return Vec::new();
+    };
+
+    let mut recommendations = Vec::new();
+    if counts.file_sightings >= policy.activity_rows_threshold
+        || counts.file_events >= policy.activity_rows_threshold
+        || counts.file_sightings.saturating_add(counts.file_events)
+            >= policy.activity_rows_threshold
+    {
+        recommendations.push(json!({
+            "scope": "activity",
+            "older_than_days": policy.activity_retention_days,
+            "dry_run": true,
+            "rollup_before_delete": true,
+            "rollup_granularity": "daily",
+            "preserved_rollup_table": "activity_daily_rollups",
+            "reason": "activity evidence row counts exceed the storage pressure threshold",
+            "threshold_rows": policy.activity_rows_threshold,
+            "row_counts": {
+                "file_sightings": counts.file_sightings,
+                "file_events": counts.file_events,
+            }
+        }));
+    }
+
+    if counts.snapshot_runs >= policy.snapshot_runs_threshold {
+        recommendations.push(json!({
+            "scope": "snapshots",
+            "keep_snapshot_runs": policy.keep_snapshot_runs,
+            "dry_run": true,
+            "reason": "snapshot run count exceeds the storage pressure threshold",
+            "threshold_runs": policy.snapshot_runs_threshold,
+            "run_count": counts.snapshot_runs,
+        }));
+    }
+
+    if counts.verification_runs >= policy.verification_runs_threshold {
+        recommendations.push(json!({
+            "scope": "verification",
+            "older_than_days": policy.verification_retention_days,
+            "dry_run": true,
+            "reason": "verification run count exceeds the storage pressure threshold",
+            "threshold_runs": policy.verification_runs_threshold,
+            "run_count": counts.verification_runs,
+        }));
+    }
+
+    recommendations
+}
+
+fn cleanup_retention_parameters(scope: &str, source: &Value, policy: &RetentionPolicy) -> Value {
+    match scope {
+        "snapshots" => json!({
+            "keep_snapshot_runs": source["keep_snapshot_runs"]
+                .as_i64()
+                .unwrap_or(policy.keep_snapshot_runs)
+        }),
+        "verification" => json!({
+            "older_than_days": source["older_than_days"]
+                .as_i64()
+                .unwrap_or(policy.verification_retention_days)
+        }),
+        _ => json!({
+            "older_than_days": source["older_than_days"]
+                .as_i64()
+                .unwrap_or(policy.activity_retention_days)
+        }),
+    }
+}
+
+fn cleanup_plan_step(
+    step: i64,
+    phase: &str,
+    scope: &str,
+    source: &Value,
+    policy: &RetentionPolicy,
+    dry_run: bool,
+    requires_human_confirmation: bool,
+) -> Value {
+    let mut value = json!({
+        "step": step,
+        "phase": phase,
+        "scope": scope,
+        "dry_run": dry_run,
+        "requires_human_confirmation": requires_human_confirmation,
+        "retention_parameters": cleanup_retention_parameters(scope, source, policy),
+    });
+
+    if let Some(days) = value["retention_parameters"]["older_than_days"].as_i64() {
+        value["older_than_days"] = json!(days);
+    }
+    if let Some(keep_snapshot_runs) = value["retention_parameters"]["keep_snapshot_runs"].as_i64() {
+        value["keep_snapshot_runs"] = json!(keep_snapshot_runs);
+    }
+    if scope == "activity" {
+        value["rollup_before_delete"] = json!(true);
+        value["rollup_granularity"] = json!("daily");
+        value["preserved_rollup_table"] = json!("activity_daily_rollups");
+    }
+
+    value
+}
+
+fn storage_cleanup_plan(
+    cleanup_recommendations: &[Value],
+    cleanup_review_candidate: bool,
+    vacuum_candidate: bool,
+    policy: &RetentionPolicy,
+) -> Value {
+    let mut targets: Vec<(&str, Value)> = cleanup_recommendations
+        .iter()
+        .filter_map(|recommendation| {
+            recommendation["scope"]
+                .as_str()
+                .map(|scope| (scope, recommendation.clone()))
+        })
+        .collect();
+
+    if targets.is_empty() && (cleanup_review_candidate || vacuum_candidate) {
+        targets.push((
+            "all",
+            json!({
+                "scope": "all",
+                "older_than_days": policy.activity_retention_days,
+            }),
+        ));
+    }
+
+    if targets.is_empty() {
+        return json!({
+            "status": "not_needed",
+            "policy_driven": true,
+            "automatic_deletion": false,
+            "requires_human_confirmation": false,
+            "target_scopes": [],
+            "steps": [],
+            "summary": "No OPENDOG retention cleanup plan is needed for current storage signals.",
+        });
+    }
+
+    let mut steps = Vec::new();
+    let mut step = 1;
+    for (scope, recommendation) in &targets {
+        steps.push(cleanup_plan_step(
+            step,
+            "preview",
+            scope,
+            recommendation,
+            policy,
+            true,
+            false,
+        ));
+        step += 1;
+    }
+
+    steps.push(json!({
+        "step": step,
+        "phase": "review",
+        "requires_human_confirmation": true,
+        "summary": "Review cleanup-data dry-run deleted counts, retained evidence scope, and storage_before metrics before executing any deletion.",
+    }));
+    step += 1;
+
+    for (scope, recommendation) in &targets {
+        steps.push(cleanup_plan_step(
+            step,
+            "execute_cleanup",
+            scope,
+            recommendation,
+            policy,
+            false,
+            true,
+        ));
+        step += 1;
+    }
+
+    if vacuum_candidate {
+        steps.push(json!({
+            "step": step,
+            "phase": "compact",
+            "scope": "all",
+            "vacuum": true,
+            "requires_human_confirmation": true,
+            "summary": "Run vacuum only after cleanup execution when reclaimable pages remain material.",
+        }));
+    }
+
+    json!({
+        "status": "actionable",
+        "policy_driven": true,
+        "automatic_deletion": false,
+        "requires_human_confirmation": true,
+        "target_scopes": targets
+            .iter()
+            .map(|(scope, _)| json!(scope))
+            .collect::<Vec<_>>(),
+        "steps": steps,
+        "summary": "Review dry-run output first, then run confirmed cleanup steps only after operator approval.",
+    })
+}
+
+pub(super) fn project_storage_maintenance_with_policy(
+    metrics: Option<&StorageMetrics>,
+    evidence_counts: Option<&StorageEvidenceCounts>,
+    policy: &RetentionPolicy,
+) -> Value {
     let Some(metrics) = metrics else {
         return json!({
             "status": "unavailable",
             "cleanup_review_candidate": false,
+            "evidence_pressure_candidate": false,
             "maintenance_candidate": false,
             "vacuum_candidate": false,
             "suggested_mode": "none",
+            "pressure_level": "unknown",
+            "evidence_counts": Value::Null,
+            "retention_policy": policy,
+            "cleanup_recommendations": [],
+            "cleanup_plan": {
+                "status": "unavailable",
+                "policy_driven": true,
+                "automatic_deletion": false,
+                "requires_human_confirmation": false,
+                "target_scopes": [],
+                "steps": [],
+                "summary": "Project database metrics are unavailable.",
+            },
             "summary": "Project database metrics are unavailable.",
         });
     };
 
     let reclaim_ratio = storage_reclaim_ratio(metrics);
     let cleanup_review_candidate =
-        metrics.approx_db_size_bytes >= STORAGE_CLEANUP_REVIEW_DB_BYTES_THRESHOLD;
+        metrics.approx_db_size_bytes >= policy.cleanup_review_db_bytes_threshold;
+    let cleanup_recommendations = storage_cleanup_recommendations(evidence_counts, policy);
+    let evidence_pressure_candidate = !cleanup_recommendations.is_empty();
     let vacuum_candidate = metrics.approx_reclaimable_bytes
-        >= STORAGE_VACUUM_RECLAIMABLE_BYTES_THRESHOLD
-        && reclaim_ratio >= STORAGE_VACUUM_RECLAIM_RATIO_THRESHOLD;
-    let maintenance_candidate = cleanup_review_candidate || vacuum_candidate;
+        >= policy.vacuum_reclaimable_bytes_threshold
+        && reclaim_ratio >= policy.vacuum_reclaim_ratio_threshold_percent as f64 / 100.0;
+    let cleanup_plan = storage_cleanup_plan(
+        &cleanup_recommendations,
+        cleanup_review_candidate,
+        vacuum_candidate,
+        policy,
+    );
+    let maintenance_candidate =
+        cleanup_review_candidate || evidence_pressure_candidate || vacuum_candidate;
     let suggested_mode = if vacuum_candidate {
         "review_cleanup_then_vacuum"
-    } else if cleanup_review_candidate {
+    } else if cleanup_review_candidate || evidence_pressure_candidate {
         "review_cleanup"
     } else {
         "none"
     };
+    let pressure_level = if vacuum_candidate || evidence_pressure_candidate {
+        "high"
+    } else if cleanup_review_candidate {
+        "medium"
+    } else {
+        "low"
+    };
     let summary = if vacuum_candidate {
         "Project database has reclaimable space; review retained OPENDOG evidence and consider vacuum after cleanup."
+    } else if evidence_pressure_candidate {
+        "Project retained evidence counts exceed storage pressure thresholds; review scope-specific cleanup-data dry-runs."
     } else if cleanup_review_candidate {
         "Project database is large enough that retained OPENDOG evidence should be reviewed with cleanup-data dry-run."
     } else {
@@ -56,9 +307,15 @@ pub(super) fn project_storage_maintenance(metrics: Option<&StorageMetrics>) -> V
         "approx_reclaimable_bytes": metrics.approx_reclaimable_bytes,
         "reclaim_ratio": reclaim_ratio,
         "cleanup_review_candidate": cleanup_review_candidate,
+        "evidence_pressure_candidate": evidence_pressure_candidate,
         "maintenance_candidate": maintenance_candidate,
         "vacuum_candidate": vacuum_candidate,
         "suggested_mode": suggested_mode,
+        "pressure_level": pressure_level,
+        "evidence_counts": evidence_counts_json(evidence_counts),
+        "retention_policy": policy,
+        "cleanup_recommendations": cleanup_recommendations,
+        "cleanup_plan": cleanup_plan,
         "summary": summary,
     })
 }
@@ -172,6 +429,7 @@ fn storage_maintenance_execution_templates(
     let reclaimable_bytes = storage_maintenance["approx_reclaimable_bytes"]
         .as_i64()
         .unwrap_or(0);
+    let default_policy = RetentionPolicy::default();
     let mut templates = vec![json!({
         "template_id": "storage.cleanup.preview",
         "kind": "cli_command",
@@ -231,6 +489,226 @@ fn storage_maintenance_execution_templates(
             "retry_when": ["project id or cleanup scope was corrected"]
         }
     })];
+    let mut next_priority = 2;
+
+    if let Some(recommendations) = storage_maintenance["cleanup_recommendations"].as_array() {
+        for recommendation in recommendations {
+            let Some(scope) = recommendation["scope"].as_str() else {
+                continue;
+            };
+            let (command_template, default_values, success_signal) = match scope {
+                "activity" | "verification" => {
+                    let days = recommendation["older_than_days"].as_i64().unwrap_or(
+                        if scope == "verification" {
+                            default_policy.verification_retention_days
+                        } else {
+                            default_policy.activity_retention_days
+                        },
+                    );
+                    (
+                        format!(
+                            "opendog cleanup-data --id {} --scope {} --older-than-days {} --dry-run --json",
+                            project_id_value, scope, days
+                        ),
+                        json!({
+                            "scope": scope,
+                            "older_than_days": days,
+                            "dry_run": true,
+                            "json": true
+                        }),
+                        format!(
+                            "{} cleanup preview returns deleted counts plus storage_before metrics",
+                            scope
+                        ),
+                    )
+                }
+                "snapshots" => {
+                    let keep_snapshot_runs = recommendation["keep_snapshot_runs"]
+                        .as_i64()
+                        .unwrap_or(default_policy.keep_snapshot_runs);
+                    (
+                        format!(
+                            "opendog cleanup-data --id {} --scope snapshots --keep-snapshot-runs {} --dry-run --json",
+                            project_id_value, keep_snapshot_runs
+                        ),
+                        json!({
+                            "scope": "snapshots",
+                            "keep_snapshot_runs": keep_snapshot_runs,
+                            "dry_run": true,
+                            "json": true
+                        }),
+                        "snapshots cleanup preview returns deleted counts plus storage_before metrics"
+                            .to_string(),
+                    )
+                }
+                _ => continue,
+            };
+
+            templates.push(json!({
+                "template_id": format!("storage.cleanup.{}.preview", scope),
+                "kind": "cli_command",
+                "command_template": command_template,
+                "preconditions": [
+                    "project must exist in OPENDOG",
+                    "use dry-run first before deleting retained OPENDOG evidence"
+                ],
+                "blocking_conditions": [],
+                "success_signal": success_signal,
+                "parameter_schema": {
+                    "id": { "type": "string", "required": true, "source": "project_id" },
+                    "scope": { "type": "enum", "required": true, "allowed_values": ["activity", "snapshots", "verification"] },
+                    "older_than_days": { "type": "integer", "required": false },
+                    "keep_snapshot_runs": { "type": "integer", "required": false },
+                    "dry_run": { "type": "boolean", "required": false },
+                    "json": { "type": "boolean", "required": false }
+                },
+                "default_values": default_values,
+                "placeholder_hints": project_placeholder_hint.clone(),
+                "priority": next_priority,
+                "should_run_if": [
+                    "run when OPENDOG storage pressure recommendation names this cleanup scope"
+                ],
+                "skip_if": [
+                    "skip if the operator wants a single all-scope cleanup preview instead"
+                ],
+                "expected_output_fields": [
+                    "deleted",
+                    "storage_before.approx_db_size_bytes",
+                    "storage_before.approx_reclaimable_bytes",
+                    "maintenance"
+                ],
+                "follow_up_on_success": [
+                    "if deleted counts are meaningful, ask whether to rerun cleanup without dry_run"
+                ],
+                "follow_up_on_failure": [
+                    "fallback to the all-scope cleanup preview to compare retained evidence counts"
+                ],
+                "plan_stage": "maintain",
+                "terminality": "non_terminal",
+                "can_run_in_parallel": false,
+                "requires_human_confirmation": false,
+                "evidence_written_to_opendog": false,
+                "retry_policy": {
+                    "allowed": true,
+                    "max_attempts": 2,
+                    "strategy": "rerun_after_scope_or_retention_parameter_adjustment",
+                    "retry_when": ["project id or cleanup scope was corrected"]
+                }
+            }));
+            next_priority += 1;
+        }
+    }
+
+    if let Some(plan_steps) = storage_maintenance["cleanup_plan"]["steps"].as_array() {
+        for plan_step in plan_steps {
+            if plan_step["phase"].as_str() != Some("execute_cleanup") {
+                continue;
+            }
+            let Some(scope) = plan_step["scope"].as_str() else {
+                continue;
+            };
+            let (command_template, default_values) = match scope {
+                "activity" | "verification" | "all" => {
+                    let days = plan_step["older_than_days"]
+                        .as_i64()
+                        .or_else(|| plan_step["retention_parameters"]["older_than_days"].as_i64())
+                        .unwrap_or(if scope == "verification" {
+                            default_policy.verification_retention_days
+                        } else {
+                            default_policy.activity_retention_days
+                        });
+                    (
+                        format!(
+                            "opendog cleanup-data --id {} --scope {} --older-than-days {} --json",
+                            project_id_value, scope, days
+                        ),
+                        json!({
+                            "scope": scope,
+                            "older_than_days": days,
+                            "dry_run": false,
+                            "json": true
+                        }),
+                    )
+                }
+                "snapshots" => {
+                    let keep_snapshot_runs = plan_step["keep_snapshot_runs"]
+                        .as_i64()
+                        .or_else(|| {
+                            plan_step["retention_parameters"]["keep_snapshot_runs"].as_i64()
+                        })
+                        .unwrap_or(default_policy.keep_snapshot_runs);
+                    (
+                        format!(
+                            "opendog cleanup-data --id {} --scope snapshots --keep-snapshot-runs {} --json",
+                            project_id_value, keep_snapshot_runs
+                        ),
+                        json!({
+                            "scope": "snapshots",
+                            "keep_snapshot_runs": keep_snapshot_runs,
+                            "dry_run": false,
+                            "json": true
+                        }),
+                    )
+                }
+                _ => continue,
+            };
+
+            templates.push(json!({
+                "template_id": format!("storage.cleanup.{}.execute", scope),
+                "kind": "cli_command",
+                "command_template": command_template,
+                "preconditions": [
+                    "run only after the matching cleanup-data dry-run preview was reviewed",
+                    "operator must confirm retained OPENDOG evidence can be deleted"
+                ],
+                "blocking_conditions": [
+                    "requires explicit confirmation because this command deletes retained OPENDOG evidence"
+                ],
+                "success_signal": format!("{} cleanup execution returns deleted counts plus storage_after metrics", scope),
+                "parameter_schema": {
+                    "id": { "type": "string", "required": true, "source": "project_id" },
+                    "scope": { "type": "enum", "required": true, "allowed_values": ["activity", "snapshots", "verification", "all"] },
+                    "older_than_days": { "type": "integer", "required": false },
+                    "keep_snapshot_runs": { "type": "integer", "required": false },
+                    "dry_run": { "type": "boolean", "required": false },
+                    "json": { "type": "boolean", "required": false }
+                },
+                "default_values": default_values,
+                "placeholder_hints": project_placeholder_hint.clone(),
+                "priority": next_priority,
+                "should_run_if": [
+                    "run only when the policy cleanup plan execute_cleanup step is approved"
+                ],
+                "skip_if": [
+                    "skip if the dry-run preview was not reviewed or deleted counts look unsafe"
+                ],
+                "expected_output_fields": [
+                    "deleted",
+                    "storage_before.approx_db_size_bytes",
+                    "storage_after.approx_db_size_bytes",
+                    "maintenance"
+                ],
+                "follow_up_on_success": [
+                    "refresh agent guidance to confirm storage pressure decreased"
+                ],
+                "follow_up_on_failure": [
+                    "rerun the matching dry-run preview and adjust retention policy before retrying"
+                ],
+                "plan_stage": "maintain",
+                "terminality": "non_terminal",
+                "can_run_in_parallel": false,
+                "requires_human_confirmation": true,
+                "evidence_written_to_opendog": false,
+                "retry_policy": {
+                    "allowed": true,
+                    "max_attempts": 1,
+                    "strategy": "retry_after_preview_review_or_retention_parameter_change",
+                    "retry_when": ["the operator explicitly approved a corrected cleanup execution"]
+                }
+            }));
+            next_priority += 1;
+        }
+    }
 
     if storage_maintenance["vacuum_candidate"]
         .as_bool()
@@ -261,7 +739,7 @@ fn storage_maintenance_execution_templates(
                 "json": true
             },
             "placeholder_hints": project_placeholder_hint,
-            "priority": 2,
+            "priority": next_priority,
             "should_run_if": [
                 "run only when reclaimable bytes remain materially high and the user agrees to maintenance"
             ],
@@ -343,9 +821,13 @@ pub(super) fn augment_entrypoints_for_storage_maintenance(
 }
 
 #[cfg(test)]
+mod planner_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::retention::StorageMetrics;
+    use crate::config::RetentionPolicy;
+    use crate::core::retention::{StorageEvidenceCounts, StorageMetrics};
 
     // --- storage_reclaim_ratio tests ---
 
@@ -418,7 +900,8 @@ mod tests {
 
     #[test]
     fn project_storage_maintenance_none_metrics() {
-        let result = project_storage_maintenance(None);
+        let result =
+            project_storage_maintenance_with_policy(None, None, &RetentionPolicy::default());
         assert_eq!(result["status"], "unavailable");
         assert_eq!(result["cleanup_review_candidate"], false);
         assert_eq!(result["maintenance_candidate"], false);
@@ -435,7 +918,11 @@ mod tests {
             approx_db_size_bytes: 409_600,
             approx_reclaimable_bytes: 20_480,
         };
-        let result = project_storage_maintenance(Some(&metrics));
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            None,
+            &RetentionPolicy::default(),
+        );
         assert_eq!(result["status"], "available");
         assert_eq!(result["cleanup_review_candidate"], false);
         assert_eq!(result["maintenance_candidate"], false);
@@ -452,7 +939,11 @@ mod tests {
             approx_db_size_bytes: 40_960_000,
             approx_reclaimable_bytes: 2_048_000,
         };
-        let result = project_storage_maintenance(Some(&metrics));
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            None,
+            &RetentionPolicy::default(),
+        );
         assert_eq!(result["cleanup_review_candidate"], true);
         assert_eq!(result["maintenance_candidate"], true);
         assert_eq!(result["vacuum_candidate"], false);
@@ -469,7 +960,11 @@ mod tests {
             approx_db_size_bytes: 40_960_000,
             approx_reclaimable_bytes: 20_480_000,
         };
-        let result = project_storage_maintenance(Some(&metrics));
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            None,
+            &RetentionPolicy::default(),
+        );
         assert_eq!(result["cleanup_review_candidate"], true);
         assert_eq!(result["maintenance_candidate"], true);
         assert_eq!(result["vacuum_candidate"], true);
@@ -485,7 +980,11 @@ mod tests {
             approx_db_size_bytes: 40_960_000,
             approx_reclaimable_bytes: 40_960,
         };
-        let result = project_storage_maintenance(Some(&metrics));
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            None,
+            &RetentionPolicy::default(),
+        );
         assert_eq!(result["cleanup_review_candidate"], true);
         assert_eq!(result["maintenance_candidate"], true);
         // Reclaimable is under 8MB threshold
@@ -501,11 +1000,83 @@ mod tests {
             approx_db_size_bytes: 2_048_000,
             approx_reclaimable_bytes: 204_800,
         };
-        let result = project_storage_maintenance(Some(&metrics));
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            None,
+            &RetentionPolicy::default(),
+        );
         assert_eq!(result["page_count"], 500);
         assert_eq!(result["freelist_count"], 50);
         assert_eq!(result["approx_db_size_bytes"], 2_048_000);
         assert_eq!(result["approx_reclaimable_bytes"], 204_800);
+    }
+
+    #[test]
+    fn project_storage_maintenance_activity_pressure_recommends_activity_cleanup() {
+        let metrics = StorageMetrics {
+            page_size: 4096,
+            page_count: 100,
+            freelist_count: 5,
+            approx_db_size_bytes: 409_600,
+            approx_reclaimable_bytes: 20_480,
+        };
+        let counts = StorageEvidenceCounts {
+            file_sightings: 1_200_000,
+            file_events: 20,
+            activity_daily_rollups: 0,
+            verification_runs: 0,
+            snapshot_runs: 0,
+        };
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            Some(&counts),
+            &RetentionPolicy::default(),
+        );
+        assert_eq!(result["cleanup_review_candidate"], false);
+        assert_eq!(result["evidence_pressure_candidate"], true);
+        assert_eq!(result["maintenance_candidate"], true);
+        assert_eq!(result["suggested_mode"], "review_cleanup");
+        assert_eq!(result["pressure_level"], "high");
+        assert_eq!(
+            result["cleanup_recommendations"][0]["scope"],
+            json!("activity")
+        );
+        assert_eq!(
+            result["cleanup_recommendations"][0]["older_than_days"],
+            json!(30)
+        );
+    }
+
+    #[test]
+    fn project_storage_maintenance_snapshot_pressure_recommends_snapshot_cleanup() {
+        let metrics = StorageMetrics {
+            page_size: 4096,
+            page_count: 100,
+            freelist_count: 5,
+            approx_db_size_bytes: 409_600,
+            approx_reclaimable_bytes: 20_480,
+        };
+        let counts = StorageEvidenceCounts {
+            file_sightings: 0,
+            file_events: 0,
+            activity_daily_rollups: 0,
+            verification_runs: 0,
+            snapshot_runs: 250,
+        };
+        let result = project_storage_maintenance_with_policy(
+            Some(&metrics),
+            Some(&counts),
+            &RetentionPolicy::default(),
+        );
+        assert_eq!(result["evidence_pressure_candidate"], true);
+        assert_eq!(
+            result["cleanup_recommendations"][0]["scope"],
+            json!("snapshots")
+        );
+        assert_eq!(
+            result["cleanup_recommendations"][0]["keep_snapshot_runs"],
+            json!(20)
+        );
     }
 
     // --- storage_maintenance_layer tests ---
@@ -754,6 +1325,30 @@ mod tests {
         });
         let result = storage_maintenance_execution_templates(Some("proj"), &sm);
         assert_eq!(result[0]["priority"], 1);
+    }
+
+    #[test]
+    fn execution_templates_include_scope_specific_cleanup_recommendations() {
+        let sm = json!({
+            "maintenance_candidate": true,
+            "vacuum_candidate": false,
+            "approx_reclaimable_bytes": 0,
+            "cleanup_recommendations": [
+                {"scope": "activity", "older_than_days": 30},
+                {"scope": "snapshots", "keep_snapshot_runs": 20}
+            ],
+        });
+        let result = storage_maintenance_execution_templates(Some("proj"), &sm);
+        let commands: Vec<&str> = result
+            .iter()
+            .filter_map(|template| template["command_template"].as_str())
+            .collect();
+        assert!(commands.iter().any(|cmd| cmd.contains(
+            "opendog cleanup-data --id proj --scope activity --older-than-days 30 --dry-run --json"
+        )));
+        assert!(commands.iter().any(|cmd| cmd.contains(
+            "opendog cleanup-data --id proj --scope snapshots --keep-snapshot-runs 20 --dry-run --json"
+        )));
     }
 
     #[test]

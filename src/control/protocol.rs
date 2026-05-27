@@ -381,6 +381,7 @@ mod tests {
         let patch = ConfigPatch {
             ignore_patterns: Some(vec!["*.log".to_string()]),
             process_whitelist: None,
+            retention: None,
             add_ignore_patterns: vec![],
             remove_ignore_patterns: vec![],
             add_process_whitelist: vec![],

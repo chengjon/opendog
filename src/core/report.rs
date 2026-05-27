@@ -1,10 +1,12 @@
 use crate::error::{OpenDogError, Result};
 use serde::{Deserialize, Serialize};
 
+mod activity_rollup;
 mod snapshot_compare;
 mod time_window;
 mod usage_trend;
 
+pub use self::activity_rollup::{get_activity_rollup_report, get_activity_rollup_report_at};
 pub use self::snapshot_compare::{compare_latest_snapshots, compare_snapshot_runs};
 pub use self::time_window::{get_time_window_report, get_time_window_report_at};
 pub use self::usage_trend::{get_usage_trend_report, get_usage_trend_report_at};
@@ -161,6 +163,35 @@ pub struct UsageTrendReport {
     pub end_time: String,
     pub summary: TrendSummary,
     pub files: Vec<FileTrend>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActivityRollupDay {
+    pub day_start: i64,
+    pub access_count: i64,
+    pub modification_count: i64,
+    pub event_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActivityRollupSummary {
+    pub bucket_size: String,
+    pub bucket_count: usize,
+    pub total_access_count: i64,
+    pub total_modification_count: i64,
+    pub total_event_count: i64,
+    pub rollup_days: usize,
+    pub returned_days: usize,
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActivityRollupReport {
+    pub window: String,
+    pub start_time: String,
+    pub end_time: String,
+    pub summary: ActivityRollupSummary,
+    pub days: Vec<ActivityRollupDay>,
 }
 
 pub(super) fn window_bounds(window: ReportWindow, end_ts: i64) -> (i64, i64) {

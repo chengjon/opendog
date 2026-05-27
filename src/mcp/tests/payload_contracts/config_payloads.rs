@@ -7,6 +7,7 @@ fn global_config_payload_has_versioned_contract() {
         &ProjectConfig {
             ignore_patterns: vec!["dist".to_string()],
             process_whitelist: vec!["codex".to_string()],
+            ..Default::default()
         },
     );
     assert_eq!(value["schema_version"], MCP_GLOBAL_CONFIG_V1);
@@ -27,14 +28,17 @@ fn project_config_payload_has_versioned_contract() {
             global_defaults: ProjectConfig {
                 ignore_patterns: vec!["dist".to_string()],
                 process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
             },
             project_overrides: ProjectConfigOverrides {
                 ignore_patterns: Some(vec!["logs".to_string()]),
                 process_whitelist: None,
+                ..Default::default()
             },
             effective: ProjectConfig {
                 ignore_patterns: vec!["logs".to_string()],
                 process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
             },
         },
     );
@@ -57,14 +61,17 @@ fn config_update_payloads_include_reload_state() {
             global_defaults: ProjectConfig {
                 ignore_patterns: vec!["dist".to_string()],
                 process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
             },
             project_overrides: ProjectConfigOverrides {
                 ignore_patterns: Some(vec!["logs".to_string()]),
                 process_whitelist: Some(vec!["codex".to_string()]),
+                ..Default::default()
             },
             effective: ProjectConfig {
                 ignore_patterns: vec!["logs".to_string()],
                 process_whitelist: vec!["codex".to_string()],
+                ..Default::default()
             },
             reload: ProjectConfigReload {
                 monitor_running: true,
@@ -87,6 +94,7 @@ fn config_update_payloads_include_reload_state() {
             global_defaults: ProjectConfig {
                 ignore_patterns: vec!["generated".to_string()],
                 process_whitelist: vec!["claude".to_string()],
+                ..Default::default()
             },
             reloaded_projects: vec![ProjectReloadStatus {
                 project_id: "demo".to_string(),
@@ -125,6 +133,7 @@ fn project_config_reload_payload_has_versioned_contract() {
         &ProjectConfig {
             ignore_patterns: vec!["logs".to_string()],
             process_whitelist: vec!["codex".to_string()],
+            ..Default::default()
         },
     );
     assert_eq!(value["schema_version"], MCP_RELOAD_PROJECT_CONFIG_V1);
