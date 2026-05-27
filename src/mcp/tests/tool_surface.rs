@@ -18,6 +18,20 @@ fn registered_tool_names() -> BTreeSet<String> {
         .collect()
 }
 
+fn documented_tool_names() -> BTreeSet<String> {
+    let tool_reference = include_str!("../../../docs/mcp-tool-reference.md");
+
+    tool_reference
+        .lines()
+        .filter_map(|line| {
+            line.strip_prefix("## `")
+                .and_then(|rest| rest.split('`').next())
+                .filter(|name| !name.starts_with("opendog://"))
+                .map(ToString::to_string)
+        })
+        .collect()
+}
+
 #[test]
 fn mcp_tool_surface_matches_inventory() {
     let registered = registered_tool_names();
@@ -55,6 +69,20 @@ fn mcp_tool_surface_matches_inventory() {
             tool.name
         );
     }
+}
+
+#[test]
+fn mcp_tool_reference_documents_inventory() {
+    let documented = documented_tool_names();
+    let inventory: BTreeSet<String> = mcp_tool_inventory()
+        .iter()
+        .map(|tool| tool.name.to_string())
+        .collect();
+
+    assert_eq!(
+        documented, inventory,
+        "docs/mcp-tool-reference.md tool headings must match the central MCP inventory"
+    );
 }
 
 #[test]
