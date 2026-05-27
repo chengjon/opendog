@@ -2,6 +2,27 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-05-27
+
+### Added
+
+- Retained-evidence lifecycle support now preserves activity summaries in `activity_daily_rollups` before old raw activity rows are removed.
+- CLI `opendog report rollup` and MCP `get_activity_rollups` expose retained daily activity summaries after cleanup.
+- MCP `get_build_info` reports binary version/build metadata, storage schema version, daemon state, `OPENDOG_HOME`, and rebuild hints.
+- Storage-retention operations documentation now covers dry-run cleanup, WAL checkpointing, vacuum behavior, and retained rollup verification.
+- MCP tool-reference coverage now has a regression test that checks documented tool headings against the central MCP inventory.
+
+### Changed
+
+- MCP tool count is now 27, covering guidance, config/build diagnostics, project lifecycle, observation, retained rollups, verification, orphan/deletion planning, data-risk, workspace overview, and governance state.
+- `get_build_info` keeps the top-level response `schema_version` as the build-info contract identifier and exposes the SQLite schema separately as `storage_schema_version`.
+- Mystocks project-exchange reports, audit responses, and feature-introduction counts were synced with the implemented retained-evidence, schema-contract, and documentation-coverage changes.
+
+### Fixed
+
+- Build-info payload consumers no longer need to distinguish contract schema from storage schema by interpreting one overloaded field.
+- Root feature tree and quick-start guidance now reflect `report rollup`, `get_activity_rollups`, `get_build_info`, `scan_orphans`, and `verify_deletion_plan`.
+
 ## 2026-05-25
 
 ### Added

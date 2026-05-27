@@ -43,8 +43,14 @@ opendog stats --id myapp
 # List never-accessed files (candidates for cleanup)
 opendog unused --id myapp
 
+# View retained daily activity rollups after cleanup
+opendog report rollup --id myapp --window 30d --limit 30
+
 # List all registered projects
 opendog list
+
+# Preview retained-data cleanup before deleting raw evidence
+opendog cleanup-data --id myapp --scope activity --older-than-days 30 --dry-run
 
 # Start live monitoring (blocks until Ctrl+C)
 opendog start --id myapp
@@ -150,6 +156,8 @@ The build command runs `cargo build --release` against the explicit `--source` p
 
 Then restart or reconnect Claude Code, Codex CLI, or the MCP host that uses OpenDog. A currently running MCP server process does not hot-reload when the file on disk changes. OpenDog must not kill the MCP process, restart the host, or edit `.claude.json` / Codex MCP config automatically.
 
+After reconnect, call `get_build_info {}` from the MCP host when you need to confirm what is actually running. The top-level `schema_version` identifies the build-info response contract; `storage_schema_version` identifies the SQLite schema currently opened by OpenDog. Also check `daemon_running`, `opendog_home`, and `needs_rebuild` when a host appears to be using an older binary.
+
 For multi-project use, prefer configuring every project to point at the same release binary:
 
 ```text
@@ -160,13 +168,15 @@ If a project uses a copied binary such as `/opt/claude/<project>/bin/opendog`, i
 
 **Current MCP Tool Surface:**
 
-OPENDOG currently exposes 19 MCP tools:
+OPENDOG currently exposes 27 MCP tools:
 
-- `register_project`, `take_snapshot`, `start_monitor`, `stop_monitor`, `get_stats`, `get_unused_files`, `list_projects`, `delete_project`
-- `get_time_window_report`, `compare_snapshots`, `get_usage_trends`
-- `get_global_config`, `get_project_config`
-- `get_guidance`, `get_verification_status`, `record_verification_result`, `run_verification_command`
-- `get_data_risk_candidates`, `get_workspace_data_risk_overview`
+- Guidance and diagnostics: `get_guidance`, `get_global_config`, `get_build_info`, `get_project_config`
+- Project and monitoring: `register_project`, `take_snapshot`, `start_monitor`, `stop_monitor`, `list_projects`, `delete_project`
+- Observation and reports: `get_stats`, `get_unused_files`, `get_time_window_report`, `compare_snapshots`, `get_usage_trends`, `get_activity_rollups`
+- Verification: `get_verification_status`, `record_verification_result`, `run_verification_command`
+- Orphan and deletion planning: `scan_orphans`, `verify_deletion_plan`
+- Data-risk and workspace review: `get_data_risk_candidates`, `get_workspace_data_risk_overview`
+- Governance state: `create_governance_lane`, `upsert_governance_node`, `get_governance_state`, `close_governance_lane`
 
 Detailed request and response shapes live in [docs/mcp-tool-reference.md](/opt/claude/opendog/docs/mcp-tool-reference.md).
 
@@ -266,11 +276,13 @@ After a project has already been registered, later MCP sessions usually skip `re
 
 - `opendog://projects` to read registered projects without invoking a tool
 - `opendog://project/{id}/verification` to read latest verification evidence without invoking a tool
+- `get_build_info` for binary, storage-schema, daemon, and rebuild diagnostics
 - `get_guidance` for the recommended next action
 - `get_stats` for hot files
 - `get_unused_files` for cleanup candidates
-- `get_time_window_report`, `compare_snapshots`, `get_usage_trends` for report-style observation
+- `get_time_window_report`, `compare_snapshots`, `get_usage_trends`, `get_activity_rollups` for report-style observation
 - `get_verification_status` and `get_data_risk_candidates` for readiness and data-risk checks
+- `scan_orphans` and `verify_deletion_plan` for deletion-safety review before removing project files
 
 Source-first observation examples for AI-assisted repositories:
 
@@ -278,9 +290,12 @@ Source-first observation examples for AI-assisted repositories:
 get_stats {"id":"mystocks","path_classification":"source","limit":50}
 get_unused_files {"id":"mystocks","path_classification":"source","limit":50}
 get_stats {"id":"mystocks","path_classification":"infrastructure","limit":10}
+get_activity_rollups {"id":"mystocks","window":"30d","limit":30}
 ```
 
 `path_classification` accepts `all`, `source`, `infrastructure`, `backup`, and `project`. Filtering changes the returned `files` window, not the full project counts or `classification_summary`; infrastructure evidence such as `.claude/` remains available when requested.
+
+`get_activity_rollups` reads daily rollups retained by cleanup. Use it after `cleanup-data --scope activity` to confirm OPENDOG still has aggregate activity evidence even when old raw `file_events` and `file_sightings` rows have been removed.
 
 #### CLI Usage for Scripts and CI
 
@@ -290,14 +305,17 @@ If your external project cannot speak MCP, call the CLI instead:
 opendog register --id demo --path /absolute/path/to/project
 opendog snapshot --id demo
 opendog stats --id demo
+opendog report rollup --id demo --window 30d --limit 30
 opendog list
+opendog cleanup-data --id demo --scope activity --older-than-days 30 --dry-run --json
 ```
 
 Important behavior notes:
 
 - `opendog start --id <ID>` is a blocking foreground command
 - `opendog mcp` is the preferred long-lived integration surface for external hosts
-- config mutation, evidence export, and retained-data cleanup are currently CLI-only operator flows
+- config mutation, evidence export, and retained-data cleanup mutations are currently CLI-only operator flows
+- start retained-data cleanup with `--dry-run`; see [docs/operations/storage-retention-runbook.md](/opt/claude/opendog/docs/operations/storage-retention-runbook.md) before using `--vacuum` on a large database
 
 ### Project Exchange Reports
 
@@ -427,6 +445,9 @@ You can override that root with `OPENDOG_HOME=/absolute/path/to/opendog-state`. 
 | `Project not found` | Run `opendog list` to see registered projects |
 | No stats showing | Run `opendog snapshot` first, then `opendog start` to begin monitoring |
 | MCP state disappears between reconnects | Ensure every MCP host launch uses the same `OPENDOG_HOME` value, or at least the same `HOME` |
+| MCP host appears to run old code | Rebuild with `opendog self-update build --source /opt/claude/opendog`, reconnect the MCP host, then call `get_build_info {}` and check `needs_rebuild=false` |
+| Storage schema or daemon state is unclear | Call `get_build_info {}` and compare `schema_version`, `storage_schema_version`, `daemon_running`, and `opendog_home` |
+| OPENDOG database is too large | Run `opendog cleanup-data --id <ID> --scope activity --older-than-days <N> --dry-run --json`, verify rollups with `opendog report rollup --id <ID>`, then follow the storage-retention runbook for live cleanup and optional vacuum |
 
 ## Run Tests
 

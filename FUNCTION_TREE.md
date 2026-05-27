@@ -564,14 +564,18 @@ Current implementation is concentrated in these directories:
 
 Current rough weight by source area:
 
-- `src/mcp`: 115 files, about 15.2k lines
-- `src/core`: 16 files, about 2.9k lines
-- `src/control`: 11 files, about 1.6k lines
-- full `src`: 179 Rust files, about 24.8k lines
+- `src/mcp`: 130 files, about 33.5k lines
+- `src/core`: 36 files, about 9.2k lines
+- `src/storage`: 12 files, about 3.1k lines
+- `src/control`: 14 files, about 3.2k lines
+- `src/config`: 5 files, about 1.2k lines
+- `src/cli`: 21 files, about 4.9k lines
+- full `src`: 226 Rust files, about 56.9k lines
 
 Interpretation:
 
 - `src/core/` is the observation kernel
+- `src/storage/` is the SQLite persistence and migration layer
 - `src/control/` is the runtime coordination layer
 - `src/mcp/` is the largest current surface and carries most of the AI-facing orchestration complexity
 
@@ -614,6 +618,7 @@ Current CLI subcommands:
   - `window`
   - `compare`
   - `trend`
+  - `rollup`
 - `governance`
   - `create-lane`
   - `upsert-node`
@@ -624,7 +629,7 @@ Re-grouped by intent, the CLI currently covers:
 
 - project lifecycle: `register` / `create` alias, `list`, `delete`
 - observation: `snapshot`, `start`, `stop`, `stats`, `unused`
-- reporting: `report window`, `report compare`, `report trend`, `export`
+- reporting: `report window`, `report compare`, `report trend`, `report rollup`, `export`
 - AI guidance: `agent-guidance`, `decision-brief`, `data-risk`, `workspace-data-risk`
 - verification: `verification`, `record-verification`, `run-verification`
 - operations/runtime: `config *`, `cleanup-data`, `self-update`, `daemon`, `mcp`
@@ -632,7 +637,7 @@ Re-grouped by intent, the CLI currently covers:
 
 ### MCP Tool Distribution
 
-Current MCP tool set:
+Current MCP tool set (27 tools):
 
 - project and monitoring
   - `register_project`
@@ -647,8 +652,10 @@ Current MCP tool set:
   - `get_time_window_report`
   - `compare_snapshots`
   - `get_usage_trends`
+  - `get_activity_rollups`
 - configuration inspection
   - `get_global_config`
+  - `get_build_info`
   - `get_project_config`
 - guidance and decision
   - `get_guidance`
@@ -659,13 +666,16 @@ Current MCP tool set:
 - data risk and workspace prioritization
   - `get_data_risk_candidates`
   - `get_workspace_data_risk_overview`
+- orphan and deletion planning
+  - `scan_orphans`
+  - `verify_deletion_plan`
 - governance state observation
   - `create_governance_lane`
   - `upsert_governance_node`
   - `get_governance_state`
   - `close_governance_lane`
 
-Current MCP read-only resources:
+Current MCP read-only resources (2 resources):
 
 - static resources
   - `opendog://projects`
@@ -688,11 +698,13 @@ From a capability perspective, several public entrypoints are close variants of 
   - `report window`
   - `report compare`
   - `report trend`
+  - `report rollup`
   - `get_stats`
   - `get_unused_files`
   - `get_time_window_report`
   - `compare_snapshots`
   - `get_usage_trends`
+  - `get_activity_rollups`
 - verification family
   - `verification`
   - `record-verification`
@@ -702,6 +714,7 @@ From a capability perspective, several public entrypoints are close variants of 
   - `run_verification_command`
 - operations family
   - `config *`
+  - `get_build_info`
   - `cleanup-data`
   - `export`
   - `daemon`
@@ -709,6 +722,9 @@ From a capability perspective, several public entrypoints are close variants of 
 - read-only state family
   - `opendog://projects`
   - `opendog://project/{id}/verification`
+- orphan and deletion-planning family
+  - `scan_orphans`
+  - `verify_deletion_plan`
 - governance family
   - `governance create-lane`
   - `governance upsert-node`
