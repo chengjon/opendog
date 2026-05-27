@@ -1,8 +1,10 @@
-use serde_json::{json, Value};
+#[cfg(test)]
+use serde_json::json;
+use serde_json::Value;
 
 mod model;
 
-use model::DecisionActionProfile;
+use model::{DecisionActionProfile, DecisionRiskProfile};
 
 pub(in crate::mcp) fn decision_action_profile(action: &str, strategy_mode: &str) -> Value {
     DecisionActionProfile::from_action(action, strategy_mode).to_json()
@@ -15,70 +17,14 @@ pub(in crate::mcp) fn decision_risk_profile(
     safe_for_cleanup: Option<bool>,
     safe_for_refactor: Option<bool>,
 ) -> Value {
-    let repo_risk = &matched_overview["repo_status_risk"];
-    let repo_risk_level = repo_risk["risk_level"].as_str().unwrap_or("unknown");
-    let cleanup_gate_level = matched_overview["verification_evidence"]["gate_assessment"]
-        ["cleanup"]["level"]
-        .as_str()
-        .unwrap_or(if safe_for_cleanup.unwrap_or(false) {
-            "allow"
-        } else {
-            "blocked"
-        });
-    let refactor_gate_level = matched_overview["verification_evidence"]["gate_assessment"]
-        ["refactor"]["level"]
-        .as_str()
-        .unwrap_or(if safe_for_refactor.unwrap_or(false) {
-            "allow"
-        } else {
-            "blocked"
-        });
-    let cleanup_blockers = matched_overview["cleanup_blockers"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    let refactor_blockers = matched_overview["refactor_blockers"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    let primary_repo_risk_finding = repo_risk["highest_priority_finding"].clone();
-    let repo_risk_findings = repo_risk["risk_findings"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    let risk_tier = match action {
-        "review_failing_verification" | "stabilize_repository_state" => "high",
-        "run_verification_before_high_risk_changes" => "medium",
-        "review_unused_files" | "inspect_hot_files" => {
-            let gate_is_cautious = match action {
-                "review_unused_files" => cleanup_gate_level != "allow",
-                _ => refactor_gate_level != "allow",
-            };
-            if repo_risk_level == "high" || verification_status != "available" || gate_is_cautious {
-                "medium"
-            } else {
-                "low"
-            }
-        }
-        _ => "low",
-    };
-
-    json!({
-        "risk_tier": risk_tier,
-        "repo_risk_level": repo_risk_level,
-        "verification_status": verification_status,
-        "cleanup_ready": safe_for_cleanup,
-        "refactor_ready": safe_for_refactor,
-        "cleanup_gate_level": cleanup_gate_level,
-        "refactor_gate_level": refactor_gate_level,
-        "cleanup_blockers": cleanup_blockers,
-        "refactor_blockers": refactor_blockers,
-        "primary_repo_risk_finding": primary_repo_risk_finding,
-        "repo_risk_findings": repo_risk_findings,
-        "repo_risk_finding_counts": repo_risk["finding_counts"].clone(),
-        "destructive_change_recommended": false,
-        "manual_review_required": action == "review_unused_files" || action == "inspect_hot_files",
-    })
+    DecisionRiskProfile::from_overview(
+        action,
+        matched_overview,
+        verification_status,
+        safe_for_cleanup,
+        safe_for_refactor,
+    )
+    .to_json()
 }
 
 #[cfg(test)]

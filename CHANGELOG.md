@@ -25,6 +25,7 @@ All notable changes to OPENDOG are documented here.
 - Single-project verification status and gate-assessment payloads now use typed summaries before rendering MCP JSON.
 - Execution-strategy workspace profiles now use a typed internal model for global mode selection, tool preference, evidence priority, and recommended-flow text before rendering MCP JSON.
 - Decision-support action profiles now use a typed internal model for action class, phase, mutability scope, verification requirement, and primary-goal text before rendering MCP JSON.
+- Decision-support risk profiles now use a typed internal model for risk-tier selection, gate fallback, blockers, repo-risk findings, and manual-review flags before rendering MCP JSON.
 
 ### Fixed
 
