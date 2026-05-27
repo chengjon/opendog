@@ -391,3 +391,90 @@ Interpretation:
 - Explicit WAL checkpoint/truncate was required to release the large post-cleanup WAL file.
 - The remaining 14-day eligible data is negligible and likely appeared during or shortly after cleanup.
 - A 7-day policy would still be materially more aggressive; post-cleanup dry-run estimates about 7.6M events and 4.3M sightings eligible under 7-day retention.
+
+## Retention Policy Persisted
+
+The operator continued after the 14-day cleanup. To keep future storage-maintenance guidance aligned with the executed policy, mystocks was given a project-level retention override.
+
+Command:
+
+```bash
+OPENDOG_HOME=/root/.opendog target/release/opendog config set-project \
+  --id mystocks \
+  --retention-policy-json '{
+    "activity_retention_days": 14,
+    "activity_rows_threshold": 1000000,
+    "cleanup_review_db_bytes_threshold": 16777216,
+    "keep_snapshot_runs": 20,
+    "snapshot_runs_threshold": 100,
+    "vacuum_reclaim_ratio_threshold_percent": 20,
+    "vacuum_reclaimable_bytes_threshold": 8388608,
+    "verification_retention_days": 60,
+    "verification_runs_threshold": 10000
+  }' \
+  --json
+```
+
+Result summary:
+
+```json
+{
+  "schema_version": "opendog.cli.update-project-config.v1",
+  "status": "updated",
+  "project_id": "mystocks",
+  "reload": {
+    "changed_fields": ["retention"],
+    "monitor_running": true,
+    "runtime_reloaded": true,
+    "skipped_fields": [],
+    "snapshot_refreshed": false
+  }
+}
+```
+
+Verification:
+
+```json
+{
+  "schema_version": "opendog.cli.project-config.v1",
+  "project_id": "mystocks",
+  "inherits": {
+    "ignore_patterns": true,
+    "process_whitelist": true,
+    "retention": false
+  },
+  "effective_retention": {
+    "activity_retention_days": 14,
+    "activity_rows_threshold": 1000000,
+    "cleanup_review_db_bytes_threshold": 16777216,
+    "keep_snapshot_runs": 20,
+    "snapshot_runs_threshold": 100,
+    "vacuum_reclaim_ratio_threshold_percent": 20,
+    "vacuum_reclaimable_bytes_threshold": 8388608,
+    "verification_retention_days": 60,
+    "verification_runs_threshold": 10000
+  }
+}
+```
+
+Follow-up 14-day dry-run after config persistence:
+
+```json
+{
+  "deleted": {
+    "file_events": 7,
+    "file_sightings": 0,
+    "snapshot_history": 0,
+    "snapshot_runs": 0,
+    "verification_runs": 0
+  },
+  "freelist_count": 0
+}
+```
+
+Interpretation:
+
+- The 14-day policy is now persisted at project scope.
+- The running monitor reloaded the retention override immediately.
+- The residual 14-day cleanup estimate is negligible.
+- Future reviews should evaluate growth under the 14-day policy before considering the more aggressive 7-day policy.
