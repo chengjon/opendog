@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info, warn};
 
-use super::{now_secs, thread_finished, MonitorState};
+use super::{lock_snapshots::read_config_snapshot, now_secs, thread_finished, MonitorState};
 
 pub(super) fn start_file_watcher(db: &Database, root: &Path, state: &Arc<MonitorState>) {
     use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -86,7 +86,7 @@ pub(super) fn record_file_event(
         let Some(rel_path) = normalize_event_path(root, path) else {
             continue;
         };
-        let live_config = state.config.read().unwrap().clone();
+        let live_config = read_config_snapshot(state);
         if should_ignore_path(&rel_path, &live_config) {
             continue;
         }

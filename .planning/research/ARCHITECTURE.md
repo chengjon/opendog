@@ -1,5 +1,7 @@
 # Architecture Research: OPENDOG
 
+> Historical baseline note: this research captured the early v1 architecture and Phase 4 build order. The current MCP tool count and interface map are maintained in `src/mcp/tool_inventory.rs`, `docs/mcp-tool-reference.md`, `FUNCTION_TREE.md`, and `CLAUDE.md`.
+
 ## Component Diagram
 
 ```
@@ -166,8 +168,9 @@ opendog/
 │   │
 │   ├── mcp/
 │   │   ├── mod.rs           # MCP server entry point (rmcp stdio transport)
-│   │   ├── handlers.rs      # 8 tool handlers, delegate to core::
-│   │   └── tools.rs         # Tool definitions (name, description, schema via rmcp)
+│   │   ├── *_handlers.rs    # MCP tool handlers, daemon-first where applicable
+│   │   ├── payloads/        # JSON contract payload builders
+│   │   └── tool_inventory.rs # Current tool inventory and contract ownership
 │   │
 │   ├── cli/
 │   │   ├── mod.rs           # clap app definition, subcommands
@@ -197,8 +200,8 @@ Based on dependency analysis:
 | 2 | Core: project + snapshot | storage | Project CRUD, recursive file scanning |
 | 3 | Core: monitor + /proc scanner | storage | /proc fd scanning, inotify change detection, approximate attribution |
 | 4 | Core: stats | storage | Usage queries, unused detection |
-| 5 | Service: MCP server | core (all) | 8 MCP tools over stdio JSON-RPC |
-| 6 | Service: CLI | core (all) | 8 CLI commands with terminal output |
+| 5 | Service: MCP server | core (all) | Historical 8-tool stdio JSON-RPC baseline; current surface is tracked in the MCP inventory |
+| 6 | Service: CLI | core (all) | Historical 8-command terminal baseline; current command surface is tracked in `CLAUDE.md` and `FUNCTION_TREE.md` |
 | 7 | Daemon + integration | everything | Systemd service, signal handling, e2e tests |
 
 ### Parallelization Opportunities

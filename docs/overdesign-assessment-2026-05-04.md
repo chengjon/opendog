@@ -7,6 +7,7 @@ Historical note:
 
 - this document is a pre-optimization self-assessment snapshot from 2026-05-04
 - counts such as MCP tool totals reflect the repository state before the 2026-05-05 MCP surface reduction
+- source-size counts reflect the 2026-05-04 snapshot; current implementation distribution lives in `FUNCTION_TREE.md`
 - for the post-implementation review chain and current disposition, see:
   - `docs/superpowers/reviews/overdesign-review-2026-05-05.md`
   - `docs/superpowers/reviews/overdesign-optimization-list-2026-05-05.md`

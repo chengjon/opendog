@@ -81,7 +81,7 @@ These features set OPENDOG apart from existing file monitoring tools. No current
 **What**: Expose all monitoring operations as MCP tools over stdio transport, enabling AI tools to directly query and control monitoring.
 **Why differentiating**: No existing file monitor provides an MCP interface. MCP is the emerging standard for AI tool integration (used by Claude Code, Codex, and other AI assistants). This makes OPENDOG the only file monitor that AI tools can self-manage.
 **Evidence**: MCP reference servers (filesystem, git, memory) demonstrate the pattern. MCP SDKs exist for Rust. stdio transport is the standard for CLI-integrated servers.
-**OPENDOG implication**: 8 MCP tools with JSON Schema input validation. Proper MCP error handling (isError field, not protocol errors). Tool annotations (readOnlyHint for get_stats/get_unused_files/list_projects, destructiveHint for delete_project). Capability advertisement on initialize.
+**OPENDOG implication**: The historical Phase 4 baseline planned 8 MCP tools with JSON Schema input validation, proper MCP error handling (isError field, not protocol errors), tool annotations, and capability advertisement on initialize. The current shipped MCP surface is larger; use `src/mcp/tool_inventory.rs`, `docs/mcp-tool-reference.md`, `FUNCTION_TREE.md`, and `CLAUDE.md` for current tool counts and contracts.
 
 ### DIFF-03: Approximate Usage Duration Tracking
 

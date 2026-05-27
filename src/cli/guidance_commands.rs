@@ -11,6 +11,14 @@ use crate::mcp::{
 use super::output;
 use super::project_commands::project_lifecycle;
 
+fn invalid_input_from_error(error: serde_json::Value) -> OpenDogError {
+    let message = error
+        .get("error")
+        .and_then(|value| value.as_str())
+        .unwrap_or("invalid data-risk option");
+    OpenDogError::InvalidInput(message.to_string())
+}
+
 pub(super) fn cmd_agent_guidance(
     pm: &ProjectManager,
     project: Option<String>,
@@ -51,13 +59,10 @@ pub(super) fn cmd_data_risk(
     limit: usize,
     json_output: bool,
 ) -> Result<(), OpenDogError> {
-    let candidate_type = normalize_candidate_type(candidate_type).map_err(|error| {
-        OpenDogError::InvalidInput(error["error"].as_str().unwrap().to_string())
-    })?;
+    let candidate_type =
+        normalize_candidate_type(candidate_type).map_err(invalid_input_from_error)?;
     let min_review_priority =
-        normalize_min_review_priority(min_review_priority).map_err(|error| {
-            OpenDogError::InvalidInput(error["error"].as_str().unwrap().to_string())
-        })?;
+        normalize_min_review_priority(min_review_priority).map_err(invalid_input_from_error)?;
     let limit = limit.max(1);
 
     let daemon = DaemonClient::new();
@@ -122,13 +127,10 @@ pub(super) fn cmd_workspace_data_risk(
     project_limit: usize,
     json_output: bool,
 ) -> Result<(), OpenDogError> {
-    let candidate_type = normalize_candidate_type(candidate_type).map_err(|error| {
-        OpenDogError::InvalidInput(error["error"].as_str().unwrap().to_string())
-    })?;
+    let candidate_type =
+        normalize_candidate_type(candidate_type).map_err(invalid_input_from_error)?;
     let min_review_priority =
-        normalize_min_review_priority(min_review_priority).map_err(|error| {
-            OpenDogError::InvalidInput(error["error"].as_str().unwrap().to_string())
-        })?;
+        normalize_min_review_priority(min_review_priority).map_err(invalid_input_from_error)?;
     let project_limit = project_limit.max(1);
 
     let daemon = DaemonClient::new();
@@ -185,4 +187,33 @@ pub(super) fn cmd_workspace_data_risk(
         );
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn invalid_input_error_message_uses_error_string() {
+        let err = invalid_input_from_error(json!({
+            "error": "candidate_type must be one of all, mock, hardcoded"
+        }));
+
+        assert_eq!(
+            err.to_string(),
+            "Invalid input: candidate_type must be one of all, mock, hardcoded"
+        );
+    }
+
+    #[test]
+    fn invalid_input_error_message_falls_back_for_missing_string() {
+        let err = invalid_input_from_error(json!({
+            "error": {
+                "message": "unexpected shape"
+            }
+        }));
+
+        assert_eq!(err.to_string(), "Invalid input: invalid data-risk option");
+    }
 }

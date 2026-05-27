@@ -11,17 +11,21 @@ All notable changes to OPENDOG are documented here.
 - MCP `get_build_info` reports binary version/build metadata, storage schema version, daemon state, `OPENDOG_HOME`, and rebuild hints.
 - Storage-retention operations documentation now covers dry-run cleanup, WAL checkpointing, vacuum behavior, and retained rollup verification.
 - MCP tool-reference coverage now has a regression test that checks documented tool headings against the central MCP inventory.
+- `CONTEXT.md` and ADR records now centralize domain language, process-attribution constraints, daemon-first routing, retained-evidence lifecycle, and contract synchronization decisions.
 
 ### Changed
 
 - MCP tool count is now 27, covering guidance, config/build diagnostics, project lifecycle, observation, retained rollups, verification, orphan/deletion planning, data-risk, workspace overview, and governance state.
 - `get_build_info` keeps the top-level response `schema_version` as the build-info contract identifier and exposes the SQLite schema separately as `storage_schema_version`.
 - Mystocks project-exchange reports, audit responses, and feature-introduction counts were synced with the implemented retained-evidence, schema-contract, and documentation-coverage changes.
+- `CLAUDE.md` and historical planning research now distinguish the current 27-tool MCP surface from the original 8-tool Phase 4 baseline.
 
 ### Fixed
 
 - Build-info payload consumers no longer need to distinguish contract schema from storage schema by interpreting one overloaded field.
 - Root feature tree and quick-start guidance now reflect `report rollup`, `get_activity_rollups`, `get_build_info`, `scan_orphans`, and `verify_deletion_plan`.
+- CLI data-risk option normalization now reports malformed error payloads without panicking.
+- Monitor config and snapshot-path lock reads now recover from poisoned locks instead of panicking in observation loops.
 
 ## 2026-05-25
 

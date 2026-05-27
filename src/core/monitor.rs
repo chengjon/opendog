@@ -11,8 +11,8 @@ use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 use tracing::{debug, error, info, warn};
 
+mod lock_snapshots;
 mod watcher;
-
 #[cfg(test)]
 use self::watcher::record_file_event;
 use self::watcher::start_file_watcher;
@@ -49,13 +49,13 @@ impl MonitorHandle {
     }
 
     pub fn current_config(&self) -> ProjectConfig {
-        self.state.config.read().unwrap().clone()
+        lock_snapshots::read_config_snapshot(&self.state)
     }
 
     pub fn reload_config(&self, config: ProjectConfig, snapshot_paths: Option<HashSet<String>>) {
-        *self.state.config.write().unwrap() = config;
+        lock_snapshots::replace_config_snapshot(&self.state, config);
         if let Some(snapshot_paths) = snapshot_paths {
-            *self.state.snapshot_paths.write().unwrap() = snapshot_paths;
+            lock_snapshots::replace_snapshot_paths_snapshot(&self.state, snapshot_paths);
         }
     }
 }
@@ -103,8 +103,8 @@ pub fn start_monitor(
         info!("Monitor scanner started for {:?}", scanner_root);
 
         while scanner_state.running.load(Ordering::Relaxed) {
-            let live_config = scanner_state.config.read().unwrap().clone();
-            let snapshot_paths = scanner_state.snapshot_paths.read().unwrap().clone();
+            let live_config = lock_snapshots::read_config_snapshot(&scanner_state);
+            let snapshot_paths = lock_snapshots::read_snapshot_paths_snapshot(&scanner_state);
             let scanner = ProcScanner::new(
                 &scanner_root,
                 &live_config.process_whitelist,

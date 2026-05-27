@@ -108,7 +108,7 @@ Each project: own SQLite `.db`, own config, own monitoring state. Projects can s
 
 ## MCP Tools
 
-Current MCP surface: 26 tools total.
+Current MCP surface: 27 tools total.
 
 Baseline control tools:
 
@@ -126,6 +126,7 @@ Comparative reporting:
 - `get_time_window_report`
 - `compare_snapshots`
 - `get_usage_trends`
+- `get_activity_rollups`
 
 Configuration inspection:
 
@@ -141,6 +142,11 @@ AI-facing guidance, verification, and data-risk tools:
 - `run_verification_command`
 - `get_data_risk_candidates`
 - `get_workspace_data_risk_overview`
+
+Orphan and deletion-planning tools:
+
+- `scan_orphans`
+- `verify_deletion_plan`
 
 Governance state observation:
 
@@ -247,9 +253,11 @@ For direct MCP request-shape examples, see [docs/mcp-tool-reference.md](/opt/cla
 ## Planning Artifacts
 
 Primary planning and governance artifacts:
+- `CONTEXT.md` — domain language, stable decisions, and architecture debt to deepen
+- `docs/adr/` — accepted architecture decision records for load-bearing design choices
 - `.planning/PROJECT.md` — project context, requirements, constraints, key decisions
 - `FUNCTION_TREE.md` — canonical capability hierarchy and FT ownership
-- `.planning/REQUIREMENTS.md` — 114 mapped requirements across v1 baseline and Phase 6+ hardening
+- `.planning/REQUIREMENTS.md` — 122 mapped requirements across v1 baseline and Phase 6+ hardening
 - `.planning/ROADMAP.md` — current phased roadmap with success criteria and plan breakdown
 - `.planning/STATE.md` — current phase status
 - `.planning/config.json` — GSD workflow settings (YOLO mode, standard granularity, parallel)
@@ -259,7 +267,7 @@ Primary planning and governance artifacts:
 Historical note:
 
 - the original Phase 4 baseline was 8 MCP tools and 8 matching CLI subcommands
-- the current shipped surface is larger because later hardening added reporting, config, export, cleanup, verification, guidance, and data-risk entrypoints without collapsing them back into the baseline requirement family
+- the current shipped surface is larger because later hardening added reporting, config/build diagnostics, export, cleanup, verification, retained rollups, orphan/deletion planning, guidance, data-risk, and governance entrypoints without collapsing them back into the baseline requirement family
 
 ## Implementation Roadmap
 
