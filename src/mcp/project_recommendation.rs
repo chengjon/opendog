@@ -223,20 +223,20 @@ pub(crate) fn recommend_project_action(
 
     let blockers = || Some(Value::Array(cleanup_blockers.clone()));
     let refactor_b = || Some(Value::Array(refactor_blockers.clone()));
-    let forced_context = ForcedRecommendationContext::new(
-        project.id.clone(),
-        primary_verification_command.clone(),
-        gate_levels.clone(),
-        cleanup_blockers.clone(),
-        refactor_blockers.clone(),
-        repo_truth_gaps_json.clone(),
-        mandatory_shell_checks_json.clone(),
-    );
+    let forced_context = ForcedRecommendationContext {
+        project_id: project.id.clone(),
+        primary_verification_command: primary_verification_command.clone(),
+        verification_missing: signals.verification_missing,
+        verification_gate_levels: gate_levels.clone(),
+        cleanup_blockers: cleanup_blockers.clone(),
+        refactor_blockers: refactor_blockers.clone(),
+        repo_truth_gaps: repo_truth_gaps_json.clone(),
+        mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+    };
 
-    let rec = if let Some(forced_recommendation) = eligibility
-        .forced_action
-        .and_then(|action| ForcedProjectRecommendation::from_action(action, forced_context.clone()))
-    {
+    let rec = if let Some(forced_recommendation) = eligibility.forced_action.and_then(|action| {
+        ForcedProjectRecommendation::from_immediate_action(action, forced_context.clone())
+    }) {
         forced_recommendation.into_recommendation()
     } else if project.status != "monitoring" {
         Recommendation {
@@ -331,40 +331,11 @@ pub(crate) fn recommend_project_action(
                 format!("opendog stats --id {}", project.id),
             ],
         }
-    } else if eligibility.forced_action == Some("run_verification_before_high_risk_changes") {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "run_verification_before_high_risk_changes".to_string(),
-            recommended_flow: vec![
-                "Run and record project-native verification before risky changes.".to_string(),
-                "Use OPENDOG to persist the resulting evidence for later decisions.".to_string(),
-                "Return to cleanup or refactor review only after verification evidence exists."
-                    .to_string(),
-            ],
-            reason: if verification_is_missing(verification_runs) {
-                "Activity evidence exists, but no recorded test/lint/build results are available yet. Verify first before risky cleanup or refactor work.".to_string()
-            } else {
-                "Recorded verification evidence exists but is stale, so refresh test/lint/build results before risky cleanup or refactor work.".to_string()
-            },
-            confidence: "medium".to_string(),
-            strategy_mode: "verify_before_modify".to_string(),
-            strategy_profile: strategy_profile(
-                "verify_before_modify",
-                "shell",
-                "opendog",
-                &["verification", "activity_signals", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: blockers(),
-            refactor_blockers: refactor_b(),
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                primary_verification_command,
-                "opendog run-verification --id <project> --kind test --command '<cmd>'".to_string(),
-                format!("opendog stats --id {}", project.id),
-            ],
-        }
+    } else if let Some(forced_recommendation) = eligibility
+        .forced_action
+        .and_then(|action| ForcedProjectRecommendation::from_action(action, forced_context.clone()))
+    {
+        forced_recommendation.into_recommendation()
     } else if best_review_action == "review_unused_files" {
         let strategy_mode = if safe_for_cleanup {
             "review_then_modify"
