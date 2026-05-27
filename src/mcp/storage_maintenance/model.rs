@@ -74,6 +74,183 @@ impl StorageMaintenanceAssessment {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum StorageCleanupScope {
+    Activity,
+    Snapshots,
+    Verification,
+    All,
+}
+
+impl StorageCleanupScope {
+    fn from_str(scope: &str) -> Option<Self> {
+        match scope {
+            "activity" => Some(Self::Activity),
+            "snapshots" => Some(Self::Snapshots),
+            "verification" => Some(Self::Verification),
+            "all" => Some(Self::All),
+            _ => None,
+        }
+    }
+
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Self::Activity => "activity",
+            Self::Snapshots => "snapshots",
+            Self::Verification => "verification",
+            Self::All => "all",
+        }
+    }
+
+    pub(super) fn default_older_than_days(self, policy: &RetentionPolicy) -> i64 {
+        match self {
+            Self::Verification => policy.verification_retention_days,
+            Self::Activity | Self::All => policy.activity_retention_days,
+            Self::Snapshots => policy.activity_retention_days,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct StorageCleanupRecommendation {
+    pub(super) scope: StorageCleanupScope,
+    pub(super) older_than_days: Option<i64>,
+    pub(super) keep_snapshot_runs: Option<i64>,
+}
+
+impl StorageCleanupRecommendation {
+    fn from_value(recommendation: &Value) -> Option<Self> {
+        let scope = StorageCleanupScope::from_str(recommendation["scope"].as_str()?)?;
+        if scope == StorageCleanupScope::All {
+            return None;
+        }
+
+        Some(Self {
+            scope,
+            older_than_days: recommendation["older_than_days"].as_i64(),
+            keep_snapshot_runs: recommendation["keep_snapshot_runs"].as_i64(),
+        })
+    }
+
+    pub(super) fn older_than_days_or_default(&self, policy: &RetentionPolicy) -> i64 {
+        self.older_than_days
+            .unwrap_or_else(|| self.scope.default_older_than_days(policy))
+    }
+
+    pub(super) fn keep_snapshot_runs_or_default(&self, policy: &RetentionPolicy) -> i64 {
+        self.keep_snapshot_runs.unwrap_or(policy.keep_snapshot_runs)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct StorageCleanupPlanStep {
+    pub(super) scope: StorageCleanupScope,
+    pub(super) older_than_days: Option<i64>,
+    pub(super) keep_snapshot_runs: Option<i64>,
+}
+
+impl StorageCleanupPlanStep {
+    fn from_value(plan_step: &Value) -> Option<Self> {
+        if plan_step["phase"].as_str() != Some("execute_cleanup") {
+            return None;
+        }
+
+        Some(Self {
+            scope: StorageCleanupScope::from_str(plan_step["scope"].as_str()?)?,
+            older_than_days: plan_step["older_than_days"]
+                .as_i64()
+                .or_else(|| plan_step["retention_parameters"]["older_than_days"].as_i64()),
+            keep_snapshot_runs: plan_step["keep_snapshot_runs"]
+                .as_i64()
+                .or_else(|| plan_step["retention_parameters"]["keep_snapshot_runs"].as_i64()),
+        })
+    }
+
+    pub(super) fn older_than_days_or_default(&self, policy: &RetentionPolicy) -> i64 {
+        self.older_than_days
+            .unwrap_or_else(|| self.scope.default_older_than_days(policy))
+    }
+
+    pub(super) fn keep_snapshot_runs_or_default(&self, policy: &RetentionPolicy) -> i64 {
+        self.keep_snapshot_runs.unwrap_or(policy.keep_snapshot_runs)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct StorageMaintenanceTemplateContext {
+    project_id_value: String,
+    project_placeholder_required: bool,
+    maintenance_candidate: bool,
+    pub(super) vacuum_candidate: bool,
+    pub(super) approx_reclaimable_bytes: i64,
+    pub(super) cleanup_recommendations: Vec<StorageCleanupRecommendation>,
+    pub(super) cleanup_plan_steps: Vec<StorageCleanupPlanStep>,
+}
+
+impl StorageMaintenanceTemplateContext {
+    pub(super) fn from_inputs(project_id: Option<&str>, storage_maintenance: &Value) -> Self {
+        let project_id_value = project_id.unwrap_or("<project>").to_string();
+        let cleanup_recommendations = storage_maintenance["cleanup_recommendations"]
+            .as_array()
+            .map(|recommendations| {
+                recommendations
+                    .iter()
+                    .filter_map(StorageCleanupRecommendation::from_value)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let cleanup_plan_steps = storage_maintenance["cleanup_plan"]["steps"]
+            .as_array()
+            .map(|steps| {
+                steps
+                    .iter()
+                    .filter_map(StorageCleanupPlanStep::from_value)
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Self {
+            project_id_value,
+            project_placeholder_required: project_id.is_none(),
+            maintenance_candidate: storage_maintenance["maintenance_candidate"]
+                .as_bool()
+                .unwrap_or(false),
+            vacuum_candidate: storage_maintenance["vacuum_candidate"]
+                .as_bool()
+                .unwrap_or(false),
+            approx_reclaimable_bytes: storage_maintenance["approx_reclaimable_bytes"]
+                .as_i64()
+                .unwrap_or(0),
+            cleanup_recommendations,
+            cleanup_plan_steps,
+        }
+    }
+
+    pub(super) fn should_emit_templates(&self) -> bool {
+        self.maintenance_candidate
+    }
+
+    pub(super) fn project_id_value(&self) -> &str {
+        &self.project_id_value
+    }
+
+    pub(super) fn project_placeholder_required(&self) -> bool {
+        self.project_placeholder_required
+    }
+
+    pub(super) fn project_placeholder_hint_json(&self) -> Value {
+        if self.project_placeholder_required() {
+            json!([{
+                "field": "id",
+                "placeholder": "<project>",
+                "description": "replace with a registered OPENDOG project id"
+            }])
+        } else {
+            json!([])
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct StorageMaintenanceProjectSummary {
     pub(super) project_id: Option<String>,
@@ -193,7 +370,10 @@ mod tests {
     use crate::core::retention::StorageMetrics;
     use serde_json::json;
 
-    use super::{StorageMaintenanceAssessment, StorageMaintenanceWorkspaceSummary};
+    use super::{
+        StorageCleanupScope, StorageMaintenanceAssessment, StorageMaintenanceTemplateContext,
+        StorageMaintenanceWorkspaceSummary,
+    };
 
     fn policy() -> RetentionPolicy {
         RetentionPolicy {
@@ -202,6 +382,75 @@ mod tests {
             vacuum_reclaim_ratio_threshold_percent: 25,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn template_context_captures_project_and_pressure_fields() {
+        let context = StorageMaintenanceTemplateContext::from_inputs(
+            None,
+            &json!({
+                "maintenance_candidate": true,
+                "vacuum_candidate": true,
+                "approx_reclaimable_bytes": 42,
+            }),
+        );
+
+        assert!(context.should_emit_templates());
+        assert_eq!(context.project_id_value(), "<project>");
+        assert!(context.project_placeholder_required());
+        assert!(context.vacuum_candidate);
+        assert_eq!(context.approx_reclaimable_bytes, 42);
+    }
+
+    #[test]
+    fn template_context_parses_recommendations_and_cleanup_plan_steps() {
+        let context = StorageMaintenanceTemplateContext::from_inputs(
+            Some("proj"),
+            &json!({
+                "maintenance_candidate": true,
+                "cleanup_recommendations": [
+                    {"scope": "activity", "older_than_days": 14},
+                    {"scope": "snapshots", "keep_snapshot_runs": 12},
+                    {"scope": "unknown", "older_than_days": 1}
+                ],
+                "cleanup_plan": {
+                    "steps": [
+                        {"phase": "prepare_cleanup", "scope": "all"},
+                        {"phase": "execute_cleanup", "scope": "verification", "retention_parameters": {"older_than_days": 21}},
+                        {"phase": "execute_cleanup", "scope": "snapshots", "retention_parameters": {"keep_snapshot_runs": 7}},
+                        {"phase": "execute_cleanup", "scope": "unknown"}
+                    ]
+                }
+            }),
+        );
+
+        assert_eq!(context.project_id_value(), "proj");
+        assert!(!context.project_placeholder_required());
+        assert_eq!(context.cleanup_recommendations.len(), 2);
+        assert_eq!(
+            context.cleanup_recommendations[0].scope,
+            StorageCleanupScope::Activity
+        );
+        assert_eq!(context.cleanup_recommendations[0].older_than_days, Some(14));
+        assert_eq!(
+            context.cleanup_recommendations[1].scope,
+            StorageCleanupScope::Snapshots
+        );
+        assert_eq!(
+            context.cleanup_recommendations[1].keep_snapshot_runs,
+            Some(12)
+        );
+        assert_eq!(context.cleanup_plan_steps.len(), 2);
+        assert_eq!(
+            context.cleanup_plan_steps[0].scope,
+            StorageCleanupScope::Verification
+        );
+        assert_eq!(context.cleanup_plan_steps[0].older_than_days, Some(21));
+        assert_eq!(
+            context.cleanup_plan_steps[1].scope,
+            StorageCleanupScope::Snapshots
+        );
+        assert_eq!(context.cleanup_plan_steps[1].keep_snapshot_runs, Some(7));
     }
 
     #[test]
