@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 
 pub(crate) mod eligibility;
 pub(crate) mod reasoning;
+mod review_focus;
 pub(crate) mod scoring;
 pub(crate) mod sequencing;
 
@@ -12,6 +13,7 @@ use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
 use self::reasoning::{build_reason, derive_confidence};
+use self::review_focus::RecommendationReviewFocus;
 use self::scoring::score_review_actions;
 use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
@@ -142,27 +144,9 @@ where
 }
 
 pub(crate) fn review_focus_for_action(selected_action: &str, repo_risk: &Value) -> Value {
-    match selected_action {
-        "inspect_hot_files" => {
-            let mut risk_hints = Vec::new();
-            if repo_risk["risk_level"].as_str().unwrap_or("low") != "low"
-                || repo_risk["large_diff"].as_bool().unwrap_or(false)
-            {
-                risk_hints.push("repo_risk_elevated");
-            }
-            json!({
-                "candidate_family": "hot_file",
-                "candidate_basis": ["highest_access_activity", "activity_present"],
-                "candidate_risk_hints": risk_hints,
-            })
-        }
-        "review_unused_files" => json!({
-            "candidate_family": "unused_candidate",
-            "candidate_basis": ["zero_recorded_access", "snapshot_present"],
-            "candidate_risk_hints": [],
-        }),
-        _ => Value::Null,
-    }
+    RecommendationReviewFocus::from_action(selected_action, repo_risk)
+        .map(|focus| focus.to_json())
+        .unwrap_or(Value::Null)
 }
 
 pub(crate) fn recommend_project_action(
