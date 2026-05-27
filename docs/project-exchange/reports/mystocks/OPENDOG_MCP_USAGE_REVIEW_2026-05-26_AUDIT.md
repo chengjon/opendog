@@ -17,7 +17,7 @@ This file has also been integrated with `USAGE_REVIEW_AUDIT_RESPONSE.md`. The in
 ## Verified
 
 - Source review: `/opt/claude/mystocks_spec/docs/operations/monitoring/OPENDOG_MCP_USAGE_REVIEW_2026-05-26.md`
-- Runtime MCP inventory has 26 tools and does not expose `get_decision_brief`; the decision envelope is intentionally routed through `get_guidance(detail=decision)`.
+- Audit-time MCP inventory had 26 tools and did not expose `get_decision_brief`; the decision envelope was intentionally routed through `get_guidance(detail=decision)`. After retained-evidence follow-up work, the documented current surface is 27 tools + 2 read-only Resources.
 - `verify_deletion_plan` is exposed in MCP, but there is no same-name CLI command.
 - Current `get_build_info` exposes binary `version`, `git_hash`, `build_time`, binary path, and `needs_rebuild`; it does not expose daemon/client/schema compatibility fields.
 - Current verification execution runs shell commands through `sh -lc` and records the shell exit code and text summary; it does not flag pipeline masking or suspicious passed output.
