@@ -20,12 +20,10 @@ Primary role of this page:
 
 Current inventory note:
 
-- OPENDOG currently ships 26 MCP tools
-- OPENDOG also exposes read-only MCP Resources for stable low-parameter state reads
+- OPENDOG currently ships 27 MCP tools
 - this file is the practical request/response registry for that current inventory
 - if an AI only needs one first entrypoint, prefer `get_guidance`
-- operator mutations, export artifacts, and retained-evidence cleanup intentionally live on the CLI surface
-- versioned contract style and stability guidance are documented separately in `docs/json-contracts.md`
+- read-only MCP Resources, CLI-only operator mutations, and versioned contract guidance are documented in the sections and related docs below
 
 ## Recommended First Stops
 
@@ -47,7 +45,7 @@ Start from the tool that matches the decision you need now, then drill into lowe
 
 - Decision and prioritization: [`get_guidance`](#get_guidance), [`get_workspace_data_risk_overview`](#get_workspace_data_risk_overview)
 - Review and safety: [`get_verification_status`](#get_verification_status), [`get_data_risk_candidates`](#get_data_risk_candidates), [`scan_orphans`](#scan_orphans), [`verify_deletion_plan`](#verify_deletion_plan)
-- Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
+- Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_activity_rollups`](#get_activity_rollups), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
 - Governance state: [`create_governance_lane`](#create_governance_lane), [`upsert_governance_node`](#upsert_governance_node), [`get_governance_state`](#get_governance_state), [`close_governance_lane`](#close_governance_lane)
 - Setup and lifecycle: [`register_project`](#register_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
 - Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
@@ -587,6 +585,11 @@ Useful response fields:
 - `summary.bucket_count`
 - `files`
 
+## `get_activity_rollups`
+Purpose: inspect daily aggregate access/modification/event counts preserved after retained raw activity rows are compacted.
+Request shape: `{"id":"demo","window":"30d","limit":30}`; `window` and `limit` are optional and default to `30d` / `30`.
+Useful response fields: `schema_version`, `project_id`, `window`, `range`, `summary.total_*`, `summary.truncated`, `days`. Daily aggregates cannot reconstruct deleted per-file or per-process rows; use `get_usage_trends` or `get_time_window_report` before cleanup when file-level detail is required.
+
 ## `get_verification_status`
 
 Purpose:
@@ -981,7 +984,7 @@ Response fields:
 - `opendog mcp` now auto-ensures the OPENDOG daemon is available before serving requests, so normal MCP sessions reuse daemon-backed monitor state across reconnects.
 - For stable reuse across different MCP hosts or launcher environments, set `OPENDOG_HOME` to a fixed absolute state directory. If unset, OPENDOG falls back to `HOME/.opendog`.
 - `get_guidance` prefers daemon-backed state through the local control plane when the OPENDOG daemon is live, regardless of `detail`.
-- `get_time_window_report`, `compare_snapshots`, and `get_usage_trends` also prefer daemon-backed state through the local control plane when the daemon is live.
+- `get_time_window_report`, `compare_snapshots`, `get_usage_trends`, and `get_activity_rollups` also prefer daemon-backed state through the local control plane when the daemon is live.
 - CLI-only operator flows such as config mutation, evidence export, and retained-evidence cleanup still reuse the same daemon-first local control path where available.
 - Other MCP tools use the same daemon-first pattern where remote control support already exists.
 - If the daemon is unavailable, MCP falls back to local in-process computation.

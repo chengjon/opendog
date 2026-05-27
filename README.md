@@ -2,7 +2,7 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 
 > OPENDOG tracks which files AI tools access, identifies unused/stale files vs actively-used core files, and exposes reusable operator/AI entry surfaces through daemon, CLI, and MCP for repo risk, verification evidence, retained-evidence lifecycle, and suspicious mock or hardcoded data review.
 >
-> 当前状态：**全部能力已交付**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 26 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
+> 当前状态：**全部能力已交付**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 27 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
 
 ## 阅读导航
 
@@ -50,7 +50,7 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 
 ## 当前 MCP 工具
 
-MCP surface 共 **26 个工具** + **2 个只读 Resource**，全部采用 daemon-first 模式。下面按能力簇分组。
+MCP surface 共 **27 个工具** + **2 个只读 Resource**，全部采用 daemon-first 模式。下面按能力簇分组。
 
 ### 项目生命周期（4 个）
 
@@ -69,7 +69,7 @@ MCP surface 共 **26 个工具** + **2 个只读 Resource**，全部采用 daemo
 | `stop_monitor` | 停止监控 | `id` |
 | `get_stats` | 查询文件使用统计（访问次数、持续时间、修改次数等） | `id`、`limit`（默认 50）、`path_classification`（all/source/infrastructure/backup/project） |
 
-### 统计分析（4 个）
+### 统计分析（5 个）
 
 | 工具 | 说明 | 关键参数 |
 |------|------|----------|
@@ -77,6 +77,7 @@ MCP surface 共 **26 个工具** + **2 个只读 Resource**，全部采用 daemo
 | `get_time_window_report` | 时间窗口内的文件活跃统计 | `id`、`window`（24h/7d/30d）、`limit` |
 | `compare_snapshots` | 对比两次快照差异 | `id`、`base_run_id`、`head_run_id`（省略则对比最近两次）、`limit` |
 | `get_usage_trends` | 分桶使用趋势 | `id`、`window`（24h/7d/30d）、`limit` |
+| `get_activity_rollups` | 查询保留策略压缩后的每日活动汇总 | `id`、`window`（24h/7d/30d）、`limit` |
 
 ### 配置查询（3 个）
 
@@ -141,9 +142,9 @@ MCP surface 共 **26 个工具** + **2 个只读 Resource**，全部采用 daemo
 
 - 当前 CLI 顶层入口共 `23` 个命令，下面按能力簇分组列出
 - 基础：`opendog register|snapshot|start|stop|stats|unused|list|delete|daemon|mcp|export`
-- 比较报告：`opendog report window|compare|trend [--json]`
+- 比较报告：`opendog report window|compare|trend|rollup [--json]`
 - 数据清理：`opendog cleanup-data --id <ID> --scope <activity|snapshots|verification|all> [--dry-run] [--vacuum] [--json]`
-- 配置：`opendog config show|set-project|set-global|reload [--json]`
+- 配置：`opendog config show|set-project|set-global|reload [--json]`，可用 `--retention-policy-json` 调整保留策略
 - 维护：`opendog self-update status|build --source /opt/claude/opendog [--json]`
 - 指导：`opendog agent-guidance [--project <ID>] [--top <N>] [--json]`
 - 决策骨架：`opendog decision-brief [--project <ID>] [--top <N>] [--json]`
@@ -158,7 +159,7 @@ MCP surface 共 **26 个工具** + **2 个只读 Resource**，全部采用 daemo
 3. **判断文件活跃度**：`get_stats`（带 `path_classification=source` 过滤源码）、`get_unused_files`、`get_time_window_report`
 4. **判断能否安全修改**：`get_verification_status` → `get_data_risk_candidates`
 5. **多项目优先级**：`get_workspace_data_risk_overview` 决定先关注哪个项目
-6. **存储维护**：如 guidance 标记存储维护候选，用 CLI `opendog cleanup-data --dry-run` 预览
+6. **存储维护**：如 guidance 标记存储维护候选，用 CLI `opendog cleanup-data --dry-run` 预览；清理后用 `opendog report rollup --json` 查看保留下来的每日活动汇总
 7. **治理跟踪**：`create_governance_lane` → `upsert_governance_node` 记录工作意图和边界
 
 更完整的行动顺序、shell 切换时机和安全边界见 [docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)。

@@ -17,9 +17,9 @@ Authority rule: `git`, tests, lint, and build are the external truth sources.
 
 ## Scope
 
-CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
+CLI JSON entry points include `decision-brief`, `agent-guidance`, `config show/set/reload`, `report window/compare/trend/rollup`, `cleanup-data`, `workspace-data-risk`, `data-risk`, `verification`, `record-verification`, and `run-verification` with `--json`.
 
-Related MCP entry points use the same versioned-contract pattern: `get_guidance`, `register_project`, config inspection, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend, verification, and data-risk tools.
+Related MCP entry points use the same versioned-contract pattern: `get_guidance`, `register_project`, config inspection, monitor start/stop, project list/delete, snapshot/stats/unused/report/compare/trend/activity-rollups, verification, and data-risk tools.
 
 When the daemon is live, CLI and MCP may reuse daemon-owned state through the local control plane.
 
@@ -353,6 +353,43 @@ Version marker:
 3. Use `buckets` only after `delta_access_count` narrows the candidate set.
 4. Pair with `get_time_window_report` when you need a simpler recent summary.
 
+## `opendog report rollup --json`
+
+Version marker:
+
+- `schema_version = opendog.cli.activity-rollups.v1`
+- MCP equivalent: `schema_version = opendog.mcp.activity-rollups.v1`
+
+### Primary decision fields
+
+- `window`
+- `range.start_time`
+- `range.end_time`
+- `summary.total_access_count`
+- `summary.total_modification_count`
+- `summary.total_event_count`
+- `summary.rollup_days`
+- `summary.returned_days`
+- `summary.truncated`
+
+### Explanatory fields
+
+- `summary.bucket_size`
+- `summary.bucket_count`
+- `days[*].day_start`
+- `days[*].access_count`
+- `days[*].modification_count`
+- `days[*].event_count`
+- `guidance`
+
+### Recommended consumption pattern
+
+1. Check `schema_version`.
+2. Use `summary.total_*` fields to understand historical volume preserved after raw activity rows were compacted.
+3. If `summary.truncated = true`, rerun with a larger `--limit` or narrower `--window`.
+4. Treat rollups as daily volume evidence only; they cannot reconstruct deleted per-file or per-process raw rows.
+5. Use `get_usage_trends` or `opendog report trend` before retention cleanup when you need recent file-level detail.
+
 ## `opendog cleanup-data --json`
 
 Version marker:
@@ -367,6 +404,7 @@ Version marker:
 - `keep_snapshot_runs`
 - `vacuum`
 - `deleted`
+- `rolled_up`
 - `storage_before.approx_reclaimable_bytes`
 
 ### Explanatory fields
@@ -381,9 +419,10 @@ Version marker:
 
 1. Check `schema_version`.
 2. Run with `dry_run=true` first.
-3. Read `deleted` before executing a destructive retained-evidence action.
+3. Read `deleted` and `rolled_up` before executing a destructive retained-evidence action.
 4. Use `storage_before.approx_reclaimable_bytes` to decide whether an explicit `vacuum` pass is worth the rewrite cost.
 5. Treat this as OPENDOG retained-evidence lifecycle only; it does not delete source files.
+6. For activity cleanup, `rolled_up.file_sightings` and `rolled_up.file_events` show how many raw rows were compacted into `activity_daily_rollups` before deletion.
 
 ## `opendog config show --json`
 
@@ -410,6 +449,7 @@ Version marker:
 2. Distinguish global versus project scope first.
 3. For project scope, read `effective` before reasoning about monitor behavior.
 4. Use `inherits` to decide whether a project is still following global defaults.
+5. Read `effective.retention` before planning storage cleanup; project overrides may change thresholds and retention windows.
 
 ## `opendog config set-project --json`
 
@@ -436,6 +476,7 @@ Version marker:
 2. Confirm `status = updated`.
 3. Read `reload.runtime_reloaded` before assuming a running monitor changed behavior immediately.
 4. Read `effective` after mutation, not just `project_overrides`.
+5. Use `--retention-policy-json` to override cleanup thresholds/retention windows, or `--inherit-retention` to return the project to global retention defaults.
 
 ## `opendog config set-global --json`
 
@@ -459,6 +500,7 @@ Version marker:
 2. Confirm `status = updated`.
 3. Read `reloaded_projects` to see which running monitors picked up the new defaults already.
 4. Use project-scoped config show/reload when any critical project still needs explicit runtime confirmation.
+5. Use `--retention-policy-json` when global retained-evidence thresholds need to change for all inheriting projects.
 
 ## `opendog config reload --json`
 

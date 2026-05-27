@@ -65,13 +65,14 @@ CLI and MCP are entry surfaces over the same core capabilities. When the OPENDOG
    If you want one stable AI entry envelope first:
    MCP: `get_guidance(detail=decision)`
    CLI: `opendog decision-brief`
-5. If you need recent activity shape, snapshot deltas, or heating/cooling files, use reporting tools.
-   MCP: `get_time_window_report`, `compare_snapshots`, `get_usage_trends`
-   CLI: `opendog report window|compare|trend`
+5. If you need recent activity shape, snapshot deltas, heating/cooling files, or post-cleanup historical volume, use reporting tools.
+   MCP: `get_time_window_report`, `compare_snapshots`, `get_usage_trends`, `get_activity_rollups`
+   CLI: `opendog report window|compare|trend|rollup`
 6. If OPENDOG retained evidence itself has grown too large, use selective cleanup first.
    CLI: `opendog cleanup-data`
    This is a retained-evidence lifecycle operation, not source cleanup.
    If the cleanup deletes a lot and `storage_before.approx_reclaimable_bytes` stays high, consider one explicit `vacuum` pass.
+   After activity cleanup, use `opendog report rollup` or `get_activity_rollups` to inspect the retained daily volume summary.
 7. Before cleanup or refactor, check evidence and data-risk.
    MCP: `get_verification_status` then `get_data_risk_candidates`
    CLI: `opendog verification --id <ID>` then `opendog data-risk --id <ID>`
@@ -290,6 +291,10 @@ Typical shell follow-ups:
   Use when the question is "which OPENDOG-retained evidence or storage history should I prune?"
   Useful options:
   `--scope activity|snapshots|verification|all`, `--older-than-days`, `--keep-snapshot-runs`, `--dry-run`, `--vacuum`, `--json`
+- `opendog report rollup --id <ID>`
+  Use when the question is "what daily activity volume remains after raw retained evidence was compacted?"
+  Useful options:
+  `--window 24h|7d|30d`, `--limit <N>`, `--json`
 - `opendog governance create-lane --id <ID> --lane-id <LANE> --title <TITLE>`
   Use when tracking work intent, boundaries, or forbidden scope for a cleanup or refactor pass
   Useful options:
@@ -318,7 +323,7 @@ Most useful entrypoints:
 - `opendog workspace-data-risk --json`
 - `opendog data-risk --id <ID> --json`
 - `opendog verification --id <ID> --json`
-- `opendog report window|compare|trend --json`
+- `opendog report window|compare|trend|rollup --json`
 - `opendog cleanup-data --json`
 - `opendog governance create-lane|upsert-node|show|close-lane --json`
 - MCP `scan_orphans` and `verify_deletion_plan` return JSON natively (no CLI entry points)
