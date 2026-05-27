@@ -4,6 +4,7 @@ pub(crate) mod eligibility;
 mod evidence;
 mod forced;
 pub(crate) mod reasoning;
+mod review;
 mod review_focus;
 pub(crate) mod scoring;
 pub(crate) mod sequencing;
@@ -19,20 +20,20 @@ use self::evidence::{
 };
 use self::forced::{ForcedProjectRecommendation, ForcedRecommendationContext};
 use self::reasoning::{build_reason, derive_confidence};
+use self::review::{ProjectReviewAction, ProjectReviewContext, ProjectReviewRecommendation};
 use self::review_focus::RecommendationReviewFocus;
 use self::scoring::score_review_actions;
 use self::sequencing::execution_sequence_for_recommendation;
 use super::constraints::repo_truth_gap_projection;
-use super::guidance_types::{ProjectOverview, Recommendation};
+use super::guidance_types::ProjectOverview;
 use super::serialization::to_value_or_error;
 use super::{
     activity_is_stale, detect_mock_data_report, detect_project_commands,
     enrich_project_overview_with_attention, latest_activity_timestamp,
     latest_verification_timestamp, now_unix_secs, project_observation_layer,
     project_readiness_snapshot, project_storage_maintenance_with_policy, project_toolchain_layer,
-    repo_status_risk_layer, snapshot_is_stale, strategy_profile, verification_has_failures,
-    verification_is_missing, verification_is_stale, verification_status_layer, ProjectGuidanceData,
-    ProjectGuidanceState,
+    repo_status_risk_layer, snapshot_is_stale, verification_has_failures, verification_is_missing,
+    verification_is_stale, verification_status_layer, ProjectGuidanceData, ProjectGuidanceState,
 };
 
 pub(crate) fn project_overview(
@@ -225,8 +226,6 @@ pub(crate) fn recommend_project_action(
         .cloned()
         .unwrap_or_else(|| "git status".to_string());
 
-    let blockers = || Some(Value::Array(cleanup_blockers.clone()));
-    let refactor_b = || Some(Value::Array(refactor_blockers.clone()));
     let forced_context = ForcedRecommendationContext {
         project_id: project.id.clone(),
         primary_verification_command: primary_verification_command.clone(),
@@ -245,6 +244,19 @@ pub(crate) fn recommend_project_action(
         verification_gate_levels: gate_levels.clone(),
         repo_truth_gaps: repo_truth_gaps_json.clone(),
         mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+    };
+    let review_context = ProjectReviewContext {
+        project_id: project.id.clone(),
+        project_command: project_commands[0].clone(),
+        reason: shared_review_reason,
+        confidence: shared_review_confidence.to_string(),
+        safe_for_cleanup,
+        safe_for_refactor,
+        verification_gate_levels: gate_levels,
+        cleanup_blockers,
+        refactor_blockers,
+        repo_truth_gaps: repo_truth_gaps_json,
+        mandatory_shell_checks: mandatory_shell_checks_json,
     };
 
     let rec = if let Some(forced_recommendation) = eligibility.forced_action.and_then(|action| {
@@ -275,83 +287,14 @@ pub(crate) fn recommend_project_action(
     {
         forced_recommendation.into_recommendation()
     } else if best_review_action == "review_unused_files" {
-        let strategy_mode = if safe_for_cleanup {
-            "review_then_modify"
-        } else {
-            "verify_before_modify"
-        };
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "review_unused_files".to_string(),
-            recommended_flow: vec![
-                "Inspect unused-file candidates before proposing cleanup.".to_string(),
-                "Validate each candidate with shell search, imports, and tests.".to_string(),
-                "Only delete or refactor after cleanup blockers are cleared.".to_string(),
-            ],
-            reason: shared_review_reason.clone(),
-            confidence: shared_review_confidence.to_string(),
-            strategy_mode: strategy_mode.to_string(),
-            strategy_profile: strategy_profile(
-                strategy_mode,
-                "opendog",
-                "shell",
-                &["activity_signals", "verification", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: blockers(),
-            refactor_blockers: refactor_b(),
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                format!("opendog unused --id {}", project.id),
-                "rg \"<pattern>\" .".to_string(),
-                project_commands[0].clone(),
-            ],
-        }
+        ProjectReviewRecommendation::new(
+            ProjectReviewAction::ReviewUnusedFiles,
+            review_context.clone(),
+        )
+        .into_recommendation()
     } else {
-        let strategy_mode = if safe_for_refactor {
-            "inspect_then_modify"
-        } else {
-            "verify_before_modify"
-        };
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "inspect_hot_files".to_string(),
-            recommended_flow: vec![
-                "Inspect the hottest observed files first.".to_string(),
-                "Use shell diff and symbol search after OPENDOG narrows the review target."
-                    .to_string(),
-                "Treat hotspot review as a precursor to targeted refactor, not broad cleanup."
-                    .to_string(),
-            ],
-            reason: shared_review_reason,
-            confidence: shared_review_confidence.to_string(),
-            strategy_mode: strategy_mode.to_string(),
-            strategy_profile: strategy_profile(
-                strategy_mode,
-                if safe_for_refactor {
-                    "opendog"
-                } else {
-                    "shell"
-                },
-                if safe_for_refactor {
-                    "shell"
-                } else {
-                    "opendog"
-                },
-                &["activity_signals", "verification", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: blockers(),
-            refactor_blockers: refactor_b(),
-            repo_truth_gaps: repo_truth_gaps_json,
-            mandatory_shell_checks: mandatory_shell_checks_json,
-            suggested_commands: vec![
-                format!("opendog stats --id {}", project.id),
-                "git diff".to_string(),
-                "rg \"<pattern>\" .".to_string(),
-            ],
-        }
+        ProjectReviewRecommendation::new(ProjectReviewAction::InspectHotFiles, review_context)
+            .into_recommendation()
     };
 
     let mut payload = to_value_or_error("Recommendation", rec);
