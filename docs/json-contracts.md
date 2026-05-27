@@ -23,7 +23,7 @@ Related MCP entry points use the same versioned-contract pattern: `get_guidance`
 
 When the daemon is live, CLI and MCP may reuse daemon-owned state through the local control plane.
 
-MCP utility outputs use the same versioned pattern, including `opendog.mcp.guidance.v1` and `opendog.mcp.decision-brief.v1`.
+MCP utility outputs use the same versioned pattern, including `opendog.mcp.guidance.v1`, `opendog.mcp.decision-brief.v1`, and `opendog.mcp.build-info.v1`.
 
 Read-only MCP Resources expose stable state without running operations:
 
@@ -450,6 +450,11 @@ Version marker:
 3. For project scope, read `effective` before reasoning about monitor behavior.
 4. Use `inherits` to decide whether a project is still following global defaults.
 5. Read `effective.retention` before planning storage cleanup; project overrides may change thresholds and retention windows.
+
+## MCP `get_build_info`
+Version marker: `schema_version = opendog.mcp.build-info.v1`
+Primary fields: `version`, `storage_schema_version`, `git_hash`, `build_time`, `binary_path`, `needs_rebuild`, `daemon_running`, `opendog_home`.
+Consumption: if `needs_rebuild = true`, rebuild and restart the MCP host; if `daemon_running = false`, start or restart the daemon; use `opendog_home` as the storage/config root for CLI troubleshooting. Do not infer AI-host tool visibility from this payload.
 
 ## `opendog config set-project --json`
 

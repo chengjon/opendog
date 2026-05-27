@@ -48,7 +48,7 @@ Start from the tool that matches the decision you need now, then drill into lowe
 - Observation and reporting: [`get_time_window_report`](#get_time_window_report), [`compare_snapshots`](#compare_snapshots), [`get_usage_trends`](#get_usage_trends), [`get_activity_rollups`](#get_activity_rollups), [`get_stats`](#get_stats), [`get_unused_files`](#get_unused_files)
 - Governance state: [`create_governance_lane`](#create_governance_lane), [`upsert_governance_node`](#upsert_governance_node), [`get_governance_state`](#get_governance_state), [`close_governance_lane`](#close_governance_lane)
 - Setup and lifecycle: [`register_project`](#register_project), [`list_projects`](#list_projects), [`take_snapshot`](#take_snapshot), [`start_monitor`](#start_monitor), [`stop_monitor`](#stop_monitor), [`delete_project`](#delete_project)
-- Configuration inspection: [`get_global_config`](#get_global_config), [`get_project_config`](#get_project_config)
+- Configuration inspection: [`get_global_config`](#get_global_config), [`get_build_info`](#get_build_info), [`get_project_config`](#get_project_config)
 - Verification recording: [`record_verification_result`](#record_verification_result), [`run_verification_command`](#run_verification_command)
 
 ## Read-Only Resources
@@ -297,52 +297,23 @@ Review-candidate aids: `guidance.file_recommendations[*].candidate_{basis,risk_h
 
 ## `get_global_config`
 
-Purpose:
+Purpose: inspect OPENDOG global defaults such as ignore patterns and process whitelist.
+Request shape: `{}`
+Useful fields: `schema_version`, `global_defaults`, `guidance`.
 
-- inspect OPENDOG global defaults such as ignore patterns and process whitelist
-- understand what newly created or inheriting projects will use by default
+## `get_build_info`
 
-Request shape:
-
-```json
-{}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `global_defaults`
-- `guidance`
+Purpose: inspect MCP binary/build metadata, `storage_schema_version`, daemon reachability, OPENDOG home, and rebuild guidance.
+Request shape: `{}`
+Useful fields: `schema_version`, `storage_schema_version`, `version`, `git_hash`, `build_time`, `binary_path`, `needs_rebuild`, `daemon_running`, `opendog_home`, `rebuild_hint`, `guidance`.
+Boundary: `daemon_running` checks OPENDOG daemon reachability only; host-side tool visibility must be checked in the AI host.
 
 ## `get_project_config`
 
-Purpose:
-
-- inspect resolved config for one project
-- compare global defaults, project overrides, and effective runtime values
-
-Request shape:
-
-```json
-{
-  "id": "demo"
-}
-```
-
-Useful response fields:
-
-- `schema_version`
-- `project_id`
-- `global_defaults`
-- `project_overrides`
-- `effective`
-- `inherits`
-- `guidance`
-
-Operator note:
-
-- config mutation, config reload, evidence export, and retained-evidence cleanup are intentionally CLI-only flows
-- use `opendog config set-global`, `opendog config set-project`, `opendog config reload`, `opendog export`, and `opendog cleanup-data`
+Purpose: inspect resolved config for one project and compare global defaults, overrides, and effective runtime values.
+Request shape: `{ "id": "demo" }`
+Useful fields: `schema_version`, `project_id`, `global_defaults`, `project_overrides`, `effective`, `inherits`, `guidance`.
+Operator note: config mutation, config reload, evidence export, and retained-evidence cleanup are CLI-only flows (`opendog config ...`, `opendog export`, `opendog cleanup-data`).
 
 ## `get_guidance`
 

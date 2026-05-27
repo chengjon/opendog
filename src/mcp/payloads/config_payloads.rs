@@ -32,7 +32,7 @@ pub(crate) fn build_info_payload(input: BuildInfoPayloadInput<'_>) -> Value {
 
     let mut fields: Vec<(&str, Value)> = vec![
         ("version", json!(input.version)),
-        ("schema_version", json!(SCHEMA_VERSION)),
+        ("storage_schema_version", json!(SCHEMA_VERSION)),
         ("git_hash", json!(input.git_hash)),
         ("build_time", json!(input.build_time)),
         ("binary_path", json!(input.binary_path)),
@@ -436,12 +436,13 @@ mod tests {
     }
 
     #[test]
-    fn build_info_payload_includes_schema_version() {
+    fn build_info_payload_keeps_contract_and_storage_schema_versions_separate() {
         let mut input = sample_build_info_input();
         input.schema_version = "1.0";
         input.build_time = "2026-01-01";
         let payload = build_info_payload(input);
-        assert_eq!(payload["schema_version"], json!(SCHEMA_VERSION));
+        assert_eq!(payload["schema_version"], "1.0");
+        assert_eq!(payload["storage_schema_version"], json!(SCHEMA_VERSION));
         assert_eq!(payload["version"], "0.1.0");
     }
 

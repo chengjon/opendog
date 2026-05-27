@@ -63,7 +63,7 @@
 **实施**:
 
 - `src/storage/migrations.rs` — SchemaMigration 错误消息追加 `"Restart the daemon and MCP session with the current binary, then retry."`
-- `src/mcp/payloads/config_payloads.rs` — `build_info_payload` 新增 `schema_version` 字段（取自 `SCHEMA_VERSION` 常量）
+- `src/mcp/payloads/config_payloads.rs` — `build_info_payload` 新增 `storage_schema_version` 字段（取自 `SCHEMA_VERSION` 常量）
 - 新增 2 个测试
 
 **涉及文件**: `storage/migrations.rs`, `mcp/payloads/config_payloads.rs`

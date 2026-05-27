@@ -38,8 +38,8 @@
    - 不改错误类型，只丰富 message。
 
 2. **build_info 字段扩展** — 在 `build_info_payload` 中增加：
-   - `schema_version`: 当前 binary 支持的 schema 版本（`SCHEMA_VERSION` 常量）
-   - `daemon_status`: 通过控制面探测 daemon 是否活跃（复用 `DaemonClient::new().list_projects()` 的连通性）
+   - `storage_schema_version`: 当前 binary 支持的存储 schema 版本（`SCHEMA_VERSION` 常量）
+   - `daemon_running`: 通过控制面探测 daemon 是否活跃
 
 3. **MCP handler 层** — 当 handler 捕获 `SchemaMigration` 错误时，附加 `daemon_restart_required: true` 到错误 payload。
 

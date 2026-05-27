@@ -160,7 +160,7 @@ Expand tests to include no-space operator forms and either improve detection or 
 
 | Item | Summary Status | Code Evidence | Review Status |
 |---|---|---|---|
-| F-1 schema diagnostics | Complete | Restart advice and `build_info.schema_version` exist | Implemented |
+| F-1 schema diagnostics | Complete | Restart advice and `build_info.storage_schema_version` exist | Implemented |
 | F-4 data-risk path classification | Complete | Infrastructure path classification and low priority exist | Implemented |
 | F-2A verification trust Phase A | Complete | Detection fields exist in execution result and status views now reuse suspicious pass detection | Fixed after review |
 | F-6 documentation surface | Complete | Stale `get_decision_brief` wording replaced with `get_guidance(detail = "decision")` | Fixed after review |

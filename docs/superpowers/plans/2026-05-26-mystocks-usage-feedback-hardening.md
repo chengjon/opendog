@@ -89,7 +89,7 @@ In `src/storage/migrations.rs`, replace lines 32-37:
 Run: `cargo test --lib migrations`
 Expected: ALL PASS
 
-- [ ] **Step 5: Write failing test for build_info schema_version field**
+- [ ] **Step 5: Write failing test for build_info storage_schema_version field**
 
 Add inside the test module or a new test in `src/mcp/payloads/config_payloads.rs` — but since this file has no test module, add tests in `src/mcp/payloads/mod.rs` or a new test inline. Actually, check: the payloads module is private. The test for build_info payload should go in `src/mcp/tests/` or be tested indirectly through the MCP tool test.
 
@@ -102,7 +102,7 @@ mod tests {
     use serde_json::Value;
 
     #[test]
-    fn build_info_payload_includes_schema_version() {
+    fn build_info_payload_keeps_contract_and_storage_schema_versions_separate() {
         let payload = build_info_payload(
             "1.0",
             "0.1.0",
@@ -111,7 +111,8 @@ mod tests {
             "/usr/bin/opendog",
             None,
         );
-        assert_eq!(payload["schema_version"], 6);
+        assert_eq!(payload["schema_version"], "1.0");
+        assert_eq!(payload["storage_schema_version"], 6);
         assert_eq!(payload["version"], "0.1.0");
     }
 
@@ -136,9 +137,9 @@ mod tests {
 - [ ] **Step 6: Run test to verify it fails**
 
 Run: `cargo test --lib config_payloads`
-Expected: FAIL — `payload["schema_version"]` is null (field doesn't exist yet)
+Expected: FAIL — `payload["storage_schema_version"]` is null (field doesn't exist yet)
 
-- [ ] **Step 7: Add schema_version field to build_info_payload**
+- [ ] **Step 7: Add storage_schema_version field to build_info_payload**
 
 In `src/mcp/payloads/config_payloads.rs`, add after the imports at the top:
 
@@ -146,10 +147,10 @@ In `src/mcp/payloads/config_payloads.rs`, add after the imports at the top:
 use crate::storage::schema::SCHEMA_VERSION;
 ```
 
-Then in `build_info_payload`, add `("schema_version", json!(SCHEMA_VERSION))` to the `fields` vec, after the `("version", ...)` entry. Insert after line 29 (`("version", json!(version)),`):
+Then in `build_info_payload`, add `("storage_schema_version", json!(SCHEMA_VERSION))` to the `fields` vec, after the `("version", ...)` entry. Insert after line 29 (`("version", json!(version)),`):
 
 ```rust
-        ("schema_version", json!(SCHEMA_VERSION)),
+        ("storage_schema_version", json!(SCHEMA_VERSION)),
 ```
 
 - [ ] **Step 8: Run tests to verify they pass**
