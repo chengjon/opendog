@@ -23,6 +23,7 @@ All notable changes to OPENDOG are documented here.
 - Storage-maintenance execution-template generation now consumes typed context for project placeholders, cleanup recommendations, cleanup-plan steps, and vacuum signals before rendering MCP JSON.
 - Verification-evidence workspace aggregation now uses typed project summaries and gate distributions before rendering MCP JSON.
 - Single-project verification status and gate-assessment payloads now use typed summaries before rendering MCP JSON.
+- Execution-strategy workspace profiles now use a typed internal model for global mode selection, tool preference, evidence priority, and recommended-flow text before rendering MCP JSON.
 
 ### Fixed
 

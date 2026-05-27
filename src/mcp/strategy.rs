@@ -1,5 +1,9 @@
 use serde_json::{json, Value};
 
+mod model;
+
+use model::WorkspaceStrategyProfile;
+
 fn apply_repo_risk_context(first_step: String, risk_strategy_coupling: Option<&Value>) -> String {
     let Some(coupling) = risk_strategy_coupling else {
         return first_step;
@@ -35,79 +39,14 @@ pub(super) fn workspace_strategy_profile(
     has_mid_operation_repo: bool,
     missing_verification_projects: usize,
 ) -> Value {
-    let (global_strategy_mode, preferred_primary_tool, preferred_secondary_tool, recommended_flow) =
-        if has_failing_verification {
-            (
-                "verify_before_modify",
-                "shell",
-                "opendog",
-                vec![
-                    "Inspect recorded failing verification first; do not start broad refactors while test/lint/build evidence is failing or uncertain.".to_string(),
-                    "Use `opendog verification --id <project>` or `get_verification_status` to inspect the latest failing verification records.".to_string(),
-                    "Only return to activity-based cleanup or refactor work after verification is stable again.".to_string(),
-                ],
-            )
-        } else if has_mid_operation_repo {
-            (
-                "stabilize_before_modify",
-                "shell",
-                "opendog",
-                vec![
-                    "Stabilize repositories that are mid-merge, rebase, cherry-pick, or bisect before making broader code changes.".to_string(),
-                    "Use `git status` and `git diff` to understand the in-progress repository operation.".to_string(),
-                    "Once repository state is stable, resume OPENDOG-driven cleanup or hotspot review.".to_string(),
-                ],
-            )
-        } else if project_count == 0 {
-            (
-                "collect_workspace_context",
-                "opendog",
-                "shell",
-                vec![
-                    "Register a project first with `register_project` or `opendog register --id <project> --path <root>`.".to_string(),
-                    "Start monitoring immediately after creation so opendog can build activity data.".to_string(),
-                    "Use shell commands such as `rg` only after you know which project root you want to inspect.".to_string(),
-                ],
-            )
-        } else if monitoring_count == 0 {
-            (
-                "collect_evidence_first",
-                "opendog",
-                "shell",
-                vec![
-                    "Use `opendog list` first to pick a project that should be monitored.".to_string(),
-                    "Use `opendog start --id <project>` to ensure monitoring is active; it can take an initial snapshot automatically.".to_string(),
-                    "After some workflow activity, use `opendog stats --id <project>` to inspect hotspots.".to_string(),
-                ],
-            )
-        } else {
-            (
-                if missing_verification_projects > 0 {
-                    "verify_before_high_risk_changes"
-                } else {
-                    "activity_guided_review"
-                },
-                "opendog",
-                "shell",
-                vec![
-                    "Use `opendog list` first to confirm which projects are already being monitored.".to_string(),
-                    "Use `opendog stats --id <project>` or the `get_stats` MCP tool after monitoring to inspect activity hotspots.".to_string(),
-                    "Use `opendog unused --id <project>` or the `get_unused_files` MCP tool to review never-accessed files before cleanup.".to_string(),
-                ],
-            )
-        };
-
-    json!({
-        "global_strategy_mode": global_strategy_mode,
-        "preferred_primary_tool": preferred_primary_tool,
-        "preferred_secondary_tool": preferred_secondary_tool,
-        "evidence_priority": [
-            "verification",
-            "repository_risk",
-            "activity_signals",
-        ],
-        "recommended_flow": recommended_flow,
-    })
+    WorkspaceStrategyProfile::from_inputs(
+        project_count,
+        monitoring_count,
+        has_failing_verification,
+        has_mid_operation_repo,
+        missing_verification_projects,
+    )
+    .to_json()
 }
 
 pub(super) fn agent_guidance_recommended_flow(
