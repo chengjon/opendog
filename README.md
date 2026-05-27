@@ -159,7 +159,7 @@ MCP surface 共 **27 个工具** + **2 个只读 Resource**，全部采用 daemo
 3. **判断文件活跃度**：`get_stats`（带 `path_classification=source` 过滤源码）、`get_unused_files`、`get_time_window_report`
 4. **判断能否安全修改**：`get_verification_status` → `get_data_risk_candidates`
 5. **多项目优先级**：`get_workspace_data_risk_overview` 决定先关注哪个项目
-6. **存储维护**：如 guidance 标记存储维护候选，用 CLI `opendog cleanup-data --dry-run` 预览；清理后用 `opendog report rollup --json` 查看保留下来的每日活动汇总
+6. **存储维护**：如 guidance 标记存储维护候选，按 [storage retention runbook](/opt/claude/opendog/docs/operations/storage-retention-runbook.md) 用 CLI `opendog cleanup-data --dry-run` 预览；清理后用 `opendog report rollup --json` 查看保留下来的每日活动汇总
 7. **治理跟踪**：`create_governance_lane` → `upsert_governance_node` 记录工作意图和边界
 
 更完整的行动顺序、shell 切换时机和安全边界见 [docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)。
