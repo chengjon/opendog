@@ -171,6 +171,68 @@ impl RepoTruthGapDistribution {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum RepoRiskCouplingStatus {
+    NoRepoRiskSignal,
+    Coupled,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub(crate) struct RepoRiskCoupling {
+    status: RepoRiskCouplingStatus,
+    source: Option<String>,
+    source_project_id: Option<String>,
+    recommended_next_action: Value,
+    strategy_mode: Value,
+    preferred_primary_tool: Value,
+    primary_repo_risk_finding: Value,
+    summary: Option<String>,
+}
+
+impl RepoRiskCoupling {
+    pub(crate) fn no_signal(
+        recommended_next_action: Value,
+        strategy_mode: Value,
+        preferred_primary_tool: Value,
+    ) -> Self {
+        Self {
+            status: RepoRiskCouplingStatus::NoRepoRiskSignal,
+            source: None,
+            source_project_id: None,
+            recommended_next_action,
+            strategy_mode,
+            preferred_primary_tool,
+            primary_repo_risk_finding: Value::Null,
+            summary: None,
+        }
+    }
+
+    pub(crate) fn coupled(
+        source_project_id: &str,
+        recommended_next_action: Value,
+        strategy_mode: Value,
+        preferred_primary_tool: Value,
+        primary_repo_risk_finding: Value,
+        summary: String,
+    ) -> Self {
+        Self {
+            status: RepoRiskCouplingStatus::Coupled,
+            source: Some("primary_repo_risk_finding".to_string()),
+            source_project_id: Some(source_project_id.to_string()),
+            recommended_next_action,
+            strategy_mode,
+            preferred_primary_tool,
+            primary_repo_risk_finding,
+            summary: Some(summary),
+        }
+    }
+
+    pub(crate) fn to_value(&self) -> Value {
+        serde_json::to_value(self).unwrap_or(Value::Null)
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct StabilizationSummary {
     pub(crate) projects_requiring_repo_stabilization: u64,
@@ -252,7 +314,7 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) preferred_primary_tool: Value,
     pub(crate) preferred_secondary_tool: Value,
     pub(crate) evidence_priority: Value,
-    pub(crate) risk_strategy_coupling: Value,
+    pub(crate) risk_strategy_coupling: RepoRiskCoupling,
     pub(crate) external_truth_boundary: Value,
     pub(crate) review_focus_projection: Value,
     pub(crate) when_to_use_opendog: Vec<&'static str>,
@@ -608,6 +670,50 @@ mod tests {
     }
 
     #[test]
+    fn repo_risk_coupling_no_signal_serializes_null_boundaries() {
+        let coupling = RepoRiskCoupling::no_signal(
+            json!("start_monitor"),
+            json!("defensive"),
+            json!("opendog"),
+        );
+
+        let v = serde_json::to_value(&coupling).unwrap();
+        assert_eq!(v["status"], "no_repo_risk_signal");
+        assert!(v["source"].is_null());
+        assert!(v["source_project_id"].is_null());
+        assert_eq!(v["recommended_next_action"], "start_monitor");
+        assert_eq!(v["strategy_mode"], "defensive");
+        assert_eq!(v["preferred_primary_tool"], "opendog");
+        assert!(v["primary_repo_risk_finding"].is_null());
+        assert!(v["summary"].is_null());
+    }
+
+    #[test]
+    fn repo_risk_coupling_coupled_serializes_context() {
+        let coupling = RepoRiskCoupling::coupled(
+            "proj_a",
+            json!("stabilize_repository_state"),
+            json!("stabilize_first"),
+            json!("shell_verification"),
+            json!({"summary": "merge in progress"}),
+            "Top repository risk keeps the workspace in stabilize_first mode.".to_string(),
+        );
+
+        let v = serde_json::to_value(&coupling).unwrap();
+        assert_eq!(v["status"], "coupled");
+        assert_eq!(v["source"], "primary_repo_risk_finding");
+        assert_eq!(v["source_project_id"], "proj_a");
+        assert_eq!(
+            v["primary_repo_risk_finding"]["summary"],
+            "merge in progress"
+        );
+        assert_eq!(
+            v["summary"],
+            "Top repository risk keeps the workspace in stabilize_first mode."
+        );
+    }
+
+    #[test]
     fn stabilization_summary_serializes() {
         let s = StabilizationSummary {
             projects_requiring_repo_stabilization: 1,
@@ -709,7 +815,11 @@ mod tests {
             preferred_primary_tool: json!("opendog"),
             preferred_secondary_tool: json!("shell"),
             evidence_priority: json!("high"),
-            risk_strategy_coupling: json!({}),
+            risk_strategy_coupling: RepoRiskCoupling::no_signal(
+                Value::Null,
+                json!("evidence_first"),
+                json!("opendog"),
+            ),
             external_truth_boundary: json!({}),
             review_focus_projection: json!({}),
             when_to_use_opendog: vec![],

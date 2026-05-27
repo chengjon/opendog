@@ -10,8 +10,8 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
-        ObservationSummary, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary, WorkspaceObservationLayer,
+        ObservationSummary, RepoRiskCoupling, RepoTruthGapDistribution, RepoTruthSummary,
+        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -97,7 +97,7 @@ fn execution_strategy_repo_risk_coupling(
     project_recommendations: &[Value],
     project_overviews: &[Value],
     workspace_strategy: &Value,
-) -> Value {
+) -> RepoRiskCoupling {
     let recommended_next_action = project_recommendations
         .first()
         .map(|recommendation| recommendation["recommended_next_action"].clone())
@@ -106,16 +106,11 @@ fn execution_strategy_repo_risk_coupling(
     let preferred_primary_tool = workspace_strategy["preferred_primary_tool"].clone();
 
     let no_signal = || {
-        json!({
-            "status": "no_repo_risk_signal",
-            "source": Value::Null,
-            "source_project_id": Value::Null,
-            "recommended_next_action": recommended_next_action.clone(),
-            "strategy_mode": strategy_mode.clone(),
-            "preferred_primary_tool": preferred_primary_tool.clone(),
-            "primary_repo_risk_finding": Value::Null,
-            "summary": Value::Null,
-        })
+        RepoRiskCoupling::no_signal(
+            recommended_next_action.clone(),
+            strategy_mode.clone(),
+            preferred_primary_tool.clone(),
+        )
     };
 
     let Some(recommendation) = project_recommendations.first() else {
@@ -144,20 +139,17 @@ fn execution_strategy_repo_risk_coupling(
         .as_str()
         .unwrap_or("current_tool");
 
-    json!({
-        "status": "coupled",
-        "source": "primary_repo_risk_finding",
-        "source_project_id": project_id,
-        "recommended_next_action": recommendation["recommended_next_action"].clone(),
-        "strategy_mode": workspace_strategy["global_strategy_mode"].clone(),
-        "preferred_primary_tool": workspace_strategy["preferred_primary_tool"].clone(),
-        "primary_repo_risk_finding": primary_repo_risk_finding,
-        "summary": format!(
+    RepoRiskCoupling::coupled(
+        project_id,
+        recommendation["recommended_next_action"].clone(),
+        strategy_mode,
+        preferred_primary_tool,
+        primary_repo_risk_finding,
+        format!(
             "Top repository risk keeps the workspace in {} mode and {}-first handling.",
-            strategy_mode_text,
-            preferred_primary_tool_text
+            strategy_mode_text, preferred_primary_tool_text
         ),
-    })
+    )
 }
 
 fn execution_strategy_stabilization_summary(
@@ -405,6 +397,7 @@ pub(crate) fn agent_guidance_payload(
         project_overviews,
         &workspace_strategy,
     );
+    let risk_strategy_coupling_value = risk_strategy_coupling.to_value();
     let external_truth_boundary =
         external_truth_boundary_for_top_project(sorted_project_recommendations.first());
     let review_focus_projection =
@@ -414,7 +407,7 @@ pub(crate) fn agent_guidance_payload(
         monitoring_count,
         sorted_project_recommendations.first(),
         &workspace_strategy,
-        Some(&risk_strategy_coupling),
+        Some(&risk_strategy_coupling_value),
     );
 
     let mut value = json!({
@@ -671,7 +664,7 @@ mod tests {
     #[test]
     fn risk_coupling_empty_recommendations() {
         let ws = json!({"global_strategy_mode": "defensive", "preferred_primary_tool": "opendog"});
-        let result = execution_strategy_repo_risk_coupling(&[], &[], &ws);
+        let result = execution_strategy_repo_risk_coupling(&[], &[], &ws).to_value();
         assert_eq!(result["status"], "no_repo_risk_signal");
         assert!(result["source"].is_null());
     }
@@ -680,7 +673,7 @@ mod tests {
     fn risk_coupling_no_project_id() {
         let recs = vec![json!({"recommended_next_action": "start_monitor"})];
         let ws = json!({"global_strategy_mode": "defensive", "preferred_primary_tool": "opendog"});
-        let result = execution_strategy_repo_risk_coupling(&recs, &[], &ws);
+        let result = execution_strategy_repo_risk_coupling(&recs, &[], &ws).to_value();
         assert_eq!(result["status"], "no_repo_risk_signal");
     }
 
@@ -690,7 +683,7 @@ mod tests {
             vec![json!({"project_id": "proj_a", "recommended_next_action": "start_monitor"})];
         let overviews = vec![json!({"project_id": "proj_b"})];
         let ws = json!({"global_strategy_mode": "defensive", "preferred_primary_tool": "opendog"});
-        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws);
+        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws).to_value();
         assert_eq!(result["status"], "no_repo_risk_signal");
     }
 
@@ -703,7 +696,7 @@ mod tests {
             "repo_status_risk": {"highest_priority_finding": null}
         })];
         let ws = json!({"global_strategy_mode": "defensive", "preferred_primary_tool": "opendog"});
-        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws);
+        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws).to_value();
         assert_eq!(result["status"], "no_repo_risk_signal");
     }
 
@@ -721,7 +714,7 @@ mod tests {
             "global_strategy_mode": "defensive",
             "preferred_primary_tool": "opendog"
         });
-        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws);
+        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws).to_value();
         assert_eq!(result["status"], "coupled");
         assert_eq!(result["source"], "primary_repo_risk_finding");
         assert_eq!(result["source_project_id"], "proj_a");
@@ -742,7 +735,7 @@ mod tests {
             "global_strategy_mode": "stabilize_first",
             "preferred_primary_tool": "shell_verification"
         });
-        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws);
+        let result = execution_strategy_repo_risk_coupling(&recs, &overviews, &ws).to_value();
         let summary = result["summary"].as_str().unwrap();
         assert!(
             summary.contains("stabilize_first"),
