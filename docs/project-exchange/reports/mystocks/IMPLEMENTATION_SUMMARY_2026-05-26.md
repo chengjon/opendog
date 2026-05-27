@@ -268,7 +268,7 @@ mystocks 真实执行结果：
 
 ```
 docs/opendog-feature-introduction.md           (文档修正)
-docs/storage-retention-runbook.md              (retention/rollup 运维说明)
+docs/operations/storage-retention-runbook.md   (retention/rollup 运维说明)
 docs/project-exchange/reports/mystocks/
   OPENDOG_MCP_USAGE_REVIEW_2026-05-26_AUDIT.md (审核文档)
   USAGE_REVIEW_AUDIT_RESPONSE.md               (响应文档)

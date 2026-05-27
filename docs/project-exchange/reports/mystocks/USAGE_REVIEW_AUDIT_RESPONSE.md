@@ -264,7 +264,7 @@ F-3-R2 后续扩展的 retained evidence 治理已经落地：
 - CLI: `opendog report rollup --json`
 - MCP: `get_activity_rollups`
 - 存储: `activity_daily_rollups`
-- 运维: `docs/storage-retention-runbook.md`
+- 运维: `docs/operations/storage-retention-runbook.md`
 - mystocks 执行证据: `storage-retention-dry-run-2026-05-27.md`
 
 mystocks 项目已应用 14 天 activity retention policy，并完成一次真实 cleanup + vacuum + WAL checkpoint。该操作删除 OPENDOG retained activity evidence 中的旧明细行，并保留 daily rollup 汇总；不删除 mystocks 项目源码文件。
