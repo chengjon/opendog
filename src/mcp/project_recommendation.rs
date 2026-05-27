@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 
 pub(crate) mod eligibility;
+mod evidence;
 mod forced;
 pub(crate) mod reasoning;
 mod review_focus;
@@ -13,6 +14,9 @@ use crate::storage::database::Database;
 use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
+use self::evidence::{
+    EvidenceCollectionAction, EvidenceCollectionContext, EvidenceCollectionRecommendation,
+};
 use self::forced::{ForcedProjectRecommendation, ForcedRecommendationContext};
 use self::reasoning::{build_reason, derive_confidence};
 use self::review_focus::RecommendationReviewFocus;
@@ -233,104 +237,38 @@ pub(crate) fn recommend_project_action(
         repo_truth_gaps: repo_truth_gaps_json.clone(),
         mandatory_shell_checks: mandatory_shell_checks_json.clone(),
     };
+    let evidence_context = EvidenceCollectionContext {
+        project_id: project.id.clone(),
+        project_command: project_commands[0].clone(),
+        snapshot_missing: project.total_files == 0,
+        activity_missing: project.accessed_files == 0,
+        verification_gate_levels: gate_levels.clone(),
+        repo_truth_gaps: repo_truth_gaps_json.clone(),
+        mandatory_shell_checks: mandatory_shell_checks_json.clone(),
+    };
 
     let rec = if let Some(forced_recommendation) = eligibility.forced_action.and_then(|action| {
         ForcedProjectRecommendation::from_immediate_action(action, forced_context.clone())
     }) {
         forced_recommendation.into_recommendation()
     } else if project.status != "monitoring" {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "start_monitor".to_string(),
-            recommended_flow: vec![
-                "Start monitoring because fresh activity evidence does not exist yet.".to_string(),
-                "Let real workflow activity happen after monitoring is active.".to_string(),
-                "Inspect stats only after OPENDOG has observed meaningful activity.".to_string(),
-            ],
-            reason: "This project is not currently being monitored, so opendog cannot collect fresh activity data yet.".to_string(),
-            confidence: "medium".to_string(),
-            strategy_mode: "collect_evidence_first".to_string(),
-            strategy_profile: strategy_profile(
-                "collect_evidence_first",
-                "opendog",
-                "shell",
-                &["activity_signals", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: None,
-            refactor_blockers: None,
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                format!("opendog start --id {}", project.id),
-                format!("opendog stats --id {}", project.id),
-            ],
-        }
+        EvidenceCollectionRecommendation::new(
+            EvidenceCollectionAction::StartMonitor,
+            evidence_context.clone(),
+        )
+        .into_recommendation()
     } else if project.total_files == 0 || snapshot_stale {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "take_snapshot".to_string(),
-            recommended_flow: vec![
-                "Take a snapshot to establish the project baseline.".to_string(),
-                "Use stats only after the baseline inventory exists.".to_string(),
-                "If monitoring is already active, keep it running so activity can accumulate after snapshot.".to_string(),
-            ],
-            reason: if project.total_files == 0 {
-                "Monitoring is active but no snapshot data exists yet, so file inventory and stats are incomplete.".to_string()
-            } else {
-                "Snapshot evidence exists but is stale, so refresh the baseline before trusting cleanup or hotspot conclusions.".to_string()
-            },
-            confidence: "medium".to_string(),
-            strategy_mode: "collect_evidence_first".to_string(),
-            strategy_profile: strategy_profile(
-                "collect_evidence_first",
-                "opendog",
-                "shell",
-                &["activity_signals", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: None,
-            refactor_blockers: None,
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                format!("opendog snapshot --id {}", project.id),
-                format!("opendog stats --id {}", project.id),
-            ],
-        }
+        EvidenceCollectionRecommendation::new(
+            EvidenceCollectionAction::TakeSnapshot,
+            evidence_context.clone(),
+        )
+        .into_recommendation()
     } else if project.accessed_files == 0 || activity_stale {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "generate_activity_then_stats".to_string(),
-            recommended_flow: vec![
-                "Generate real project activity with edits, tests, or builds.".to_string(),
-                "Avoid drawing hotspot or cleanup conclusions before activity exists.".to_string(),
-                "Inspect stats after the observation window is meaningful.".to_string(),
-            ],
-            reason: if project.accessed_files == 0 {
-                "Snapshot data exists, but no file access activity has been recorded yet."
-                    .to_string()
-            } else {
-                "Activity evidence exists but is stale, so generate fresh workflow activity before trusting current hotspot or cleanup signals.".to_string()
-            },
-            confidence: "medium".to_string(),
-            strategy_mode: "collect_evidence_first".to_string(),
-            strategy_profile: strategy_profile(
-                "collect_evidence_first",
-                "shell",
-                "opendog",
-                &["activity_signals", "verification", "repository_risk"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: None,
-            refactor_blockers: None,
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                project_commands[0].clone(),
-                format!("opendog stats --id {}", project.id),
-            ],
-        }
+        EvidenceCollectionRecommendation::new(
+            EvidenceCollectionAction::GenerateActivityThenStats,
+            evidence_context.clone(),
+        )
+        .into_recommendation()
     } else if let Some(forced_recommendation) = eligibility
         .forced_action
         .and_then(|action| ForcedProjectRecommendation::from_action(action, forced_context.clone()))
