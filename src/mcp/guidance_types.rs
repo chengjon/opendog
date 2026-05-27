@@ -1,4 +1,6 @@
 use serde::Serialize;
+use std::collections::BTreeMap;
+
 use serde_json::Value;
 
 #[derive(Serialize)]
@@ -144,8 +146,29 @@ pub(crate) struct DecisionSignals {
 #[derive(Serialize)]
 pub(crate) struct RepoTruthSummary {
     pub(crate) projects_with_repo_truth_gaps: u64,
-    pub(crate) repo_truth_gap_distribution: Value,
+    pub(crate) repo_truth_gap_distribution: RepoTruthGapDistribution,
     pub(crate) mandatory_shell_check_examples: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub(crate) struct RepoTruthGapDistribution {
+    counts: BTreeMap<String, u64>,
+}
+
+impl RepoTruthGapDistribution {
+    pub(crate) fn increment_gap(&mut self, gap_key: &str) {
+        *self.counts.entry(gap_key.to_string()).or_insert(0) += 1;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn count(&self, gap_key: &str) -> u64 {
+        self.counts.get(gap_key).copied().unwrap_or(0)
+    }
+
+    pub(crate) fn to_value(&self) -> Value {
+        serde_json::to_value(self).unwrap_or(Value::Null)
+    }
 }
 
 #[derive(Serialize)]
@@ -553,13 +576,35 @@ mod tests {
 
     #[test]
     fn repo_truth_summary_serializes() {
+        let mut distribution = RepoTruthGapDistribution::default();
+        distribution.increment_gap("missing_test");
+        distribution.increment_gap("missing_test");
+
         let s = RepoTruthSummary {
             projects_with_repo_truth_gaps: 2,
-            repo_truth_gap_distribution: json!({"missing_test": 2}),
+            repo_truth_gap_distribution: distribution,
             mandatory_shell_check_examples: vec!["cargo test".into()],
         };
         let v = serde_json::to_value(&s).unwrap();
         assert_eq!(v["projects_with_repo_truth_gaps"], 2);
+        assert_eq!(v["repo_truth_gap_distribution"]["missing_test"], 2);
+    }
+
+    #[test]
+    fn repo_truth_gap_distribution_counts_dynamic_keys() {
+        let mut distribution = RepoTruthGapDistribution::default();
+
+        distribution.increment_gap("missing_test");
+        distribution.increment_gap("missing_test");
+        distribution.increment_gap("missing_lint");
+
+        assert_eq!(distribution.count("missing_test"), 2);
+        assert_eq!(distribution.count("missing_lint"), 1);
+        assert_eq!(distribution.count("missing_build"), 0);
+
+        let v = serde_json::to_value(&distribution).unwrap();
+        assert_eq!(v["missing_test"], 2);
+        assert_eq!(v["missing_lint"], 1);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::contracts::MCP_GUIDANCE_V1;
 use crate::core::verification;
@@ -10,8 +10,8 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
-        ObservationSummary, RepoTruthSummary, StabilizationSummary, VerificationSummary,
-        WorkspaceObservationLayer,
+        ObservationSummary, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
+        VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -56,7 +56,7 @@ pub(crate) fn now_unix_secs() -> i64 {
 
 fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> RepoTruthSummary {
     let mut projects_with_repo_truth_gaps = 0_u64;
-    let mut repo_truth_gap_distribution = Map::new();
+    let mut repo_truth_gap_distribution = RepoTruthGapDistribution::default();
     let mut mandatory_shell_check_examples = Vec::new();
 
     for recommendation in project_recommendations {
@@ -69,12 +69,7 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> R
         }
         for gap in gaps {
             if let Some(key) = gap.as_str() {
-                let next = repo_truth_gap_distribution
-                    .get(key)
-                    .and_then(|value| value.as_u64())
-                    .unwrap_or(0)
-                    + 1;
-                repo_truth_gap_distribution.insert(key.to_string(), json!(next));
+                repo_truth_gap_distribution.increment_gap(key);
             }
         }
         if let Some(checks) = recommendation["mandatory_shell_checks"].as_array() {
@@ -93,7 +88,7 @@ fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> R
 
     RepoTruthSummary {
         projects_with_repo_truth_gaps,
-        repo_truth_gap_distribution: Value::Object(repo_truth_gap_distribution),
+        repo_truth_gap_distribution,
         mandatory_shell_check_examples,
     }
 }
@@ -543,7 +538,7 @@ pub(crate) fn agent_guidance_payload(
             projects_requiring_snapshot_refresh: json!(observation_summary.projects_requiring_snapshot_refresh),
             projects_requiring_activity_generation: json!(observation_summary.projects_requiring_activity_generation),
             projects_with_repo_truth_gaps: json!(repo_truth_summary.projects_with_repo_truth_gaps),
-            repo_truth_gap_distribution: repo_truth_summary.repo_truth_gap_distribution,
+            repo_truth_gap_distribution: repo_truth_summary.repo_truth_gap_distribution.to_value(),
             mandatory_shell_check_examples: json!(repo_truth_summary.mandatory_shell_check_examples),
             projects_requiring_verification_run: json!(verification_summary.projects_requiring_verification_run),
             projects_requiring_failing_verification_repair: json!(verification_summary.projects_requiring_failing_verification_repair),
@@ -608,7 +603,7 @@ mod tests {
     fn repo_truth_summary_empty_input() {
         let summary = execution_strategy_repo_truth_summary(&[]);
         assert_eq!(summary.projects_with_repo_truth_gaps, 0);
-        assert_eq!(summary.repo_truth_gap_distribution, json!({}));
+        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
         assert!(summary.mandatory_shell_check_examples.is_empty());
     }
 
@@ -617,7 +612,7 @@ mod tests {
         let recs = vec![json!({"repo_truth_gaps": []})];
         let summary = execution_strategy_repo_truth_summary(&recs);
         assert_eq!(summary.projects_with_repo_truth_gaps, 0);
-        assert_eq!(summary.repo_truth_gap_distribution, json!({}));
+        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
         assert!(summary.mandatory_shell_check_examples.is_empty());
     }
 
@@ -629,10 +624,7 @@ mod tests {
         })];
         let summary = execution_strategy_repo_truth_summary(&recs);
         assert_eq!(summary.projects_with_repo_truth_gaps, 1);
-        assert_eq!(
-            summary.repo_truth_gap_distribution,
-            json!({"missing_test": 1})
-        );
+        assert_eq!(summary.repo_truth_gap_distribution.count("missing_test"), 1);
         assert_eq!(summary.mandatory_shell_check_examples, vec!["cargo test"]);
     }
 
@@ -644,10 +636,7 @@ mod tests {
         ];
         let summary = execution_strategy_repo_truth_summary(&recs);
         assert_eq!(summary.projects_with_repo_truth_gaps, 2);
-        assert_eq!(
-            summary.repo_truth_gap_distribution,
-            json!({"missing_test": 2})
-        );
+        assert_eq!(summary.repo_truth_gap_distribution.count("missing_test"), 2);
     }
 
     #[test]
@@ -659,7 +648,7 @@ mod tests {
         // The array is non-empty so the project counts as having gaps
         assert_eq!(summary.projects_with_repo_truth_gaps, 1);
         // But none of the entries are strings, so distribution is empty
-        assert_eq!(summary.repo_truth_gap_distribution, json!({}));
+        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
     }
 
     #[test]
