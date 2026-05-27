@@ -3,13 +3,10 @@ use serde_json::{json, Value};
 use crate::config::RetentionPolicy;
 use crate::core::retention::{StorageEvidenceCounts, StorageMetrics};
 
-fn storage_reclaim_ratio(metrics: &StorageMetrics) -> f64 {
-    if metrics.approx_db_size_bytes <= 0 {
-        0.0
-    } else {
-        metrics.approx_reclaimable_bytes as f64 / metrics.approx_db_size_bytes as f64
-    }
-}
+mod model;
+#[cfg(test)]
+use model::storage_reclaim_ratio;
+use model::StorageMaintenanceAssessment;
 
 fn evidence_counts_json(counts: Option<&StorageEvidenceCounts>) -> Value {
     counts.map_or(Value::Null, |counts| {
@@ -259,45 +256,18 @@ pub(super) fn project_storage_maintenance_with_policy(
         });
     };
 
-    let reclaim_ratio = storage_reclaim_ratio(metrics);
-    let cleanup_review_candidate =
-        metrics.approx_db_size_bytes >= policy.cleanup_review_db_bytes_threshold;
     let cleanup_recommendations = storage_cleanup_recommendations(evidence_counts, policy);
-    let evidence_pressure_candidate = !cleanup_recommendations.is_empty();
-    let vacuum_candidate = metrics.approx_reclaimable_bytes
-        >= policy.vacuum_reclaimable_bytes_threshold
-        && reclaim_ratio >= policy.vacuum_reclaim_ratio_threshold_percent as f64 / 100.0;
-    let cleanup_plan = storage_cleanup_plan(
-        &cleanup_recommendations,
-        cleanup_review_candidate,
-        vacuum_candidate,
+    let assessment = StorageMaintenanceAssessment::from_inputs(
+        metrics,
+        !cleanup_recommendations.is_empty(),
         policy,
     );
-    let maintenance_candidate =
-        cleanup_review_candidate || evidence_pressure_candidate || vacuum_candidate;
-    let suggested_mode = if vacuum_candidate {
-        "review_cleanup_then_vacuum"
-    } else if cleanup_review_candidate || evidence_pressure_candidate {
-        "review_cleanup"
-    } else {
-        "none"
-    };
-    let pressure_level = if vacuum_candidate || evidence_pressure_candidate {
-        "high"
-    } else if cleanup_review_candidate {
-        "medium"
-    } else {
-        "low"
-    };
-    let summary = if vacuum_candidate {
-        "Project database has reclaimable space; review retained OPENDOG evidence and consider vacuum after cleanup."
-    } else if evidence_pressure_candidate {
-        "Project retained evidence counts exceed storage pressure thresholds; review scope-specific cleanup-data dry-runs."
-    } else if cleanup_review_candidate {
-        "Project database is large enough that retained OPENDOG evidence should be reviewed with cleanup-data dry-run."
-    } else {
-        "Project database size does not currently suggest dedicated OPENDOG retention maintenance."
-    };
+    let cleanup_plan = storage_cleanup_plan(
+        &cleanup_recommendations,
+        assessment.cleanup_review_candidate,
+        assessment.vacuum_candidate,
+        policy,
+    );
 
     json!({
         "status": "available",
@@ -305,18 +275,18 @@ pub(super) fn project_storage_maintenance_with_policy(
         "freelist_count": metrics.freelist_count,
         "approx_db_size_bytes": metrics.approx_db_size_bytes,
         "approx_reclaimable_bytes": metrics.approx_reclaimable_bytes,
-        "reclaim_ratio": reclaim_ratio,
-        "cleanup_review_candidate": cleanup_review_candidate,
-        "evidence_pressure_candidate": evidence_pressure_candidate,
-        "maintenance_candidate": maintenance_candidate,
-        "vacuum_candidate": vacuum_candidate,
-        "suggested_mode": suggested_mode,
-        "pressure_level": pressure_level,
+        "reclaim_ratio": assessment.reclaim_ratio,
+        "cleanup_review_candidate": assessment.cleanup_review_candidate,
+        "evidence_pressure_candidate": assessment.evidence_pressure_candidate,
+        "maintenance_candidate": assessment.maintenance_candidate,
+        "vacuum_candidate": assessment.vacuum_candidate,
+        "suggested_mode": assessment.suggested_mode,
+        "pressure_level": assessment.pressure_level,
         "evidence_counts": evidence_counts_json(evidence_counts),
         "retention_policy": policy,
         "cleanup_recommendations": cleanup_recommendations,
         "cleanup_plan": cleanup_plan,
-        "summary": summary,
+        "summary": assessment.summary,
     })
 }
 

@@ -33,6 +33,6 @@ This file records the domain language and load-bearing architecture decisions th
 
 ## Current Architecture Debt To Deepen
 
-- MCP evidence payload modules should move toward typed internal models with JSON builders as adapters. Start with storage-maintenance and verification-evidence payloads.
+- MCP evidence payload modules should move toward typed internal models with JSON builders as adapters. Storage-maintenance candidate assessment now has a typed model; continue with storage-maintenance project aggregation and verification-evidence payloads.
 - CLI, MCP, and control-plane operation mapping should continue moving toward a single descriptor-style source of truth.
 - Historical planning research may describe the original 8-tool Phase 4 baseline. Current tool counts should be read from `src/mcp/tool_inventory.rs`, `docs/mcp-tool-reference.md`, `FUNCTION_TREE.md`, and `CLAUDE.md`.

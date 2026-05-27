@@ -12,6 +12,7 @@ All notable changes to OPENDOG are documented here.
 - Storage-retention operations documentation now covers dry-run cleanup, WAL checkpointing, vacuum behavior, and retained rollup verification.
 - MCP tool-reference coverage now has a regression test that checks documented tool headings against the central MCP inventory.
 - `CONTEXT.md` and ADR records now centralize domain language, process-attribution constraints, daemon-first routing, retained-evidence lifecycle, and contract synchronization decisions.
+- Storage-maintenance MCP payload assembly now starts from a typed `StorageMaintenanceAssessment` for candidate, pressure, mode, and summary decisions before rendering JSON.
 
 ### Changed
 
@@ -26,6 +27,7 @@ All notable changes to OPENDOG are documented here.
 - Root feature tree and quick-start guidance now reflect `report rollup`, `get_activity_rollups`, `get_build_info`, `scan_orphans`, and `verify_deletion_plan`.
 - CLI data-risk option normalization now reports malformed error payloads without panicking.
 - Monitor config and snapshot-path lock reads now recover from poisoned locks instead of panicking in observation loops.
+- Storage-maintenance candidate rules now have focused typed-model tests in addition to JSON contract coverage.
 
 ## 2026-05-25
 
