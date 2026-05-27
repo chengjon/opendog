@@ -4,125 +4,15 @@ use crate::contracts::{
     MCP_RECORD_VERIFICATION_V1, MCP_RUN_VERIFICATION_V1, MCP_VERIFICATION_STATUS_V1,
 };
 use crate::core::verification::ExecutedVerificationResult;
-use crate::core::verification::{
-    command_contains_pipeline_operators, detect_suspicious_pass_signals,
-};
 use crate::storage::queries::VerificationRun;
 
-use super::constraints::readiness_reason_summary;
-use super::observation::{
-    freshness_detail, freshness_policy, latest_verification_timestamp, verification_is_stale,
-};
 use super::{now_unix_secs, versioned_project_payload};
 
 mod model;
-use model::VerificationEvidenceWorkspaceSummary;
+use model::{VerificationEvidenceWorkspaceSummary, VerificationStatusSummary};
 
 pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
-    let now_secs = now_unix_secs();
-    let expected_kinds = ["test", "lint", "build"];
-    let recorded_kinds: Vec<&str> = runs.iter().map(|r| r.kind.as_str()).collect();
-    let missing_kinds: Vec<&str> = expected_kinds
-        .iter()
-        .copied()
-        .filter(|kind| !recorded_kinds.iter().any(|recorded| recorded == kind))
-        .collect();
-    let all_recorded = missing_kinds.is_empty();
-    let cleanup_gate = gate_assessment(runs, "cleanup", now_secs);
-    let refactor_gate = gate_assessment(runs, "refactor", now_secs);
-    let safe_for_cleanup = cleanup_gate["allowed"].as_bool().unwrap_or(false);
-    let safe_for_refactor = refactor_gate["allowed"].as_bool().unwrap_or(false);
-    let cleanup_blockers = gate_blockers(runs, "cleanup", now_secs);
-    let refactor_blockers = gate_blockers(runs, "refactor", now_secs);
-    let latest_finished_at = latest_verification_timestamp(runs);
-    let freshness = freshness_detail(
-        "verification",
-        latest_finished_at.as_deref(),
-        !runs.is_empty(),
-        now_secs,
-    );
-
-    if runs.is_empty() {
-        json!({
-            "status": "not_recorded",
-            "summary": "No test/lint/build results have been recorded yet.",
-            "latest_runs": [],
-            "latest_finished_at": latest_finished_at,
-            "freshness": freshness,
-            "missing_kinds": expected_kinds,
-            "all_expected_kinds_recorded": false,
-            "safe_for_cleanup": false,
-            "safe_for_refactor": false,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "safe_for_cleanup_reason": readiness_reason_summary("cleanup", false, &cleanup_blockers),
-            "safe_for_refactor_reason": readiness_reason_summary("refactor", false, &refactor_blockers),
-            "gate_assessment": {
-                "cleanup": cleanup_gate,
-                "refactor": refactor_gate,
-            },
-        })
-    } else {
-        let failing_runs: Vec<&VerificationRun> =
-            runs.iter().filter(|r| r.status != "passed").collect();
-        let pipeline_caution_runs: Vec<&VerificationRun> = runs
-            .iter()
-            .filter(|r| r.status == "passed" && command_contains_pipeline_operators(&r.command))
-            .collect();
-        let suspicious_summary_runs: Vec<&VerificationRun> = runs
-            .iter()
-            .filter(|run| !suspicious_summary_signals(run).is_empty())
-            .collect();
-        json!({
-            "status": "available",
-            "summary": if failing_runs.is_empty() && pipeline_caution_runs.is_empty() && suspicious_summary_runs.is_empty() {
-                "Recorded verification results exist and the latest known runs are passing."
-            } else if !failing_runs.is_empty() {
-                "Recorded verification results include failing or uncertain runs."
-            } else if !suspicious_summary_runs.is_empty() {
-                "Recorded verification results include passed runs with suspicious error signals in their summaries."
-            } else {
-                "Recorded verification results exist but some passed runs used pipeline commands whose exit codes may be masked."
-            },
-            "latest_runs": runs.iter().map(|run| {
-                let pipeline = command_contains_pipeline_operators(&run.command);
-                let masked = pipeline && run.status == "passed";
-                let suspicious_signals = suspicious_summary_signals(run);
-                let suspicious = !suspicious_signals.is_empty();
-                json!({
-                    "kind": run.kind,
-                    "status": run.status,
-                    "command": run.command,
-                    "exit_code": run.exit_code,
-                    "summary": run.summary,
-                    "source": run.source,
-                    "finished_at": run.finished_at,
-                    "exit_code_masked_possible": masked,
-                    "suspicious_pass_signals": suspicious_signals,
-                    "trust_level": if masked || suspicious { "caution" } else { "trusted" },
-                })
-            }).collect::<Vec<_>>(),
-            "latest_finished_at": latest_finished_at,
-            "freshness": freshness,
-            "failing_runs": failing_runs.iter().map(|run| json!({
-                "kind": run.kind,
-                "status": run.status,
-                "command": run.command,
-            })).collect::<Vec<_>>(),
-            "missing_kinds": missing_kinds,
-            "all_expected_kinds_recorded": all_recorded,
-            "safe_for_cleanup": safe_for_cleanup,
-            "safe_for_refactor": safe_for_refactor,
-            "cleanup_blockers": cleanup_blockers,
-            "refactor_blockers": refactor_blockers,
-            "safe_for_cleanup_reason": readiness_reason_summary("cleanup", safe_for_cleanup, &cleanup_blockers),
-            "safe_for_refactor_reason": readiness_reason_summary("refactor", safe_for_refactor, &refactor_blockers),
-            "gate_assessment": {
-                "cleanup": cleanup_gate,
-                "refactor": refactor_gate,
-            },
-        })
-    }
+    VerificationStatusSummary::from_runs(runs, now_unix_secs()).to_json()
 }
 
 pub(super) fn verification_status_payload(id: &str, runs: &[VerificationRun]) -> Value {
@@ -188,109 +78,41 @@ pub(super) fn workspace_verification_evidence_layer(
     })
 }
 
+#[cfg(test)]
 fn gate_kinds(target: &str) -> (&'static [&'static str], &'static [&'static str]) {
-    match target {
-        "refactor" => (&["test", "build"], &["lint"]),
-        _ => (&["test"], &["lint", "build"]),
-    }
+    model::gate_kinds(target)
 }
 
-fn latest_run_for_kind<'a>(runs: &'a [VerificationRun], kind: &str) -> Option<&'a VerificationRun> {
-    runs.iter().find(|run| run.kind == kind)
-}
-
+#[cfg(test)]
 fn kind_state_sets<'a>(
     runs: &'a [VerificationRun],
     kinds: &[&'a str],
     now_secs: i64,
 ) -> (Vec<&'a str>, Vec<&'a str>) {
-    let missing = kinds
-        .iter()
-        .copied()
-        .filter(|kind| latest_run_for_kind(runs, kind).is_none())
-        .collect::<Vec<_>>();
-    let stale = kinds
-        .iter()
-        .copied()
-        .filter(|kind| {
-            latest_run_for_kind(runs, kind)
-                .map(|run| verification_is_stale(std::slice::from_ref(run), now_secs))
-                .unwrap_or(false)
-        })
-        .collect::<Vec<_>>();
-
-    (missing, stale)
+    model::kind_state_sets(runs, kinds, now_secs)
 }
 
+#[cfg(test)]
 fn failing_kinds(runs: &[VerificationRun]) -> Vec<&str> {
-    runs.iter()
-        .filter(|run| run.status != "passed")
-        .map(|run| run.kind.as_str())
-        .collect()
+    model::failing_kinds(runs)
 }
 
-fn pipeline_caution_kinds(runs: &[VerificationRun]) -> Vec<&str> {
-    runs.iter()
-        .filter(|run| run.status == "passed" && command_contains_pipeline_operators(&run.command))
-        .map(|run| run.kind.as_str())
-        .collect()
-}
-
-fn suspicious_summary_signals(run: &VerificationRun) -> Vec<String> {
-    if run.status != "passed" {
-        return Vec::new();
-    }
-    detect_suspicious_pass_signals(run.summary.as_deref().unwrap_or_default(), "")
-}
-
-fn suspicious_summary_kinds(runs: &[VerificationRun]) -> Vec<&str> {
-    runs.iter()
-        .filter(|run| !suspicious_summary_signals(run).is_empty())
-        .map(|run| run.kind.as_str())
-        .collect()
-}
-
+#[cfg(test)]
 fn blocker_reasons(
     target: &str,
     required_missing: &[&str],
     required_stale: &[&str],
     failing_kinds: &[&str],
 ) -> Vec<String> {
-    let mut reasons = Vec::new();
-    if !failing_kinds.is_empty() {
-        reasons.push(
-            "Recorded verification includes failing or uncertain runs that should be stabilized first."
-                .to_string(),
-        );
-    }
-
-    if required_missing.contains(&"test") {
-        reasons.push(
-            "Missing recorded test evidence required before cleanup or refactor work.".to_string(),
-        );
-    }
-    if target == "refactor" && required_missing.contains(&"build") {
-        reasons.push(
-            "Missing recorded build evidence required before broader refactor work.".to_string(),
-        );
-    }
-    if !required_stale.is_empty() {
-        reasons.push(
-            "Recorded verification evidence is stale and should be refreshed before risky changes."
-                .to_string(),
-        );
-    }
-
-    reasons
+    model::blocker_reasons(target, required_missing, required_stale, failing_kinds)
 }
 
+#[cfg(test)]
 fn gate_blockers(runs: &[VerificationRun], target: &str, now_secs: i64) -> Vec<String> {
-    let (required_kinds, _) = gate_kinds(target);
-    let (required_missing, required_stale) = kind_state_sets(runs, required_kinds, now_secs);
-    let failing = failing_kinds(runs);
-    blocker_reasons(target, &required_missing, &required_stale, &failing)
+    model::gate_blockers(runs, target, now_secs)
 }
 
+#[cfg(test)]
 fn gate_reasons(
     target: &str,
     required_missing: &[&str],
@@ -299,27 +121,17 @@ fn gate_reasons(
     advisory_stale: &[&str],
     failing: &[&str],
 ) -> Vec<String> {
-    let reasons = blocker_reasons(target, required_missing, required_stale, failing);
-    if !reasons.is_empty() {
-        return reasons;
-    }
-
-    let advisory_gaps = advisory_missing
-        .iter()
-        .chain(advisory_stale.iter())
-        .copied()
-        .collect::<Vec<_>>();
-    if advisory_gaps.is_empty() {
-        return Vec::new();
-    }
-
-    vec![format!(
-        "Advisory verification evidence is incomplete for {} review: {}.",
+    model::gate_reasons(
         target,
-        advisory_gaps.join(", ")
-    )]
+        required_missing,
+        required_stale,
+        advisory_missing,
+        advisory_stale,
+        failing,
+    )
 }
 
+#[cfg(test)]
 fn gate_next_steps(
     target: &str,
     required_missing: &[&str],
@@ -328,128 +140,19 @@ fn gate_next_steps(
     advisory_stale: &[&str],
     failing: &[&str],
 ) -> Vec<String> {
-    let mut steps = Vec::new();
-    if !failing.is_empty() {
-        steps.push(
-            "Stabilize failing or uncertain verification runs before broader cleanup or refactor work."
-                .to_string(),
-        );
-    }
-    if required_missing.contains(&"test") {
-        steps.push("Run and record project-native test evidence.".to_string());
-    }
-    if target == "refactor" && required_missing.contains(&"build") {
-        steps.push("Run and record project-native build evidence.".to_string());
-    }
-    if !required_stale.is_empty() {
-        steps.push("Refresh stale verification evidence before risky changes.".to_string());
-    }
-    if steps.is_empty() {
-        let advisory_gaps = advisory_missing
-            .iter()
-            .chain(advisory_stale.iter())
-            .copied()
-            .collect::<Vec<_>>();
-        if !advisory_gaps.is_empty() {
-            steps.push(format!(
-                "Refresh advisory verification evidence when possible: {}.",
-                advisory_gaps.join(", ")
-            ));
-        }
-    }
-    if steps.is_empty() {
-        steps.push("Current verification evidence supports the requested review mode.".to_string());
-    }
-
-    steps
+    model::gate_next_steps(
+        target,
+        required_missing,
+        required_stale,
+        advisory_missing,
+        advisory_stale,
+        failing,
+    )
 }
 
+#[cfg(test)]
 fn gate_assessment(runs: &[VerificationRun], target: &str, now_secs: i64) -> Value {
-    let (required_kinds, advisory_kinds) = gate_kinds(target);
-    let (required_missing, required_stale) = kind_state_sets(runs, required_kinds, now_secs);
-    let (advisory_missing, advisory_stale) = kind_state_sets(runs, advisory_kinds, now_secs);
-    let failing = failing_kinds(runs);
-    let pipeline_caution_kinds = pipeline_caution_kinds(runs);
-    let suspicious_summary_kinds = suspicious_summary_kinds(runs);
-    let blockers = blocker_reasons(target, &required_missing, &required_stale, &failing);
-    let mut reasons = gate_reasons(
-        target,
-        &required_missing,
-        &required_stale,
-        &advisory_missing,
-        &advisory_stale,
-        &failing,
-    );
-    if !pipeline_caution_kinds.is_empty() {
-        reasons.push(format!(
-            "Passed {} verification used pipeline commands whose exit codes may be masked. Consider rerunning without pipes.",
-            pipeline_caution_kinds.join(", ")
-        ));
-    }
-    if !suspicious_summary_kinds.is_empty() {
-        reasons.push(format!(
-            "Passed {} verification includes suspicious pass signals in recorded summaries. Recheck the original command output.",
-            suspicious_summary_kinds.join(", ")
-        ));
-    }
-    let level = if !blockers.is_empty() {
-        "blocked"
-    } else if !advisory_missing.is_empty()
-        || !advisory_stale.is_empty()
-        || !pipeline_caution_kinds.is_empty()
-        || !suspicious_summary_kinds.is_empty()
-    {
-        "caution"
-    } else {
-        "allow"
-    };
-
-    let missing_kinds = required_missing
-        .iter()
-        .chain(advisory_missing.iter())
-        .copied()
-        .collect::<Vec<_>>();
-    let stale_kinds = required_stale
-        .iter()
-        .chain(advisory_stale.iter())
-        .copied()
-        .collect::<Vec<_>>();
-
-    let mut next_steps = gate_next_steps(
-        target,
-        &required_missing,
-        &required_stale,
-        &advisory_missing,
-        &advisory_stale,
-        &failing,
-    );
-    if !pipeline_caution_kinds.is_empty() {
-        next_steps.push(
-            "Rerun pipeline commands without pipes for more reliable exit-code capture."
-                .to_string(),
-        );
-    }
-    if !suspicious_summary_kinds.is_empty() {
-        next_steps.push(
-            "Rerun passed commands whose recorded summaries still contain error or failure text."
-                .to_string(),
-        );
-    }
-
-    json!({
-        "allowed": blockers.is_empty(),
-        "level": level,
-        "required_kinds": required_kinds,
-        "advisory_kinds": advisory_kinds,
-        "missing_kinds": missing_kinds,
-        "failing_kinds": failing,
-        "stale_kinds": stale_kinds,
-        "pipeline_caution_kinds": pipeline_caution_kinds,
-        "suspicious_summary_kinds": suspicious_summary_kinds,
-        "freshness_policy": freshness_policy(),
-        "reasons": reasons,
-        "next_steps": next_steps,
-    })
+    model::gate_assessment(runs, target, now_secs)
 }
 
 #[cfg(test)]
