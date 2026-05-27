@@ -167,9 +167,32 @@ pub(crate) struct ObservationSummary {
     pub(crate) projects_requiring_activity_generation: u64,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+pub(crate) struct DataRiskFocusDistribution {
+    pub(crate) hardcoded: u64,
+    pub(crate) mixed: u64,
+    pub(crate) mock: u64,
+    pub(crate) none: u64,
+}
+
+impl DataRiskFocusDistribution {
+    pub(crate) fn increment_focus(&mut self, focus: &str) {
+        match focus {
+            "hardcoded" => self.hardcoded += 1,
+            "mixed" => self.mixed += 1,
+            "mock" => self.mock += 1,
+            _ => self.none += 1,
+        }
+    }
+
+    pub(crate) fn to_value(&self) -> Value {
+        serde_json::to_value(self).unwrap_or(Value::Null)
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct DataRiskFocusSummary {
-    pub(crate) data_risk_focus_distribution: Value,
+    pub(crate) data_risk_focus_distribution: DataRiskFocusDistribution,
     pub(crate) projects_requiring_hardcoded_review: u64,
     pub(crate) projects_requiring_mock_review: u64,
     pub(crate) projects_requiring_mixed_file_review: u64,
@@ -572,14 +595,36 @@ mod tests {
 
     #[test]
     fn data_risk_focus_summary_serializes() {
+        let mut distribution = DataRiskFocusDistribution::default();
+        distribution.increment_focus("hardcoded");
+        distribution.increment_focus("none");
+        distribution.increment_focus("none");
+
         let s = DataRiskFocusSummary {
-            data_risk_focus_distribution: json!({"hardcoded": 1, "mock": 0, "mixed": 0, "none": 2}),
+            data_risk_focus_distribution: distribution,
             projects_requiring_hardcoded_review: 1,
             projects_requiring_mock_review: 0,
             projects_requiring_mixed_file_review: 0,
         };
         let v = serde_json::to_value(&s).unwrap();
         assert_eq!(v["projects_requiring_hardcoded_review"], 1);
+        assert_eq!(v["data_risk_focus_distribution"]["none"], 2);
+    }
+
+    #[test]
+    fn data_risk_focus_distribution_counts_known_and_unknown_focuses() {
+        let mut distribution = DataRiskFocusDistribution::default();
+
+        distribution.increment_focus("hardcoded");
+        distribution.increment_focus("mock");
+        distribution.increment_focus("mixed");
+        distribution.increment_focus("unexpected");
+
+        let v = serde_json::to_value(&distribution).unwrap();
+        assert_eq!(v["hardcoded"], 1);
+        assert_eq!(v["mock"], 1);
+        assert_eq!(v["mixed"], 1);
+        assert_eq!(v["none"], 1);
     }
 
     #[test]

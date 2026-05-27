@@ -9,8 +9,9 @@ use super::{
     agent_guidance_recommended_flow, base_guidance_layers, build_constraints_boundaries_layer,
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
-        DataRiskFocusSummary, ExecutionStrategyLayer, ObservationSummary, RepoTruthSummary,
-        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
+        DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
+        ObservationSummary, RepoTruthSummary, StabilizationSummary, VerificationSummary,
+        WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -245,37 +246,28 @@ fn execution_strategy_observation_summary(project_recommendations: &[Value]) -> 
 }
 
 fn execution_strategy_data_risk_focus_summary(project_overviews: &[Value]) -> DataRiskFocusSummary {
-    let mut distribution = json!({
-        "hardcoded": 0,
-        "mixed": 0,
-        "mock": 0,
-        "none": 0,
-    });
+    let mut distribution = DataRiskFocusDistribution::default();
     let mut projects_requiring_hardcoded_review = 0_u64;
     let mut projects_requiring_mock_review = 0_u64;
     let mut projects_requiring_mixed_file_review = 0_u64;
 
     for overview in project_overviews {
-        match overview["mock_data_summary"]["data_risk_focus"]["primary_focus"]
+        let focus = overview["mock_data_summary"]["data_risk_focus"]["primary_focus"]
             .as_str()
-            .unwrap_or("none")
-        {
+            .unwrap_or("none");
+        distribution.increment_focus(focus);
+
+        match focus {
             "hardcoded" => {
-                distribution["hardcoded"] =
-                    json!(distribution["hardcoded"].as_u64().unwrap_or(0) + 1);
                 projects_requiring_hardcoded_review += 1;
             }
             "mixed" => {
-                distribution["mixed"] = json!(distribution["mixed"].as_u64().unwrap_or(0) + 1);
                 projects_requiring_mixed_file_review += 1;
             }
             "mock" => {
-                distribution["mock"] = json!(distribution["mock"].as_u64().unwrap_or(0) + 1);
                 projects_requiring_mock_review += 1;
             }
-            _ => {
-                distribution["none"] = json!(distribution["none"].as_u64().unwrap_or(0) + 1);
-            }
+            _ => {}
         }
     }
 
@@ -490,7 +482,7 @@ pub(crate) fn agent_guidance_payload(
                 .clone(),
             data_risk_focus_distribution: data_risk_focus_summary
                 .data_risk_focus_distribution
-                .clone(),
+                .to_value(),
             projects_requiring_hardcoded_review: json!(
                 data_risk_focus_summary.projects_requiring_hardcoded_review
             ),
@@ -541,7 +533,9 @@ pub(crate) fn agent_guidance_payload(
             review_opendog_retention_before_large_cleanup:
                 projects_with_storage_maintenance_candidates > 0,
             recommend_manual_review_for_hardcoded_data: projects_with_hardcoded_data > 0,
-            data_risk_focus_distribution: data_risk_focus_summary.data_risk_focus_distribution,
+            data_risk_focus_distribution: data_risk_focus_summary
+                .data_risk_focus_distribution
+                .to_value(),
             projects_requiring_hardcoded_review: json!(data_risk_focus_summary.projects_requiring_hardcoded_review),
             projects_requiring_mock_review: json!(data_risk_focus_summary.projects_requiring_mock_review),
             projects_requiring_mixed_file_review: json!(data_risk_focus_summary.projects_requiring_mixed_file_review),
@@ -1006,7 +1000,7 @@ mod tests {
     fn data_risk_summary_empty() {
         let summary = execution_strategy_data_risk_focus_summary(&[]);
         assert_eq!(
-            summary.data_risk_focus_distribution,
+            summary.data_risk_focus_distribution.to_value(),
             json!({"hardcoded": 0, "mixed": 0, "mock": 0, "none": 0})
         );
         assert_eq!(summary.projects_requiring_hardcoded_review, 0);
@@ -1023,7 +1017,7 @@ mod tests {
         assert_eq!(summary.projects_requiring_hardcoded_review, 1);
         assert_eq!(summary.projects_requiring_mock_review, 0);
         assert_eq!(summary.projects_requiring_mixed_file_review, 0);
-        assert_eq!(summary.data_risk_focus_distribution["hardcoded"], 1);
+        assert_eq!(summary.data_risk_focus_distribution.hardcoded, 1);
     }
 
     #[test]
@@ -1035,7 +1029,7 @@ mod tests {
         assert_eq!(summary.projects_requiring_hardcoded_review, 0);
         assert_eq!(summary.projects_requiring_mock_review, 1);
         assert_eq!(summary.projects_requiring_mixed_file_review, 0);
-        assert_eq!(summary.data_risk_focus_distribution["mock"], 1);
+        assert_eq!(summary.data_risk_focus_distribution.mock, 1);
     }
 
     #[test]
@@ -1047,7 +1041,7 @@ mod tests {
         assert_eq!(summary.projects_requiring_hardcoded_review, 0);
         assert_eq!(summary.projects_requiring_mock_review, 0);
         assert_eq!(summary.projects_requiring_mixed_file_review, 1);
-        assert_eq!(summary.data_risk_focus_distribution["mixed"], 1);
+        assert_eq!(summary.data_risk_focus_distribution.mixed, 1);
     }
 
     #[test]
@@ -1059,7 +1053,7 @@ mod tests {
         assert_eq!(summary.projects_requiring_hardcoded_review, 0);
         assert_eq!(summary.projects_requiring_mock_review, 0);
         assert_eq!(summary.projects_requiring_mixed_file_review, 0);
-        assert_eq!(summary.data_risk_focus_distribution["none"], 1);
+        assert_eq!(summary.data_risk_focus_distribution.none, 1);
     }
 
     #[test]
@@ -1069,7 +1063,7 @@ mod tests {
             "mock_data_summary": {"data_risk_focus": {}}
         })];
         let summary = execution_strategy_data_risk_focus_summary(&overviews);
-        assert_eq!(summary.data_risk_focus_distribution["none"], 1);
+        assert_eq!(summary.data_risk_focus_distribution.none, 1);
     }
 
     #[test]
@@ -1086,9 +1080,9 @@ mod tests {
         assert_eq!(summary.projects_requiring_hardcoded_review, 2);
         assert_eq!(summary.projects_requiring_mock_review, 1);
         assert_eq!(summary.projects_requiring_mixed_file_review, 1);
-        assert_eq!(summary.data_risk_focus_distribution["hardcoded"], 2);
-        assert_eq!(summary.data_risk_focus_distribution["mock"], 1);
-        assert_eq!(summary.data_risk_focus_distribution["mixed"], 1);
-        assert_eq!(summary.data_risk_focus_distribution["none"], 2);
+        assert_eq!(summary.data_risk_focus_distribution.hardcoded, 2);
+        assert_eq!(summary.data_risk_focus_distribution.mock, 1);
+        assert_eq!(summary.data_risk_focus_distribution.mixed, 1);
+        assert_eq!(summary.data_risk_focus_distribution.none, 2);
     }
 }
