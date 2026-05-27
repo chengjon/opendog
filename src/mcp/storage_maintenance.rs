@@ -6,7 +6,7 @@ use crate::core::retention::{StorageEvidenceCounts, StorageMetrics};
 mod model;
 #[cfg(test)]
 use model::storage_reclaim_ratio;
-use model::StorageMaintenanceAssessment;
+use model::{StorageMaintenanceAssessment, StorageMaintenanceWorkspaceSummary};
 
 fn evidence_counts_json(counts: Option<&StorageEvidenceCounts>) -> Value {
     counts.map_or(Value::Null, |counts| {
@@ -291,87 +291,15 @@ pub(super) fn project_storage_maintenance_with_policy(
 }
 
 pub(super) fn storage_maintenance_layer(project_overviews: &[Value]) -> Value {
-    let projects_with_candidates = project_overviews
-        .iter()
-        .filter(|p| {
-            p["storage_maintenance"]["maintenance_candidate"]
-                .as_bool()
-                .unwrap_or(false)
-        })
-        .count();
-    let projects_with_vacuum_candidates = project_overviews
-        .iter()
-        .filter(|p| {
-            p["storage_maintenance"]["vacuum_candidate"]
-                .as_bool()
-                .unwrap_or(false)
-        })
-        .count();
-    let total_approx_db_size_bytes = project_overviews
-        .iter()
-        .map(|p| {
-            p["storage_maintenance"]["approx_db_size_bytes"]
-                .as_i64()
-                .unwrap_or(0)
-        })
-        .sum::<i64>();
-    let total_approx_reclaimable_bytes = project_overviews
-        .iter()
-        .map(|p| {
-            p["storage_maintenance"]["approx_reclaimable_bytes"]
-                .as_i64()
-                .unwrap_or(0)
-        })
-        .sum::<i64>();
-
-    let mut priority_projects: Vec<Value> = project_overviews
-        .iter()
-        .filter(|p| {
-            p["storage_maintenance"]["maintenance_candidate"]
-                .as_bool()
-                .unwrap_or(false)
-        })
-        .map(|p| {
-            json!({
-                "project_id": p["project_id"].clone(),
-                "status": p["status"].clone(),
-                "vacuum_candidate": p["storage_maintenance"]["vacuum_candidate"].clone(),
-                "cleanup_review_candidate": p["storage_maintenance"]["cleanup_review_candidate"].clone(),
-                "approx_db_size_bytes": p["storage_maintenance"]["approx_db_size_bytes"].clone(),
-                "approx_reclaimable_bytes": p["storage_maintenance"]["approx_reclaimable_bytes"].clone(),
-                "reclaim_ratio": p["storage_maintenance"]["reclaim_ratio"].clone(),
-                "suggested_mode": p["storage_maintenance"]["suggested_mode"].clone(),
-                "summary": p["storage_maintenance"]["summary"].clone(),
-            })
-        })
-        .collect();
-    priority_projects.sort_by(|a, b| {
-        b["vacuum_candidate"]
-            .as_bool()
-            .unwrap_or(false)
-            .cmp(&a["vacuum_candidate"].as_bool().unwrap_or(false))
-            .then_with(|| {
-                b["approx_reclaimable_bytes"]
-                    .as_i64()
-                    .unwrap_or(0)
-                    .cmp(&a["approx_reclaimable_bytes"].as_i64().unwrap_or(0))
-            })
-            .then_with(|| {
-                b["approx_db_size_bytes"]
-                    .as_i64()
-                    .unwrap_or(0)
-                    .cmp(&a["approx_db_size_bytes"].as_i64().unwrap_or(0))
-            })
-    });
-    priority_projects.truncate(5);
+    let summary = StorageMaintenanceWorkspaceSummary::from_project_overviews(project_overviews);
 
     json!({
         "status": "available",
-        "projects_with_candidates": projects_with_candidates,
-        "projects_with_vacuum_candidates": projects_with_vacuum_candidates,
-        "total_approx_db_size_bytes": total_approx_db_size_bytes,
-        "total_approx_reclaimable_bytes": total_approx_reclaimable_bytes,
-        "priority_projects": priority_projects,
+        "projects_with_candidates": summary.projects_with_candidates,
+        "projects_with_vacuum_candidates": summary.projects_with_vacuum_candidates,
+        "total_approx_db_size_bytes": summary.total_approx_db_size_bytes,
+        "total_approx_reclaimable_bytes": summary.total_approx_reclaimable_bytes,
+        "priority_projects": summary.priority_projects_json(),
     })
 }
 
