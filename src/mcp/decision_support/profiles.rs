@@ -1,66 +1,11 @@
 use serde_json::{json, Value};
 
-pub(in crate::mcp) fn decision_action_profile(action: &str, strategy_mode: &str) -> Value {
-    let (action_class, phase, mutability, verification_required, primary_goal) = match action {
-        "review_failing_verification" => (
-            "verification_recovery",
-            "stabilize",
-            "read_mostly",
-            true,
-            "stabilize failing or uncertain evidence before broader edits",
-        ),
-        "stabilize_repository_state" => (
-            "repository_stabilization",
-            "stabilize",
-            "read_mostly",
-            true,
-            "resolve in-progress repository state before broader changes",
-        ),
-        "start_monitor" | "take_snapshot" | "generate_activity_then_stats" => (
-            "evidence_collection",
-            "observe",
-            "non_code_state_change",
-            false,
-            "collect missing activity or inventory evidence",
-        ),
-        "run_verification_before_high_risk_changes" => (
-            "verification_collection",
-            "verify",
-            "read_mostly",
-            true,
-            "record test/lint/build evidence before risky work",
-        ),
-        "review_unused_files" => (
-            "cleanup_review",
-            "review",
-            "review_before_modify",
-            false,
-            "inspect unused-file candidates before cleanup",
-        ),
-        "inspect_hot_files" => (
-            "refactor_review",
-            "review",
-            "review_before_modify",
-            false,
-            "inspect activity hotspots before targeted refactor",
-        ),
-        _ => (
-            "workspace_triage",
-            "triage",
-            "read_only",
-            false,
-            "choose the next project or tool path",
-        ),
-    };
+mod model;
 
-    json!({
-        "action_class": action_class,
-        "phase": phase,
-        "mutability_scope": mutability,
-        "verification_required": verification_required,
-        "strategy_mode": strategy_mode,
-        "primary_goal": primary_goal,
-    })
+use model::DecisionActionProfile;
+
+pub(in crate::mcp) fn decision_action_profile(action: &str, strategy_mode: &str) -> Value {
+    DecisionActionProfile::from_action(action, strategy_mode).to_json()
 }
 
 pub(in crate::mcp) fn decision_risk_profile(
