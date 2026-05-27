@@ -229,6 +229,41 @@ impl RepoRiskCoupling {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ReviewFocusProjectionStatus {
+    NoPriorityProject,
+    Available,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub(crate) struct ReviewFocusProjection {
+    status: ReviewFocusProjectionStatus,
+    source: Option<String>,
+    source_project_id: Value,
+    review_focus: Value,
+}
+
+impl ReviewFocusProjection {
+    pub(crate) fn no_priority_project() -> Self {
+        Self {
+            status: ReviewFocusProjectionStatus::NoPriorityProject,
+            source: None,
+            source_project_id: Value::Null,
+            review_focus: Value::Null,
+        }
+    }
+
+    pub(crate) fn available(source_project_id: Value, review_focus: Value) -> Self {
+        Self {
+            status: ReviewFocusProjectionStatus::Available,
+            source: Some("top_priority_project".to_string()),
+            source_project_id,
+            review_focus,
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct StabilizationSummary {
     pub(crate) projects_requiring_repo_stabilization: u64,
@@ -312,7 +347,7 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) evidence_priority: Vec<String>,
     pub(crate) risk_strategy_coupling: RepoRiskCoupling,
     pub(crate) external_truth_boundary: Value,
-    pub(crate) review_focus_projection: Value,
+    pub(crate) review_focus_projection: ReviewFocusProjection,
     pub(crate) when_to_use_opendog: Vec<&'static str>,
     pub(crate) when_to_use_shell: Vec<&'static str>,
     pub(crate) guardrails: Vec<&'static str>,
@@ -822,7 +857,7 @@ mod tests {
                 json!("opendog"),
             ),
             external_truth_boundary: json!({}),
-            review_focus_projection: json!({}),
+            review_focus_projection: ReviewFocusProjection::no_priority_project(),
             when_to_use_opendog: vec![],
             when_to_use_shell: vec![],
             guardrails: vec![],
@@ -863,6 +898,11 @@ mod tests {
         assert_eq!(v["preferred_secondary_tool"], "shell");
         assert_eq!(v["evidence_priority"][0], "verification");
         assert_eq!(v["evidence_priority"][1], "activity");
+        assert_eq!(
+            v["review_focus_projection"]["status"],
+            "no_priority_project"
+        );
+        assert!(v["review_focus_projection"]["review_focus"].is_null());
         assert_eq!(v["data_risk_focus_distribution"]["hardcoded"], 1);
         assert_eq!(v["projects_requiring_hardcoded_review"], 1);
         assert_eq!(v["projects_requiring_monitor_start"], 4);
