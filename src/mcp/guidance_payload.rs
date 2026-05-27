@@ -523,20 +523,27 @@ pub(crate) fn agent_guidance_payload(
             recommend_manual_review_for_hardcoded_data: projects_with_hardcoded_data > 0,
             data_risk_focus_distribution: data_risk_focus_summary
                 .data_risk_focus_distribution
-                .to_value(),
-            projects_requiring_hardcoded_review: json!(data_risk_focus_summary.projects_requiring_hardcoded_review),
-            projects_requiring_mock_review: json!(data_risk_focus_summary.projects_requiring_mock_review),
-            projects_requiring_mixed_file_review: json!(data_risk_focus_summary.projects_requiring_mixed_file_review),
-            projects_requiring_monitor_start: json!(observation_summary.projects_requiring_monitor_start),
-            projects_requiring_snapshot_refresh: json!(observation_summary.projects_requiring_snapshot_refresh),
-            projects_requiring_activity_generation: json!(observation_summary.projects_requiring_activity_generation),
-            projects_with_repo_truth_gaps: json!(repo_truth_summary.projects_with_repo_truth_gaps),
-            repo_truth_gap_distribution: repo_truth_summary.repo_truth_gap_distribution.to_value(),
-            mandatory_shell_check_examples: json!(repo_truth_summary.mandatory_shell_check_examples),
-            projects_requiring_verification_run: json!(verification_summary.projects_requiring_verification_run),
-            projects_requiring_failing_verification_repair: json!(verification_summary.projects_requiring_failing_verification_repair),
-            projects_requiring_repo_stabilization: json!(stabilization_summary.projects_requiring_repo_stabilization),
-            repo_stabilization_priority_projects: json!(stabilization_summary.repo_stabilization_priority_projects),
+                .clone(),
+            projects_requiring_hardcoded_review: data_risk_focus_summary
+                .projects_requiring_hardcoded_review,
+            projects_requiring_mock_review: data_risk_focus_summary.projects_requiring_mock_review,
+            projects_requiring_mixed_file_review: data_risk_focus_summary
+                .projects_requiring_mixed_file_review,
+            projects_requiring_monitor_start: observation_summary.projects_requiring_monitor_start,
+            projects_requiring_snapshot_refresh: observation_summary
+                .projects_requiring_snapshot_refresh,
+            projects_requiring_activity_generation: observation_summary
+                .projects_requiring_activity_generation,
+            projects_with_repo_truth_gaps: repo_truth_summary.projects_with_repo_truth_gaps,
+            repo_truth_gap_distribution: repo_truth_summary.repo_truth_gap_distribution,
+            mandatory_shell_check_examples: repo_truth_summary.mandatory_shell_check_examples,
+            projects_requiring_verification_run: verification_summary.projects_requiring_verification_run,
+            projects_requiring_failing_verification_repair: verification_summary
+                .projects_requiring_failing_verification_repair,
+            projects_requiring_repo_stabilization: stabilization_summary
+                .projects_requiring_repo_stabilization,
+            repo_stabilization_priority_projects: stabilization_summary
+                .repo_stabilization_priority_projects,
         });
     value["guidance"]["layers"]["multi_project_portfolio"] = to_value_or_error(
         "WorkspacePortfolioLayer",
@@ -596,7 +603,10 @@ mod tests {
     fn repo_truth_summary_empty_input() {
         let summary = execution_strategy_repo_truth_summary(&[]);
         assert_eq!(summary.projects_with_repo_truth_gaps, 0);
-        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
+        assert_eq!(
+            serde_json::to_value(&summary.repo_truth_gap_distribution).unwrap(),
+            json!({})
+        );
         assert!(summary.mandatory_shell_check_examples.is_empty());
     }
 
@@ -605,7 +615,10 @@ mod tests {
         let recs = vec![json!({"repo_truth_gaps": []})];
         let summary = execution_strategy_repo_truth_summary(&recs);
         assert_eq!(summary.projects_with_repo_truth_gaps, 0);
-        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
+        assert_eq!(
+            serde_json::to_value(&summary.repo_truth_gap_distribution).unwrap(),
+            json!({})
+        );
         assert!(summary.mandatory_shell_check_examples.is_empty());
     }
 
@@ -641,7 +654,10 @@ mod tests {
         // The array is non-empty so the project counts as having gaps
         assert_eq!(summary.projects_with_repo_truth_gaps, 1);
         // But none of the entries are strings, so distribution is empty
-        assert_eq!(summary.repo_truth_gap_distribution.to_value(), json!({}));
+        assert_eq!(
+            serde_json::to_value(&summary.repo_truth_gap_distribution).unwrap(),
+            json!({})
+        );
     }
 
     #[test]

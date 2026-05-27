@@ -165,10 +165,6 @@ impl RepoTruthGapDistribution {
     pub(crate) fn count(&self, gap_key: &str) -> u64 {
         self.counts.get(gap_key).copied().unwrap_or(0)
     }
-
-    pub(crate) fn to_value(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -333,20 +329,20 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) projects_with_vacuum_candidates: u64,
     pub(crate) review_opendog_retention_before_large_cleanup: bool,
     pub(crate) recommend_manual_review_for_hardcoded_data: bool,
-    pub(crate) data_risk_focus_distribution: Value,
-    pub(crate) projects_requiring_hardcoded_review: Value,
-    pub(crate) projects_requiring_mock_review: Value,
-    pub(crate) projects_requiring_mixed_file_review: Value,
-    pub(crate) projects_requiring_monitor_start: Value,
-    pub(crate) projects_requiring_snapshot_refresh: Value,
-    pub(crate) projects_requiring_activity_generation: Value,
-    pub(crate) projects_with_repo_truth_gaps: Value,
-    pub(crate) repo_truth_gap_distribution: Value,
-    pub(crate) mandatory_shell_check_examples: Value,
-    pub(crate) projects_requiring_verification_run: Value,
-    pub(crate) projects_requiring_failing_verification_repair: Value,
-    pub(crate) projects_requiring_repo_stabilization: Value,
-    pub(crate) repo_stabilization_priority_projects: Value,
+    pub(crate) data_risk_focus_distribution: DataRiskFocusDistribution,
+    pub(crate) projects_requiring_hardcoded_review: u64,
+    pub(crate) projects_requiring_mock_review: u64,
+    pub(crate) projects_requiring_mixed_file_review: u64,
+    pub(crate) projects_requiring_monitor_start: u64,
+    pub(crate) projects_requiring_snapshot_refresh: u64,
+    pub(crate) projects_requiring_activity_generation: u64,
+    pub(crate) projects_with_repo_truth_gaps: u64,
+    pub(crate) repo_truth_gap_distribution: RepoTruthGapDistribution,
+    pub(crate) mandatory_shell_check_examples: Vec<String>,
+    pub(crate) projects_requiring_verification_run: u64,
+    pub(crate) projects_requiring_failing_verification_repair: u64,
+    pub(crate) projects_requiring_repo_stabilization: u64,
+    pub(crate) repo_stabilization_priority_projects: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -807,6 +803,11 @@ mod tests {
 
     #[test]
     fn execution_strategy_layer_serializes() {
+        let mut data_risk_distribution = DataRiskFocusDistribution::default();
+        data_risk_distribution.increment_focus("hardcoded");
+        let mut repo_truth_distribution = RepoTruthGapDistribution::default();
+        repo_truth_distribution.increment_gap("missing_test");
+
         let e = ExecutionStrategyLayer {
             status: "available".into(),
             recommended_flow: json!([]),
@@ -838,23 +839,31 @@ mod tests {
             projects_with_vacuum_candidates: 0,
             review_opendog_retention_before_large_cleanup: false,
             recommend_manual_review_for_hardcoded_data: false,
-            data_risk_focus_distribution: json!({}),
-            projects_requiring_hardcoded_review: json!(0),
-            projects_requiring_mock_review: json!(0),
-            projects_requiring_mixed_file_review: json!(0),
-            projects_requiring_monitor_start: json!(0),
-            projects_requiring_snapshot_refresh: json!(0),
-            projects_requiring_activity_generation: json!(0),
-            projects_with_repo_truth_gaps: json!(0),
-            repo_truth_gap_distribution: json!({}),
-            mandatory_shell_check_examples: json!([]),
-            projects_requiring_verification_run: json!(0),
-            projects_requiring_failing_verification_repair: json!(0),
-            projects_requiring_repo_stabilization: json!(0),
-            repo_stabilization_priority_projects: json!([]),
+            data_risk_focus_distribution: data_risk_distribution,
+            projects_requiring_hardcoded_review: 1,
+            projects_requiring_mock_review: 2,
+            projects_requiring_mixed_file_review: 3,
+            projects_requiring_monitor_start: 4,
+            projects_requiring_snapshot_refresh: 5,
+            projects_requiring_activity_generation: 6,
+            projects_with_repo_truth_gaps: 7,
+            repo_truth_gap_distribution: repo_truth_distribution,
+            mandatory_shell_check_examples: vec!["cargo test".to_string()],
+            projects_requiring_verification_run: 8,
+            projects_requiring_failing_verification_repair: 9,
+            projects_requiring_repo_stabilization: 10,
+            repo_stabilization_priority_projects: vec!["proj_a".to_string()],
         };
         let v = serde_json::to_value(&e).unwrap();
         assert_eq!(v["status"], "available");
+        assert_eq!(v["data_risk_focus_distribution"]["hardcoded"], 1);
+        assert_eq!(v["projects_requiring_hardcoded_review"], 1);
+        assert_eq!(v["projects_requiring_monitor_start"], 4);
+        assert_eq!(v["repo_truth_gap_distribution"]["missing_test"], 1);
+        assert_eq!(v["mandatory_shell_check_examples"][0], "cargo test");
+        assert_eq!(v["projects_requiring_verification_run"], 8);
+        assert_eq!(v["projects_requiring_repo_stabilization"], 10);
+        assert_eq!(v["repo_stabilization_priority_projects"][0], "proj_a");
     }
 
     #[test]
