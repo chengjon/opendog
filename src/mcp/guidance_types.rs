@@ -304,7 +304,7 @@ pub(crate) struct WorkspaceObservationLayer {
 #[derive(Serialize)]
 pub(crate) struct ExecutionStrategyLayer {
     pub(crate) status: String,
-    pub(crate) recommended_flow: Value,
+    pub(crate) recommended_flow: Vec<String>,
     pub(crate) project_recommendations: Vec<Value>,
     pub(crate) global_strategy_mode: String,
     pub(crate) preferred_primary_tool: String,
@@ -810,7 +810,7 @@ mod tests {
 
         let e = ExecutionStrategyLayer {
             status: "available".into(),
-            recommended_flow: json!([]),
+            recommended_flow: vec!["refresh evidence".to_string(), "review risk".to_string()],
             project_recommendations: vec![],
             global_strategy_mode: "evidence_first".to_string(),
             preferred_primary_tool: "opendog".to_string(),
@@ -856,6 +856,8 @@ mod tests {
         };
         let v = serde_json::to_value(&e).unwrap();
         assert_eq!(v["status"], "available");
+        assert_eq!(v["recommended_flow"][0], "refresh evidence");
+        assert_eq!(v["recommended_flow"][1], "review risk");
         assert_eq!(v["global_strategy_mode"], "evidence_first");
         assert_eq!(v["preferred_primary_tool"], "opendog");
         assert_eq!(v["preferred_secondary_tool"], "shell");

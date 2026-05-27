@@ -502,7 +502,7 @@ pub(crate) fn agent_guidance_payload(
     value["guidance"]["layers"]["execution_strategy"] =
         to_value_or_error("ExecutionStrategyLayer", ExecutionStrategyLayer {
             status: "available".to_string(),
-            recommended_flow,
+            recommended_flow: string_list_field(&recommended_flow),
             project_recommendations: sorted_project_recommendations.clone(),
             global_strategy_mode: string_field(
                 &workspace_strategy["global_strategy_mode"],
