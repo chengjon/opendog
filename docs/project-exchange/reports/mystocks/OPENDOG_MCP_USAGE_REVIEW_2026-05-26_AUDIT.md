@@ -165,3 +165,27 @@ Do not add a standalone doctor command in the first slice. Extend `get_build_inf
 ## Verdict
 
 Accept the review as actionable, with the response document's scope reductions. Do not implement it as one large feature batch. The correct next move is to create small task cards in the integrated priority order above, starting with schema compatibility diagnostics and data-risk infrastructure-path demotion.
+
+## Implementation Follow-Up Status
+
+Updated: 2026-05-27
+
+All nine triaged work items have been reviewed after implementation. The accepted implementation scope is complete; the only intentionally scoped boundary is host-side MCP tool visibility under F-7, which OPENDOG cannot prove without cooperation from the external AI host.
+
+| Rank | Work Item | Follow-Up Status | Evidence |
+|---|---|---|---|
+| 1 | F-1 schema compatibility diagnostics | Implemented | Commit `7156ac6` enriched schema migration errors with daemon/MCP restart advice and exposed supported schema version through build info. |
+| 2 | F-4 data-risk path classification noise | Implemented | Commit `f14249e` demoted agent/config infrastructure paths in data-risk classification. |
+| 3 | F-2A verification trust Phase A | Implemented | Commit `ab68fb4` added pipeline operator detection and suspicious pass signal analysis while preserving raw verification status. |
+| 4 | F-6 documentation capability cleanup | Implemented | Commit `ffa6fcf` clarified decision brief routing; commits `11ea181` and `6b5a6d7` later synchronized rollup/retention docs and MCP tool counts. |
+| 5 | F-3-R1 report SQL limit | Implemented | Commit `563a569` added SQL-level `LIMIT` protection to grouped report queries for large repositories. |
+| 6 | F-5 advisory-boundary regression tests | Implemented | Commit `d88d7f1` added regression tests for blocked cleanup/refactor gates under stale/dirty/low-confidence evidence. |
+| 7 | F-7 daemon status diagnostics + checklist | Implemented with scoped boundary | Commit `0559af6` added `daemon_running` and `opendog_home` diagnostics. Host-side `host_tools_visible` remains a checklist/documentation responsibility because OPENDOG cannot observe external MCP host UI/tool exposure directly. |
+| 8 | F-3-R2 cleanup estimate-first | Implemented and extended | Commit `b429b89` added estimate-first cleanup dry-run behavior; commit `1efa8e2` extended the line into retained-evidence storage governance, retention policy, activity rollups, and vacuum-aware cleanup. |
+| 9 | F-2B verification trust gate integration | Implemented | Commit `7f25843` integrated pipeline trust metadata into verification gate assessment and guidance. |
+
+Additional validation:
+
+- Commit `efdadb8` added the storage retention runbook and a mystocks dry-run record.
+- Commits `f920fba`, `e7fd6bd`, and `010e6e0` record the mystocks 14-day dry-run, real retained-activity cleanup, rollup verification, WAL checkpoint, and persisted project-level 14-day retention policy.
+- Current status: reviewed, implemented, documented, and validated against the mystocks project; no unresolved item remains in the accepted scope.
