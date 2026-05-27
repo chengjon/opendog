@@ -4,6 +4,7 @@
 **Perspective**: OPENDOG maintainer triage
 **Date**: 2026-05-26
 **Reviewer**: Codex
+**Shared issue**: `ODX-20260526-mcp-usage-review-hardening`
 
 ## Summary
 

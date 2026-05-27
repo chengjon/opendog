@@ -4,6 +4,7 @@
 **基线**: 1757 tests → **1768 tests**, 0 clippy warnings
 **提交**: 12 commits (前次会话 9 个 + 本次会话 3 个)
 **审核源**: `/opt/claude/opendog/docs/project-exchange/reports/mystocks/OPENDOG_MCP_USAGE_REVIEW_2026-05-26_AUDIT.md`
+**Shared issues**: `ODX-20260526-mcp-usage-review-hardening`, `ODX-20260527-retained-evidence-storage-governance`
 
 ---
 

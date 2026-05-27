@@ -5,6 +5,7 @@
 **审核者**: OPENDOG maintainer（Claude Code + GLM-5.1）
 **日期**: 2026-05-26
 **测试基线**: 1740 tests, 0 clippy warnings
+**Shared issues**: `ODX-20260526-mcp-usage-review-hardening`, `ODX-20260527-retained-evidence-storage-governance`
 
 ## 总体评价
 

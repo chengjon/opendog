@@ -2,6 +2,8 @@
 
 Date: 2026-05-27
 
+Shared issue: `ODX-20260527-retained-evidence-storage-governance`
+
 Project:
 
 - id: `mystocks`
