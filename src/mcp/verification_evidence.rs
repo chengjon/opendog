@@ -15,6 +15,9 @@ use super::observation::{
 };
 use super::{now_unix_secs, versioned_project_payload};
 
+mod model;
+use model::VerificationEvidenceWorkspaceSummary;
+
 pub(crate) fn verification_status_layer(runs: &[VerificationRun]) -> Value {
     let now_secs = now_unix_secs();
     let expected_kinds = ["test", "lint", "build"];
@@ -146,21 +149,9 @@ pub(super) fn verification_is_missing(runs: &[VerificationRun]) -> bool {
     runs.is_empty()
 }
 
+#[cfg(test)]
 fn project_gate_level(project: &Value, target: &str) -> String {
-    project["verification_evidence"]["gate_assessment"][target]["level"]
-        .as_str()
-        .map(ToString::to_string)
-        .unwrap_or_else(|| {
-            let key = match target {
-                "refactor" => "safe_for_refactor",
-                _ => "safe_for_cleanup",
-            };
-            if project[key].as_bool().unwrap_or(false) {
-                "allow".to_string()
-            } else {
-                "blocked".to_string()
-            }
-        })
+    model::project_gate_level(project, target)
 }
 
 pub(super) fn workspace_verification_evidence_layer(
@@ -168,256 +159,32 @@ pub(super) fn workspace_verification_evidence_layer(
     project_count: usize,
     monitoring_count: usize,
 ) -> Value {
-    let projects_with_recorded_verification = project_overviews
-        .iter()
-        .filter(|p| p["verification_evidence"]["status"] == "available")
-        .count();
-    let projects_missing_verification = project_overviews
-        .iter()
-        .filter(|p| p["verification_evidence"]["status"] == "not_recorded")
-        .count();
-    let projects_with_failing_verification = project_overviews
-        .iter()
-        .filter(|p| {
-            p["verification_evidence"]["failing_runs"]
-                .as_array()
-                .map(|runs| !runs.is_empty())
-                .unwrap_or(false)
-        })
-        .count();
-    let projects_with_stale_verification = project_overviews
-        .iter()
-        .filter(|p| {
-            matches!(
-                p["observation"]["freshness"]["verification"]["status"]
-                    .as_str()
-                    .unwrap_or(""),
-                "stale" | "unknown"
-            )
-        })
-        .count();
-    let projects_safe_for_cleanup = project_overviews
-        .iter()
-        .filter(|p| p["safe_for_cleanup"].as_bool().unwrap_or(false))
-        .count();
-    let projects_safe_for_refactor = project_overviews
-        .iter()
-        .filter(|p| p["safe_for_refactor"].as_bool().unwrap_or(false))
-        .count();
-    let cleanup_gate_distribution = json!({
-        "allow": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "cleanup") == "allow")
-            .count(),
-        "caution": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "cleanup") == "caution")
-            .count(),
-        "blocked": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "cleanup") == "blocked")
-            .count(),
-    });
-    let refactor_gate_distribution = json!({
-        "allow": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "refactor") == "allow")
-            .count(),
-        "caution": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "refactor") == "caution")
-            .count(),
-        "blocked": project_overviews
-            .iter()
-            .filter(|p| project_gate_level(p, "refactor") == "blocked")
-            .count(),
-    });
-
-    let mut blocking_projects: Vec<Value> = project_overviews
-        .iter()
-        .filter(|p| {
-            !p["safe_for_cleanup"].as_bool().unwrap_or(false)
-                || !p["safe_for_refactor"].as_bool().unwrap_or(false)
-        })
-        .map(|p| {
-            let cleanup_reason = p["safe_for_cleanup_reason"]
-                .as_str()
-                .unwrap_or("Cleanup readiness is blocked.")
-                .to_string();
-            let refactor_reason = p["safe_for_refactor_reason"]
-                .as_str()
-                .unwrap_or("Refactor readiness is blocked.")
-                .to_string();
-            let cleanup_blocked_by_verification = p["verification_evidence"]["failing_runs"]
-                .as_array()
-                .map(|runs| !runs.is_empty())
-                .unwrap_or(false)
-                || p["verification_evidence"]["status"] == "not_recorded"
-                || matches!(
-                    p["observation"]["freshness"]["verification"]["status"]
-                        .as_str()
-                        .unwrap_or(""),
-                    "stale" | "unknown"
-                );
-            let primary_reason = if cleanup_blocked_by_verification {
-                cleanup_reason.clone()
-            } else {
-                refactor_reason.clone()
-            };
-
-            json!({
-                "project_id": p["project_id"].clone(),
-                "verification_status": p["verification_evidence"]["status"].clone(),
-                "verification_freshness": p["observation"]["freshness"]["verification"].clone(),
-                "failing_run_count": p["verification_evidence"]["failing_runs"]
-                    .as_array()
-                    .map(|runs| runs.len())
-                    .unwrap_or(0),
-                "safe_for_cleanup": p["safe_for_cleanup"].clone(),
-                "safe_for_refactor": p["safe_for_refactor"].clone(),
-                "cleanup_gate_level": project_gate_level(p, "cleanup"),
-                "refactor_gate_level": project_gate_level(p, "refactor"),
-                "cleanup_reason": cleanup_reason,
-                "refactor_reason": refactor_reason,
-                "primary_reason": primary_reason,
-            })
-        })
-        .collect();
-
-    blocking_projects.sort_by(|a, b| {
-        let a_failing = a["failing_run_count"].as_u64().unwrap_or(0);
-        let b_failing = b["failing_run_count"].as_u64().unwrap_or(0);
-        let a_missing = a["verification_status"] == "not_recorded";
-        let b_missing = b["verification_status"] == "not_recorded";
-        let a_stale = matches!(
-            a["verification_freshness"]["status"].as_str().unwrap_or(""),
-            "stale" | "unknown"
-        );
-        let b_stale = matches!(
-            b["verification_freshness"]["status"].as_str().unwrap_or(""),
-            "stale" | "unknown"
-        );
-
-        b_failing
-            .cmp(&a_failing)
-            .then_with(|| b_missing.cmp(&a_missing))
-            .then_with(|| b_stale.cmp(&a_stale))
-            .then_with(|| {
-                a["project_id"]
-                    .as_str()
-                    .unwrap_or("")
-                    .cmp(b["project_id"].as_str().unwrap_or(""))
-            })
-    });
-
-    let mut verified_conclusions = Vec::new();
-    if projects_safe_for_cleanup > 0 {
-        verified_conclusions.push(json!({
-            "summary": format!(
-                "{} project(s) currently have verification evidence that supports cleanup review.",
-                projects_safe_for_cleanup
-            ),
-            "basis": [
-                "verification_evidence.safe_for_cleanup == true",
-                "latest recorded verification for those projects is not blocked"
-            ]
-        }));
-    }
-    if projects_safe_for_refactor > 0 {
-        verified_conclusions.push(json!({
-            "summary": format!(
-                "{} project(s) currently have verification evidence that supports scoped refactor work.",
-                projects_safe_for_refactor
-            ),
-            "basis": [
-                "verification_evidence.safe_for_refactor == true",
-                "required test/build evidence is recorded for those projects"
-            ]
-        }));
-    }
-
-    let mut unverified_conclusions = Vec::new();
-    if projects_missing_verification > 0 {
-        unverified_conclusions.push(json!({
-            "summary": format!(
-                "{} project(s) are still missing verification evidence.",
-                projects_missing_verification
-            ),
-            "basis": [
-                "verification_evidence.status == not_recorded"
-            ]
-        }));
-    }
-    if projects_with_stale_verification > 0 {
-        unverified_conclusions.push(json!({
-            "summary": format!(
-                "{} project(s) only have stale verification evidence.",
-                projects_with_stale_verification
-            ),
-            "basis": [
-                "observation.freshness.verification.status in [stale, unknown]"
-            ]
-        }));
-    }
-    if projects_with_failing_verification > 0 {
-        unverified_conclusions.push(json!({
-            "summary": format!(
-                "{} project(s) currently have failing or uncertain verification runs.",
-                projects_with_failing_verification
-            ),
-            "basis": [
-                "verification_evidence.failing_runs is non-empty"
-            ]
-        }));
-    }
+    let summary = VerificationEvidenceWorkspaceSummary::from_project_overviews(
+        project_overviews,
+        project_count,
+        monitoring_count,
+    );
 
     json!({
         "status": "available",
-        "projects_with_recorded_verification": projects_with_recorded_verification,
-        "projects_missing_verification": projects_missing_verification,
-        "projects_with_failing_verification": projects_with_failing_verification,
-        "projects_with_stale_verification": projects_with_stale_verification,
-        "projects_safe_for_cleanup": projects_safe_for_cleanup,
-        "projects_safe_for_refactor": projects_safe_for_refactor,
-        "cleanup_gate_distribution": cleanup_gate_distribution,
-        "refactor_gate_distribution": refactor_gate_distribution,
-        "direct_observations": [
-            format!("Registered projects: {}.", project_count),
-            format!("Projects currently marked as monitoring: {}.", monitoring_count),
-            format!(
-                "Projects with recorded verification evidence: {}.",
-                projects_with_recorded_verification
-            ),
-            format!(
-                "Projects missing verification evidence: {}.",
-                projects_missing_verification
-            ),
-            format!(
-                "Projects with failing or uncertain verification runs: {}.",
-                projects_with_failing_verification
-            ),
-            format!(
-                "Projects with stale verification evidence: {}.",
-                projects_with_stale_verification
-            ),
-        ],
+        "projects_with_recorded_verification": summary.projects_with_recorded_verification,
+        "projects_missing_verification": summary.projects_missing_verification,
+        "projects_with_failing_verification": summary.projects_with_failing_verification,
+        "projects_with_stale_verification": summary.projects_with_stale_verification,
+        "projects_safe_for_cleanup": summary.projects_safe_for_cleanup,
+        "projects_safe_for_refactor": summary.projects_safe_for_refactor,
+        "cleanup_gate_distribution": summary.cleanup_gate_distribution.to_json(),
+        "refactor_gate_distribution": summary.refactor_gate_distribution.to_json(),
+        "direct_observations": summary.direct_observations(),
         "inferences": [
             "Project recommendations can rely more strongly on projects whose verification evidence is both recorded and fresh.",
             "Missing or stale verification evidence should be refreshed before broad cleanup or refactor work.",
             "Failing verification evidence should outrank cleanup-oriented follow-up work."
         ],
-        "verified_conclusions": verified_conclusions,
-        "unverified_conclusions": unverified_conclusions,
-        "blocking_projects": blocking_projects,
-        "confidence": if project_overviews.is_empty() {
-            "low"
-        } else if projects_missing_verification == 0 && projects_with_stale_verification == 0 {
-            "high"
-        } else if projects_with_recorded_verification > 0 {
-            "medium"
-        } else {
-            "low"
-        },
+        "verified_conclusions": summary.verified_conclusions_json(),
+        "unverified_conclusions": summary.unverified_conclusions_json(),
+        "blocking_projects": summary.blocking_projects_json(),
+        "confidence": summary.confidence(),
     })
 }
 

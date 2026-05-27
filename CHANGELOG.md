@@ -21,6 +21,7 @@ All notable changes to OPENDOG are documented here.
 - Mystocks project-exchange reports, audit responses, and feature-introduction counts were synced with the implemented retained-evidence, schema-contract, and documentation-coverage changes.
 - `CLAUDE.md` and historical planning research now distinguish the current 27-tool MCP surface from the original 8-tool Phase 4 baseline.
 - Storage-maintenance execution-template generation now consumes typed context for project placeholders, cleanup recommendations, cleanup-plan steps, and vacuum signals before rendering MCP JSON.
+- Verification-evidence workspace aggregation now uses typed project summaries and gate distributions before rendering MCP JSON.
 
 ### Fixed
 
