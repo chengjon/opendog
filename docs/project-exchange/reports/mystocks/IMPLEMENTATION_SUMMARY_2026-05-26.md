@@ -178,6 +178,36 @@
 
 ---
 
+### 后续扩展: retained evidence 存储治理 [2026-05-27]
+
+**状态**: ✅ 已实现并在 mystocks 真实数据上验证
+**主功能 Commit**: `1efa8e2`
+**文档/运行证据 Commits**: `11ea181`, `6b5a6d7`, `efdadb8`, `f920fba`, `e7fd6bd`, `010e6e0`, `e1bb6be`
+
+F-3-R2 的 estimate-first 能力已经扩展为完整的 OPENDOG retained-evidence lifecycle：
+
+1. 活动明细清理前会 roll up 到 `activity_daily_rollups`
+2. CLI 新增 `opendog report rollup --json`
+3. MCP 新增 `get_activity_rollups`
+4. retention policy 支持全局与项目级 override
+5. `cleanup-data --scope activity --older-than-days <N> --vacuum` 可清理 retained activity evidence，但不会删除项目源码
+6. 文档新增 storage retention runbook，并记录 mystocks dry-run、真实 cleanup、policy override 结果
+
+mystocks 真实执行结果：
+
+| 项 | 结果 |
+|----|------|
+| retention policy | `activity_retention_days=14` |
+| 删除 `file_sightings` | `2,810,981` |
+| 删除 `file_events` | `321,847` |
+| rollup 保留 | 6 天，`activity_daily_rollups=22` |
+| DB 体积变化 | 约 `10.01GB` -> `9.00GB` |
+| WAL | 已 checkpoint/truncate |
+
+最终 audit 跟进状态已写入 `OPENDOG_MCP_USAGE_REVIEW_2026-05-26_AUDIT.md` 的 `Implementation Follow-Up Status` 章节。
+
+---
+
 ### F-2B: verification trust gate 集成 [P0]
 
 **问题**: Phase A 记录了管道检测信号，但 guidance 的 verification gate 未消费这些信号。
@@ -237,22 +267,29 @@
 
 ```
 docs/opendog-feature-introduction.md           (文档修正)
+docs/storage-retention-runbook.md              (retention/rollup 运维说明)
 docs/project-exchange/reports/mystocks/
   OPENDOG_MCP_USAGE_REVIEW_2026-05-26_AUDIT.md (审核文档)
   USAGE_REVIEW_AUDIT_RESPONSE.md               (响应文档)
+  storage-retention-dry-run-2026-05-27.md      (mystocks retention 执行证据)
 src/core/verification.rs                        (管道检测、可疑信号)
 src/core/report.rs                              (truncated 字段)
 src/core/report/time_window.rs                  (SQL LIMIT)
 src/core/report/usage_trend.rs                  (SQL LIMIT)
+src/core/report/activity_rollup.rs              (retained activity rollup 查询)
 src/core/retention.rs                           (EstimateMode、回归测试)
 src/core/retention/executor.rs                  (estimate-first 逻辑)
+src/core/retention/activity_rollup.rs           (activity cleanup 前汇总)
 src/storage/migrations.rs                       (重启建议)
 src/storage/queries.rs                          (re-export)
 src/storage/queries/retention.rs                (count_snapshot_runs)
+src/storage/queries/activity_rollups.rs         (activity rollup persistence)
 src/mcp/mock_detection.rs                       (infrastructure 分类)
 src/mcp/strategy.rs                             (gate 回归测试)
 src/mcp/config_handlers.rs                      (daemon_running、opendog_home)
 src/mcp/payloads/config_payloads.rs             (build_info 字段)
+src/mcp/payloads/report_payloads.rs             (rollup payload)
+src/mcp/report_handlers.rs                      (get_activity_rollups)
 src/mcp/verification_evidence.rs                (trust_level、gate 消费)
 src/mcp/tests.rs                                (import 更新)
 src/mcp/tests/payload_contracts/analysis_payloads.rs (contract 更新)

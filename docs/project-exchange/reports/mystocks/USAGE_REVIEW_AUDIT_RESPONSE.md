@@ -242,6 +242,34 @@ mock candidate 的 review_priority 逻辑（`mock_detection.rs:408-414`）：`is
 
 ---
 
+## 实施后状态更新 [2026-05-27]
+
+本响应中的 9 个工作项已经全部完成代码或文档层面的可接受实现，并在 `OPENDOG_MCP_USAGE_REVIEW_2026-05-26_AUDIT.md` 的 `Implementation Follow-Up Status` 章节逐项登记；最终跟进登记提交为 `e1bb6be`。
+
+| 编号 | 状态 | 证据 |
+|------|------|------|
+| F-1 | 已实现 | `7156ac6` |
+| F-4 | 已实现 | `f14249e` |
+| F-2A | 已实现 | `ab68fb4` |
+| F-6 | 已实现并后续同步 retention/rollup 文档 | `ffa6fcf`, `11ea181`, `6b5a6d7` |
+| F-3-R1 | 已实现 | `563a569` |
+| F-5 | 已实现 | `d88d7f1` |
+| F-7 | 已按 OPENDOG 可观测边界实现 | `0559af6` |
+| F-3-R2 | 已实现并扩展为 retained evidence storage governance | `b429b89`, `1efa8e2` |
+| F-2B | 已实现 | `7f25843` |
+
+F-3-R2 后续扩展的 retained evidence 治理已经落地：
+
+- CLI: `opendog report rollup --json`
+- MCP: `get_activity_rollups`
+- 存储: `activity_daily_rollups`
+- 运维: `docs/storage-retention-runbook.md`
+- mystocks 执行证据: `storage-retention-dry-run-2026-05-27.md`
+
+mystocks 项目已应用 14 天 activity retention policy，并完成一次真实 cleanup + vacuum + WAL checkpoint。该操作删除 OPENDOG retained activity evidence 中的旧明细行，并保留 daily rollup 汇总；不删除 mystocks 项目源码文件。
+
+---
+
 ## 未接受的建议
 
 | 建议 | 原因 |
