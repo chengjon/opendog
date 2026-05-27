@@ -14,7 +14,7 @@ Use it when you need to answer one of these questions quickly:
 Current scope at a glance:
 
 - 3 capability layers
-- 26 MCP tools + 2 read-only Resources
+- 27 MCP tools + 2 read-only Resources
 - 23 CLI top-level commands
 - 27 `FT-*` leaf capabilities
 
