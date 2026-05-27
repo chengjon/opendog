@@ -46,6 +46,7 @@ Run the narrowest useful dry-run first.
 OPENDOG_HOME=/root/.opendog target/release/opendog cleanup-data \
   --id <PROJECT_ID> \
   --scope activity \
+  --older-than-days 30 \
   --dry-run \
   --json
 ```
@@ -56,6 +57,8 @@ For a full retained-evidence preview:
 OPENDOG_HOME=/root/.opendog target/release/opendog cleanup-data \
   --id <PROJECT_ID> \
   --scope all \
+  --older-than-days 30 \
+  --keep-snapshot-runs 20 \
   --dry-run \
   --json
 ```
@@ -66,16 +69,15 @@ Read these fields first:
 - `storage_before.approx_reclaimable_bytes`
 - `storage_before.evidence_counts`
 - `deleted`
-- `rolled_up`
-- `maintenance.vacuum_recommended`
-- `maintenance.recommended_command`
+- `notes`
 
 Decision guide:
 
 - If `deleted` is near zero, no cleanup is needed.
-- If `deleted.file_sightings` or `deleted.file_events` is large, verify `rolled_up.file_sightings` and `rolled_up.file_events` before execution.
-- If `maintenance.vacuum_recommended = true`, consider adding `--vacuum` to the execution command.
-- If `storage_before.approx_reclaimable_bytes` is small, skip `--vacuum`.
+- If `deleted.file_sightings` or `deleted.file_events` is large, the execution path will roll up daily activity counts before deleting raw rows.
+- In dry-run output, `rolled_up` may remain zero because no write is performed. Verify `rolled_up.file_sightings` and `rolled_up.file_events` after real execution.
+- If dry-run predicts millions of raw rows deleted, consider adding `--vacuum` to the execution command so SQLite rewrites the file after deletion.
+- If dry-run predicts only a small deletion count, skip `--vacuum`.
 
 ## Execute Workflow
 
@@ -85,6 +87,7 @@ Execute only after the dry-run result is acceptable.
 OPENDOG_HOME=/root/.opendog target/release/opendog cleanup-data \
   --id <PROJECT_ID> \
   --scope activity \
+  --older-than-days 30 \
   --vacuum \
   --json
 ```
@@ -148,7 +151,7 @@ OPENDOG_HOME=/root/.opendog target/release/opendog config set-project \
 For AI or MCP-driven workflows:
 
 1. Start with `get_guidance(detail=summary)`.
-2. If storage maintenance is flagged, ask the operator to run `cleanup-data --dry-run --json`.
+2. If storage maintenance is flagged, ask the operator to run `cleanup-data --older-than-days <DAYS> --dry-run --json`.
 3. Use `get_activity_rollups` after cleanup to inspect retained daily activity volume.
 4. Use `get_usage_trends` or `get_time_window_report` before cleanup when recent file-level detail is required.
 5. Do not confuse retained-evidence cleanup with source-code cleanup.
