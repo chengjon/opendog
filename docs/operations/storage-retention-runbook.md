@@ -116,6 +116,20 @@ Read:
 
 If `summary.truncated = true`, rerun with a larger `--limit` or a narrower `--window`.
 
+If `--vacuum` was used, confirm whether a large WAL file remains:
+
+```bash
+ls -lh /root/.opendog/data/projects/<PROJECT_ID>.db*
+```
+
+If `<PROJECT_ID>.db-wal` is still large after cleanup, checkpoint and truncate it:
+
+```bash
+sqlite3 /root/.opendog/data/projects/<PROJECT_ID>.db 'PRAGMA wal_checkpoint(TRUNCATE);'
+```
+
+Then recheck the DB files. The checkpoint is a storage maintenance step; it should not change retained-evidence counts.
+
 ## Retention Policy Example
 
 Use project-level retention when one repository needs different storage behavior from global defaults.

@@ -273,3 +273,121 @@ Dry-run `rolled_up` remains zero because no write is performed. A real activity 
    ```
 
 6. Record the deletion counts, rolled-up counts, reclaimable bytes, and final rollup summary in a follow-up report.
+
+## Execution Follow-Up
+
+The operator approved continuing with the conservative 14-day activity retention plan. A real cleanup was executed.
+
+Command:
+
+```bash
+OPENDOG_HOME=/root/.opendog target/release/opendog cleanup-data \
+  --id mystocks \
+  --scope activity \
+  --older-than-days 14 \
+  --vacuum
+```
+
+Result:
+
+```text
+Project 'mystocks' — cleanup scope=activity dry_run=false vacuum=true
+older_than_days: 14
+storage_before: page_count=2444358 free_pages=0 approx_db_bytes=10012090368 approx_reclaimable_bytes=0
+deleted: sightings=2810981 events=321847 verification=0 snapshot_runs=0 snapshot_history=0
+rolled_up: sightings=2810981 events=321847
+storage_after: page_count=2196983 free_pages=0 approx_db_bytes=8998842368 approx_reclaimable_bytes=0
+maintenance: optimized=true vacuumed=true
+```
+
+The cleanup process left a large WAL file after vacuum. A SQLite checkpoint/truncate was then run:
+
+```bash
+sqlite3 /root/.opendog/data/projects/mystocks.db 'PRAGMA wal_checkpoint(TRUNCATE);'
+```
+
+Result:
+
+```text
+0|0|0
+```
+
+## Post-Execution Verification
+
+Rollup query:
+
+```bash
+OPENDOG_HOME=/root/.opendog target/release/opendog report rollup \
+  --id mystocks \
+  --window 30d \
+  --json
+```
+
+Summary:
+
+```json
+{
+  "returned_days": 6,
+  "rollup_days": 6,
+  "total_access_count": 2810981,
+  "total_event_count": 321847,
+  "total_modification_count": 306432,
+  "truncated": false
+}
+```
+
+Final table counts:
+
+```json
+{
+  "file_sightings": 7429851,
+  "file_events": 33350771,
+  "activity_daily_rollups": 22,
+  "snapshot_history": 111280,
+  "snapshot_runs": 2,
+  "verification_runs": 4
+}
+```
+
+Final SQLite file state:
+
+```json
+{
+  "mystocks.db": {
+    "bytes": 9023705088,
+    "mb": 8605.7
+  },
+  "mystocks.db-wal": {
+    "bytes": 12392,
+    "mb": 0
+  },
+  "mystocks.db-shm": {
+    "bytes": 17596416,
+    "mb": 16.8
+  },
+  "freelist_count": 0
+}
+```
+
+Follow-up dry-run with the same 14-day policy:
+
+```json
+{
+  "deleted": {
+    "file_events": 7,
+    "file_sightings": 0,
+    "snapshot_history": 0,
+    "snapshot_runs": 0,
+    "verification_runs": 0
+  }
+}
+```
+
+Interpretation:
+
+- 14-day retained-activity cleanup executed successfully.
+- Daily rollups preserved the deleted raw activity volume.
+- `VACUUM` rebuilt the database file.
+- Explicit WAL checkpoint/truncate was required to release the large post-cleanup WAL file.
+- The remaining 14-day eligible data is negligible and likely appeared during or shortly after cleanup.
+- A 7-day policy would still be materially more aggressive; post-cleanup dry-run estimates about 7.6M events and 4.3M sightings eligible under 7-day retention.
