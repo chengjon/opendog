@@ -28,6 +28,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance repo-truth gap aggregation now uses a typed dynamic distribution model before rendering execution-strategy JSON.
 - Guidance repo-risk strategy coupling now uses a typed internal model for coupled/no-signal status, source project, repository-risk finding, and summary text before rendering execution-strategy JSON.
 - Guidance execution-strategy summary counts, required-action lists, and focus distributions now use concrete internal types before rendering MCP JSON.
+- Guidance execution-strategy profile fields now use concrete strings and evidence-priority lists before rendering MCP JSON.
 - Decision-support action profiles now use a typed internal model for action class, phase, mutability scope, verification requirement, and primary-goal text before rendering MCP JSON.
 - Decision-support risk profiles now use a typed internal model for risk-tier selection, gate fallback, blockers, repo-risk findings, and manual-review flags before rendering MCP JSON.
 - Decision-support entrypoint recommendations now use a typed plan for next MCP tools, CLI commands, selection reasons, and tool-selection policy before rendering MCP JSON.

@@ -306,10 +306,10 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) status: String,
     pub(crate) recommended_flow: Value,
     pub(crate) project_recommendations: Vec<Value>,
-    pub(crate) global_strategy_mode: Value,
-    pub(crate) preferred_primary_tool: Value,
-    pub(crate) preferred_secondary_tool: Value,
-    pub(crate) evidence_priority: Value,
+    pub(crate) global_strategy_mode: String,
+    pub(crate) preferred_primary_tool: String,
+    pub(crate) preferred_secondary_tool: String,
+    pub(crate) evidence_priority: Vec<String>,
     pub(crate) risk_strategy_coupling: RepoRiskCoupling,
     pub(crate) external_truth_boundary: Value,
     pub(crate) review_focus_projection: Value,
@@ -812,10 +812,10 @@ mod tests {
             status: "available".into(),
             recommended_flow: json!([]),
             project_recommendations: vec![],
-            global_strategy_mode: json!("evidence_first"),
-            preferred_primary_tool: json!("opendog"),
-            preferred_secondary_tool: json!("shell"),
-            evidence_priority: json!("high"),
+            global_strategy_mode: "evidence_first".to_string(),
+            preferred_primary_tool: "opendog".to_string(),
+            preferred_secondary_tool: "shell".to_string(),
+            evidence_priority: vec!["verification".to_string(), "activity".to_string()],
             risk_strategy_coupling: RepoRiskCoupling::no_signal(
                 Value::Null,
                 json!("evidence_first"),
@@ -856,6 +856,11 @@ mod tests {
         };
         let v = serde_json::to_value(&e).unwrap();
         assert_eq!(v["status"], "available");
+        assert_eq!(v["global_strategy_mode"], "evidence_first");
+        assert_eq!(v["preferred_primary_tool"], "opendog");
+        assert_eq!(v["preferred_secondary_tool"], "shell");
+        assert_eq!(v["evidence_priority"][0], "verification");
+        assert_eq!(v["evidence_priority"][1], "activity");
         assert_eq!(v["data_risk_focus_distribution"]["hardcoded"], 1);
         assert_eq!(v["projects_requiring_hardcoded_review"], 1);
         assert_eq!(v["projects_requiring_monitor_start"], 4);

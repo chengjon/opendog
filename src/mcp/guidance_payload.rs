@@ -54,6 +54,22 @@ pub(crate) fn now_unix_secs() -> i64 {
         .as_secs() as i64
 }
 
+fn string_field(value: &Value, fallback: &str) -> String {
+    value.as_str().unwrap_or(fallback).to_string()
+}
+
+fn string_list_field(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn execution_strategy_repo_truth_summary(project_recommendations: &[Value]) -> RepoTruthSummary {
     let mut projects_with_repo_truth_gaps = 0_u64;
     let mut repo_truth_gap_distribution = RepoTruthGapDistribution::default();
@@ -488,10 +504,19 @@ pub(crate) fn agent_guidance_payload(
             status: "available".to_string(),
             recommended_flow,
             project_recommendations: sorted_project_recommendations.clone(),
-            global_strategy_mode: workspace_strategy["global_strategy_mode"].clone(),
-            preferred_primary_tool: workspace_strategy["preferred_primary_tool"].clone(),
-            preferred_secondary_tool: workspace_strategy["preferred_secondary_tool"].clone(),
-            evidence_priority: workspace_strategy["evidence_priority"].clone(),
+            global_strategy_mode: string_field(
+                &workspace_strategy["global_strategy_mode"],
+                "current_strategy",
+            ),
+            preferred_primary_tool: string_field(
+                &workspace_strategy["preferred_primary_tool"],
+                "current_tool",
+            ),
+            preferred_secondary_tool: string_field(
+                &workspace_strategy["preferred_secondary_tool"],
+                "shell",
+            ),
+            evidence_priority: string_list_field(&workspace_strategy["evidence_priority"]),
             risk_strategy_coupling,
             external_truth_boundary,
             review_focus_projection,
