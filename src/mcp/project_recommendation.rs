@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 
 pub(crate) mod eligibility;
+mod forced;
 pub(crate) mod reasoning;
 mod review_focus;
 pub(crate) mod scoring;
@@ -12,6 +13,7 @@ use crate::storage::database::Database;
 use crate::storage::queries::VerificationRun;
 
 use self::eligibility::{determine_action_eligibility, GateLevel, RecommendationSignals};
+use self::forced::{ForcedProjectRecommendation, ForcedRecommendationContext};
 use self::reasoning::{build_reason, derive_confidence};
 use self::review_focus::RecommendationReviewFocus;
 use self::scoring::score_review_actions;
@@ -221,65 +223,21 @@ pub(crate) fn recommend_project_action(
 
     let blockers = || Some(Value::Array(cleanup_blockers.clone()));
     let refactor_b = || Some(Value::Array(refactor_blockers.clone()));
+    let forced_context = ForcedRecommendationContext::new(
+        project.id.clone(),
+        primary_verification_command.clone(),
+        gate_levels.clone(),
+        cleanup_blockers.clone(),
+        refactor_blockers.clone(),
+        repo_truth_gaps_json.clone(),
+        mandatory_shell_checks_json.clone(),
+    );
 
-    let rec = if eligibility.forced_action == Some("review_failing_verification") {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "review_failing_verification".to_string(),
-            recommended_flow: vec![
-                "Inspect the latest failing or uncertain verification evidence first.".to_string(),
-                "Use shell diff and project-native verification commands to stabilize the project.".to_string(),
-                "Return to cleanup or refactor review only after verification is passing again.".to_string(),
-            ],
-            reason: "Recent verification evidence includes failing or uncertain runs, so review and stabilize those results before broader cleanup or refactoring.".to_string(),
-            confidence: "high".to_string(),
-            strategy_mode: "verify_before_modify".to_string(),
-            strategy_profile: strategy_profile(
-                "verify_before_modify",
-                "shell",
-                "opendog",
-                &["verification", "repository_risk", "activity_signals"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: blockers(),
-            refactor_blockers: refactor_b(),
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                "opendog verification --id <project>".to_string(),
-                primary_verification_command,
-                "git diff".to_string(),
-            ],
-        }
-    } else if eligibility.forced_action == Some("stabilize_repository_state") {
-        Recommendation {
-            project_id: project.id.clone(),
-            recommended_next_action: "stabilize_repository_state".to_string(),
-            recommended_flow: vec![
-                "Stabilize the repository before broader code changes.".to_string(),
-                "Use git status and diff to understand the in-progress operation.".to_string(),
-                "Only return to OPENDOG-guided cleanup or review after the repository state is stable.".to_string(),
-            ],
-            reason: "The repository is mid-operation (merge/rebase/cherry-pick/bisect), so avoid broad modifications until that state is resolved.".to_string(),
-            confidence: "high".to_string(),
-            strategy_mode: "stabilize_before_modify".to_string(),
-            strategy_profile: strategy_profile(
-                "stabilize_before_modify",
-                "shell",
-                "opendog",
-                &["repository_risk", "verification", "activity_signals"],
-            ),
-            verification_gate_levels: gate_levels,
-            cleanup_blockers: blockers(),
-            refactor_blockers: refactor_b(),
-            repo_truth_gaps: repo_truth_gaps_json.clone(),
-            mandatory_shell_checks: mandatory_shell_checks_json.clone(),
-            suggested_commands: vec![
-                "git status".to_string(),
-                "git diff".to_string(),
-                "opendog verification --id <project>".to_string(),
-            ],
-        }
+    let rec = if let Some(forced_recommendation) = eligibility
+        .forced_action
+        .and_then(|action| ForcedProjectRecommendation::from_action(action, forced_context.clone()))
+    {
+        forced_recommendation.into_recommendation()
     } else if project.status != "monitoring" {
         Recommendation {
             project_id: project.id.clone(),

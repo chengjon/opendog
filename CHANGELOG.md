@@ -29,6 +29,7 @@ All notable changes to OPENDOG are documented here.
 - Decision-support entrypoint recommendations now use a typed plan for next MCP tools, CLI commands, selection reasons, and tool-selection policy before rendering MCP JSON.
 - Constraints readiness snapshots now use a typed internal model for cleanup/refactor blockers, verification gate fallback, repository-risk signals, and readiness reasons before rendering MCP JSON.
 - Project-recommendation review-focus payloads now use a typed internal model for candidate family, candidate basis, and repo-risk hints before rendering MCP JSON.
+- Project-recommendation forced actions now use a typed builder for failing-verification and repository-stabilization recommendations before rendering MCP JSON.
 
 ### Fixed
 
