@@ -36,14 +36,18 @@ fn agent_guidance_includes_shell_and_tool_advice() {
                     "severity": "high",
                     "priority": "immediate",
                     "confidence": "high",
-                    "summary": "2 conflicted paths detected in the working tree."
+                    "summary": "2 conflicted paths detected in the working tree.",
+                    "evidence": ["git status reported 2 conflicted paths."],
+                    "source": "git_status"
                 }],
                 "highest_priority_finding": {
                     "kind": "working_tree_conflicted",
                     "severity": "high",
                     "priority": "immediate",
                     "confidence": "high",
-                    "summary": "2 conflicted paths detected in the working tree."
+                    "summary": "2 conflicted paths detected in the working tree.",
+                    "evidence": ["git status reported 2 conflicted paths."],
+                    "source": "git_status"
                 }
             },
             "mock_data_summary": {

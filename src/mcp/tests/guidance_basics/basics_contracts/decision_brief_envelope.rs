@@ -41,14 +41,18 @@ fn decision_brief_payload_exposes_unified_entry_envelope() {
         "severity": "high",
         "priority": "immediate",
         "confidence": "high",
-        "summary": "2 conflicted paths detected in the working tree."
+        "summary": "2 conflicted paths detected in the working tree.",
+        "evidence": ["git status reported 2 conflicted paths."],
+        "source": "git_status"
     }]);
     project_overview["repo_status_risk"]["highest_priority_finding"] = json!({
         "kind": "working_tree_conflicted",
         "severity": "high",
         "priority": "immediate",
         "confidence": "high",
-        "summary": "2 conflicted paths detected in the working tree."
+        "summary": "2 conflicted paths detected in the working tree.",
+        "evidence": ["git status reported 2 conflicted paths."],
+        "source": "git_status"
     });
     let recommendation = fixtures::demo_recommendation();
     let agent_guidance = agent_guidance_payload(

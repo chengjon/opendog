@@ -174,6 +174,63 @@ enum RepoRiskCouplingStatus {
     Coupled,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct RepoRiskFindingDetails {
+    kind: String,
+    directory: String,
+}
+
+impl RepoRiskFindingDetails {
+    fn from_value(value: &Value) -> Option<Self> {
+        let details = value.as_object()?;
+        Some(Self {
+            kind: details.get("kind")?.as_str()?.to_string(),
+            directory: details.get("directory")?.as_str()?.to_string(),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct RepoRiskFinding {
+    kind: String,
+    severity: String,
+    priority: String,
+    confidence: String,
+    summary: String,
+    evidence: Vec<String>,
+    source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    details: Option<RepoRiskFindingDetails>,
+}
+
+impl RepoRiskFinding {
+    pub(crate) fn from_value(value: &Value) -> Option<Self> {
+        let finding = value.as_object()?;
+        let evidence = finding
+            .get("evidence")?
+            .as_array()?
+            .iter()
+            .map(|item| item.as_str().map(str::to_string))
+            .collect::<Option<Vec<_>>>()?;
+        Some(Self {
+            kind: finding.get("kind")?.as_str()?.to_string(),
+            severity: finding.get("severity")?.as_str()?.to_string(),
+            priority: finding.get("priority")?.as_str()?.to_string(),
+            confidence: finding.get("confidence")?.as_str()?.to_string(),
+            summary: finding.get("summary")?.as_str()?.to_string(),
+            evidence,
+            source: finding.get("source")?.as_str()?.to_string(),
+            details: finding.get("details").and_then(|details| {
+                if details.is_null() {
+                    None
+                } else {
+                    RepoRiskFindingDetails::from_value(details)
+                }
+            }),
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub(crate) struct RepoRiskCoupling {
     status: RepoRiskCouplingStatus,
@@ -182,7 +239,7 @@ pub(crate) struct RepoRiskCoupling {
     recommended_next_action: Option<String>,
     strategy_mode: Option<String>,
     preferred_primary_tool: Option<String>,
-    primary_repo_risk_finding: Value,
+    primary_repo_risk_finding: Option<RepoRiskFinding>,
     summary: Option<String>,
 }
 
@@ -199,7 +256,7 @@ impl RepoRiskCoupling {
             recommended_next_action,
             strategy_mode,
             preferred_primary_tool,
-            primary_repo_risk_finding: Value::Null,
+            primary_repo_risk_finding: None,
             summary: None,
         }
     }
@@ -209,7 +266,7 @@ impl RepoRiskCoupling {
         recommended_next_action: Option<String>,
         strategy_mode: Option<String>,
         preferred_primary_tool: Option<String>,
-        primary_repo_risk_finding: Value,
+        primary_repo_risk_finding: RepoRiskFinding,
         summary: String,
     ) -> Self {
         Self {
@@ -219,7 +276,7 @@ impl RepoRiskCoupling {
             recommended_next_action,
             strategy_mode,
             preferred_primary_tool,
-            primary_repo_risk_finding,
+            primary_repo_risk_finding: Some(primary_repo_risk_finding),
             summary: Some(summary),
         }
     }
@@ -779,12 +836,22 @@ mod tests {
 
     #[test]
     fn repo_risk_coupling_coupled_serializes_context() {
+        let finding = RepoRiskFinding::from_value(&json!({
+            "kind": "repository_operation_in_progress",
+            "severity": "high",
+            "priority": "immediate",
+            "confidence": "high",
+            "summary": "merge in progress",
+            "evidence": ["Git metadata indicates an in-progress operation: merge."],
+            "source": "git_metadata"
+        }))
+        .unwrap();
         let coupling = RepoRiskCoupling::coupled(
             "proj_a",
             Some("stabilize_repository_state".to_string()),
             Some("stabilize_first".to_string()),
             Some("shell_verification".to_string()),
-            json!({"summary": "merge in progress"}),
+            finding,
             "Top repository risk keeps the workspace in stabilize_first mode.".to_string(),
         );
 
@@ -797,9 +864,36 @@ mod tests {
             "merge in progress"
         );
         assert_eq!(
+            v["primary_repo_risk_finding"]["kind"],
+            "repository_operation_in_progress"
+        );
+        assert_eq!(
             v["summary"],
             "Top repository risk keeps the workspace in stabilize_first mode."
         );
+    }
+
+    #[test]
+    fn repo_risk_finding_serializes_lockfile_details() {
+        let finding = RepoRiskFinding::from_value(&json!({
+            "kind": "dependency_lockfile_anomaly",
+            "severity": "medium",
+            "priority": "high",
+            "confidence": "high",
+            "summary": "Manifest changed without corresponding lockfile change in .",
+            "evidence": ["git status flagged dependency file drift in ."],
+            "source": "git_status",
+            "details": {
+                "kind": "manifest_without_lockfile_change",
+                "directory": "."
+            }
+        }))
+        .unwrap();
+
+        let v = serde_json::to_value(&finding).unwrap();
+        assert_eq!(v["kind"], "dependency_lockfile_anomaly");
+        assert_eq!(v["details"]["kind"], "manifest_without_lockfile_change");
+        assert_eq!(v["details"]["directory"], ".");
     }
 
     #[test]

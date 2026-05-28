@@ -10,8 +10,8 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
-        ObservationSummary, RepoRiskCoupling, RepoTruthGapDistribution, RepoTruthSummary,
-        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
+        ObservationSummary, RepoRiskCoupling, RepoRiskFinding, RepoTruthGapDistribution,
+        RepoTruthSummary, StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -146,11 +146,11 @@ fn execution_strategy_repo_risk_coupling(
         return no_signal();
     };
 
-    let primary_repo_risk_finding =
-        overview["repo_status_risk"]["highest_priority_finding"].clone();
-    if primary_repo_risk_finding.is_null() {
+    let Some(primary_repo_risk_finding) =
+        RepoRiskFinding::from_value(&overview["repo_status_risk"]["highest_priority_finding"])
+    else {
         return no_signal();
-    }
+    };
 
     let strategy_mode_text = strategy_mode
         .as_deref()
@@ -757,7 +757,17 @@ mod tests {
         })];
         let overviews = vec![json!({
             "project_id": "proj_a",
-            "repo_status_risk": {"highest_priority_finding": "mid_rebase_detected"}
+            "repo_status_risk": {
+                "highest_priority_finding": {
+                    "kind": "repository_operation_in_progress",
+                    "severity": "high",
+                    "priority": "immediate",
+                    "confidence": "high",
+                    "summary": "Repository is mid-operation: rebase.",
+                    "evidence": ["Git metadata indicates an in-progress operation: rebase."],
+                    "source": "git_metadata"
+                }
+            }
         })];
         let ws = json!({
             "global_strategy_mode": "defensive",
@@ -767,7 +777,10 @@ mod tests {
         assert_eq!(result["status"], "coupled");
         assert_eq!(result["source"], "primary_repo_risk_finding");
         assert_eq!(result["source_project_id"], "proj_a");
-        assert_eq!(result["primary_repo_risk_finding"], "mid_rebase_detected");
+        assert_eq!(
+            result["primary_repo_risk_finding"]["kind"],
+            "repository_operation_in_progress"
+        );
     }
 
     #[test]
@@ -778,7 +791,17 @@ mod tests {
         })];
         let overviews = vec![json!({
             "project_id": "proj_a",
-            "repo_status_risk": {"highest_priority_finding": "failing_tests"}
+            "repo_status_risk": {
+                "highest_priority_finding": {
+                    "kind": "conflicted_paths",
+                    "severity": "high",
+                    "priority": "immediate",
+                    "confidence": "high",
+                    "summary": "1 conflicted paths detected in the working tree.",
+                    "evidence": ["git status reported 1 conflicted paths."],
+                    "source": "git_status"
+                }
+            }
         })];
         let ws = json!({
             "global_strategy_mode": "stabilize_first",
