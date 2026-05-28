@@ -609,7 +609,7 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) recommended_flow: Vec<String>,
     pub(crate) project_recommendations: Vec<Value>,
     pub(crate) global_strategy_mode: RepoRiskStrategyMode,
-    pub(crate) preferred_primary_tool: String,
+    pub(crate) preferred_primary_tool: RepoRiskPreferredTool,
     pub(crate) preferred_secondary_tool: String,
     pub(crate) evidence_priority: Vec<String>,
     pub(crate) risk_strategy_coupling: RepoRiskCoupling,
@@ -1192,7 +1192,7 @@ mod tests {
             recommended_flow: vec!["refresh evidence".to_string(), "review risk".to_string()],
             project_recommendations: vec![],
             global_strategy_mode: RepoRiskStrategyMode::Other("evidence_first".to_string()),
-            preferred_primary_tool: "opendog".to_string(),
+            preferred_primary_tool: RepoRiskPreferredTool::Opendog,
             preferred_secondary_tool: "shell".to_string(),
             evidence_priority: vec!["verification".to_string(), "activity".to_string()],
             risk_strategy_coupling: RepoRiskCoupling::no_signal(

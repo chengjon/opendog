@@ -519,10 +519,10 @@ pub(crate) fn agent_guidance_payload(
                 &workspace_strategy["global_strategy_mode"],
                 "current_strategy",
             )),
-            preferred_primary_tool: string_field(
+            preferred_primary_tool: RepoRiskPreferredTool::from_tool(&string_field(
                 &workspace_strategy["preferred_primary_tool"],
                 "current_tool",
-            ),
+            )),
             preferred_secondary_tool: string_field(
                 &workspace_strategy["preferred_secondary_tool"],
                 "shell",
