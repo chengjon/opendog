@@ -27,6 +27,7 @@ All notable changes to OPENDOG are documented here.
 - Task-card frontmatter parsing, status counting, and rule checks now live in `scripts/task_card_rules.py`, keeping the task-card validation script focused on repository paths and CLI reporting.
 - Retention cleanup all-scope activity/history tests now live in `src/core/retention/tests/activity_all.rs`, keeping activity-scope rollup tests smaller and easier to scan.
 - Monitor-controller project/global configuration reload methods now live in `src/control/config_reload.rs`, keeping the root control module focused on lifecycle wiring and shared query helpers.
+- Daemon-process CLI smoke coverage now delegates report/cleanup and config-reload assertions to focused integration-test helper modules, making the long end-to-end scenario easier to scan.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
