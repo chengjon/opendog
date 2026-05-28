@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::BTreeMap;
 
 use serde_json::Value;
@@ -174,6 +174,62 @@ enum RepoRiskCouplingStatus {
     Coupled,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum RecommendedNextAction {
+    StartMonitor,
+    TakeSnapshot,
+    GenerateActivityThenStats,
+    ReviewFailingVerification,
+    RunVerificationBeforeHighRiskChanges,
+    StabilizeRepositoryState,
+    ReviewUnusedFiles,
+    InspectHotFiles,
+    Other(String),
+}
+
+impl RecommendedNextAction {
+    pub(crate) fn from_action(value: &str) -> Self {
+        match value {
+            "start_monitor" => Self::StartMonitor,
+            "take_snapshot" => Self::TakeSnapshot,
+            "generate_activity_then_stats" => Self::GenerateActivityThenStats,
+            "review_failing_verification" => Self::ReviewFailingVerification,
+            "run_verification_before_high_risk_changes" => {
+                Self::RunVerificationBeforeHighRiskChanges
+            }
+            "stabilize_repository_state" => Self::StabilizeRepositoryState,
+            "review_unused_files" => Self::ReviewUnusedFiles,
+            "inspect_hot_files" => Self::InspectHotFiles,
+            value => Self::Other(value.to_string()),
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        match self {
+            Self::StartMonitor => "start_monitor",
+            Self::TakeSnapshot => "take_snapshot",
+            Self::GenerateActivityThenStats => "generate_activity_then_stats",
+            Self::ReviewFailingVerification => "review_failing_verification",
+            Self::RunVerificationBeforeHighRiskChanges => {
+                "run_verification_before_high_risk_changes"
+            }
+            Self::StabilizeRepositoryState => "stabilize_repository_state",
+            Self::ReviewUnusedFiles => "review_unused_files",
+            Self::InspectHotFiles => "inspect_hot_files",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for RecommendedNextAction {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub(crate) struct RepoRiskFindingDetails {
     kind: String,
@@ -236,7 +292,7 @@ pub(crate) struct RepoRiskCoupling {
     status: RepoRiskCouplingStatus,
     source: Option<String>,
     source_project_id: Option<String>,
-    recommended_next_action: Option<String>,
+    recommended_next_action: Option<RecommendedNextAction>,
     strategy_mode: Option<String>,
     preferred_primary_tool: Option<String>,
     primary_repo_risk_finding: Option<RepoRiskFinding>,
@@ -245,7 +301,7 @@ pub(crate) struct RepoRiskCoupling {
 
 impl RepoRiskCoupling {
     pub(crate) fn no_signal(
-        recommended_next_action: Option<String>,
+        recommended_next_action: Option<RecommendedNextAction>,
         strategy_mode: Option<String>,
         preferred_primary_tool: Option<String>,
     ) -> Self {
@@ -263,7 +319,7 @@ impl RepoRiskCoupling {
 
     pub(crate) fn coupled(
         source_project_id: &str,
-        recommended_next_action: Option<String>,
+        recommended_next_action: Option<RecommendedNextAction>,
         strategy_mode: Option<String>,
         preferred_primary_tool: Option<String>,
         primary_repo_risk_finding: RepoRiskFinding,
@@ -825,7 +881,7 @@ mod tests {
     #[test]
     fn repo_risk_coupling_no_signal_serializes_null_boundaries() {
         let coupling = RepoRiskCoupling::no_signal(
-            Some("start_monitor".to_string()),
+            Some(RecommendedNextAction::StartMonitor),
             Some("defensive".to_string()),
             Some("opendog".to_string()),
         );
@@ -855,7 +911,7 @@ mod tests {
         .unwrap();
         let coupling = RepoRiskCoupling::coupled(
             "proj_a",
-            Some("stabilize_repository_state".to_string()),
+            Some(RecommendedNextAction::StabilizeRepositoryState),
             Some("stabilize_first".to_string()),
             Some("shell_verification".to_string()),
             finding,

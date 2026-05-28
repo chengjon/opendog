@@ -10,8 +10,9 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
-        ObservationSummary, RepoRiskCoupling, RepoRiskFinding, RepoTruthGapDistribution,
-        RepoTruthSummary, StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
+        ObservationSummary, RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding,
+        RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary, VerificationSummary,
+        WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -117,7 +118,7 @@ fn execution_strategy_repo_risk_coupling(
     let recommended_next_action = project_recommendations
         .first()
         .and_then(|recommendation| recommendation["recommended_next_action"].as_str())
-        .map(str::to_string);
+        .map(RecommendedNextAction::from_action);
     let strategy_mode = workspace_strategy["global_strategy_mode"]
         .as_str()
         .map(str::to_string);
@@ -165,7 +166,7 @@ fn execution_strategy_repo_risk_coupling(
         project_id,
         recommendation["recommended_next_action"]
             .as_str()
-            .map(str::to_string),
+            .map(RecommendedNextAction::from_action),
         strategy_mode,
         preferred_primary_tool,
         primary_repo_risk_finding,

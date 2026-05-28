@@ -29,6 +29,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance repo-risk strategy coupling now uses a typed internal model for coupled/no-signal status, source project, repository-risk finding, and summary text before rendering execution-strategy JSON.
 - Guidance repo-risk strategy coupling now uses concrete optional strings for action, strategy mode, and primary-tool fields before rendering execution-strategy JSON.
 - Guidance repo-risk strategy coupling now uses a typed repository-risk finding model, including lockfile-anomaly details, before rendering execution-strategy JSON.
+- Guidance repo-risk strategy coupling recommended-next-action now uses a typed action enum before rendering execution-strategy JSON.
 - Guidance execution-strategy summary counts, required-action lists, and focus distributions now use concrete internal types before rendering MCP JSON.
 - Guidance execution-strategy profile fields now use concrete strings and evidence-priority lists before rendering MCP JSON.
 - Guidance execution-strategy recommended-flow output now uses a concrete string list inside the typed layer before rendering MCP JSON.
