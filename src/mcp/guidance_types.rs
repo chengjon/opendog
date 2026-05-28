@@ -78,9 +78,23 @@ pub(crate) struct AttentionPriorityBasis {
     pub(crate) safe_for_refactor: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum WorkspacePortfolioLayerStatus {
+    Available,
+}
+
+impl WorkspacePortfolioLayerStatus {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Available => "available",
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) struct WorkspacePortfolioLayer {
-    pub(crate) status: String,
+    pub(crate) status: WorkspacePortfolioLayerStatus,
     pub(crate) project_count: usize,
     pub(crate) monitoring_count: usize,
     pub(crate) monitored_projects: Vec<Value>,
@@ -852,7 +866,7 @@ mod tests {
     #[test]
     fn workspace_portfolio_layer_serializes() {
         let w = WorkspacePortfolioLayer {
-            status: "available".into(),
+            status: WorkspacePortfolioLayerStatus::Available,
             project_count: 2,
             monitoring_count: 1,
             monitored_projects: vec![json!("p1")],

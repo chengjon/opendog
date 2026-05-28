@@ -1,7 +1,10 @@
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
-use super::guidance_types::{AttentionPriorityBasis, AttentionSummary, WorkspacePortfolioLayer};
+use super::guidance_types::{
+    AttentionPriorityBasis, AttentionSummary, WorkspacePortfolioLayer,
+    WorkspacePortfolioLayerStatus,
+};
 use super::serialization::to_value_or_error;
 
 fn repo_risk_priority(score: &str) -> i32 {
@@ -273,7 +276,7 @@ pub(super) fn workspace_portfolio_layer(
     priority_candidates: Vec<Value>,
     projects_with_hardcoded_data: usize,
 ) -> WorkspacePortfolioLayer {
-    let status = "available";
+    let status = WorkspacePortfolioLayerStatus::Available;
     let enriched_project_overviews = project_overviews
         .iter()
         .map(enrich_project_overview_with_attention)
@@ -393,10 +396,10 @@ pub(super) fn workspace_portfolio_layer(
     attention_queue.truncate(5);
 
     let attention_batches =
-        attention_batches_from_queue(&attention_queue, project_overviews.len(), status);
+        attention_batches_from_queue(&attention_queue, project_overviews.len(), status.as_str());
 
     WorkspacePortfolioLayer {
-        status: status.to_string(),
+        status,
         project_count: project_overviews.len(),
         monitoring_count,
         monitored_projects: monitored_projects.iter().map(|s| json!(s)).collect(),
