@@ -5,9 +5,7 @@ use super::{
 };
 
 fn registered_tool_names() -> BTreeSet<String> {
-    let mcp_router_source = include_str!("../mod.rs");
-
-    mcp_router_source
+    mcp_tool_router_source()
         .lines()
         .filter_map(|line| {
             line.split("name = \"")
@@ -16,6 +14,10 @@ fn registered_tool_names() -> BTreeSet<String> {
                 .map(ToString::to_string)
         })
         .collect()
+}
+
+fn mcp_tool_router_source() -> &'static str {
+    include_str!("../server_tools.rs")
 }
 
 fn documented_tool_names() -> BTreeSet<String> {
@@ -87,7 +89,7 @@ fn mcp_tool_reference_documents_inventory() {
 
 #[test]
 fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
-    let mcp_router_source = include_str!("../mod.rs");
+    let mcp_router_source = mcp_tool_router_source();
     let inventory_names: BTreeSet<&str> =
         mcp_tool_inventory().iter().map(|tool| tool.name).collect();
 
@@ -127,7 +129,7 @@ fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
 #[test]
 fn observation_tool_params_expose_path_classification_filter() {
     let params_source = include_str!("../params.rs");
-    let mcp_router_source = include_str!("../mod.rs");
+    let mcp_router_source = mcp_tool_router_source();
 
     assert!(params_source.contains("pub path_classification: Option<String>"));
     assert!(mcp_router_source.contains("path_classification filters rows"));
