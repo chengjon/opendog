@@ -7,7 +7,7 @@
 
 ## Resolution Update
 
-The issues identified in this review have now been addressed in the current working tree.
+The issues identified in this review have now been addressed on current `master`.
 
 - Clippy gate: fixed. `cargo clippy --all-targets --all-features -- -D warnings` now passes.
 - F-6 documentation surface: fixed. `docs/opendog-feature-introduction.md` now names `get_guidance(detail = "decision")` and keeps `opendog decision-brief` as the CLI equivalent.
@@ -181,4 +181,4 @@ Expand tests to include no-space operator forms and either improve detection or 
 
 Original verdict: the implementation summary should have been revised from "all done and clean" to "core implementation present, tests passing, clippy and several completeness details still open."
 
-Current verdict after fixes: the reviewed gaps are resolved in the working tree, and the repo gates listed in the resolution update pass. The remaining delivery consideration is process-level: the working tree includes a large rustfmt-only diff plus new split test files, so a commit or PR should call out formatting separately from behavior changes.
+Current verdict after fixes: the reviewed gaps are resolved on current `master`, the repo gates listed in the resolution update pass, and the work has been committed. No additional delivery warning remains for this review.
