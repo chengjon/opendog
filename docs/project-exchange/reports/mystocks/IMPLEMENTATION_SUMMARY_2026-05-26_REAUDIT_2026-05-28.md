@@ -33,9 +33,10 @@ Updated `docs/opendog-feature-introduction.md`:
 
 ## Extended Documentation Scan
 
-After the remediation, the current user-facing documentation set was scanned for remaining `get_decision_brief` references:
+After the remediation, the current user-facing documentation set was scanned for remaining old public MCP tool names:
 
-- Current user-facing docs: 0 remaining matches.
+- `get_decision_brief`: 0 remaining matches in current user-facing docs.
+- `get_agent_guidance`: 0 remaining matches in current user-facing docs.
 - Remaining matches: historical architecture reviews, overdesign reviews, implementation plans, audit-response records, source-control-plane internals, and this re-audit's before/after explanation.
 
 Those remaining matches are intentionally preserved as historical or internal-context records, not current public MCP tool guidance.
