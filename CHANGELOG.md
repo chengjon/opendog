@@ -41,6 +41,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance execution-strategy evidence-priority now uses a typed priority enum before rendering MCP JSON.
 - Guidance execution-strategy layer status now uses a typed status enum before rendering MCP JSON.
 - Guidance workspace-observation layer status now uses a typed status enum before rendering MCP JSON.
+- Guidance constraints-boundaries layer status now uses a typed status enum before rendering MCP JSON.
 - Guidance execution-strategy recommended-flow output now uses a concrete string list inside the typed layer before rendering MCP JSON.
 - Guidance execution-strategy review-focus projection now uses a typed status/source model before rendering MCP JSON.
 - Guidance execution-strategy review-focus projection now uses a concrete optional source-project string before rendering MCP JSON.

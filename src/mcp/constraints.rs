@@ -9,7 +9,7 @@ mod review_focus;
 pub(crate) use self::external_truth::external_truth_boundary_for_top_project;
 pub(crate) use self::repo_truth::repo_truth_gap_projection;
 pub(crate) use self::review_focus::review_focus_projection_for_top_project;
-use super::guidance_types::ConstraintsBoundariesLayer;
+use super::guidance_types::{ConstraintsBoundariesLayer, ConstraintsBoundariesLayerStatus};
 use super::serialization::to_value_or_error;
 use model::{ProjectReadinessAssessment, ReadinessTarget};
 
@@ -121,7 +121,7 @@ pub(super) fn build_constraints_boundaries_layer(
     to_value_or_error(
         "ConstraintsBoundariesLayer",
         ConstraintsBoundariesLayer {
-            status: "available".to_string(),
+            status: ConstraintsBoundariesLayerStatus::Available,
             direct_observations,
             inferences,
             blind_spots,

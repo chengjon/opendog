@@ -696,9 +696,15 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) repo_stabilization_priority_projects: Vec<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ConstraintsBoundariesLayerStatus {
+    Available,
+}
+
 #[derive(Serialize)]
 pub(crate) struct ConstraintsBoundariesLayer {
-    pub(crate) status: String,
+    pub(crate) status: ConstraintsBoundariesLayerStatus,
     pub(crate) direct_observations: Vec<String>,
     pub(crate) inferences: Vec<String>,
     pub(crate) blind_spots: Vec<String>,
@@ -1321,7 +1327,7 @@ mod tests {
     #[test]
     fn constraints_boundaries_layer_skips_none_optionals() {
         let c = ConstraintsBoundariesLayer {
-            status: "available".into(),
+            status: ConstraintsBoundariesLayerStatus::Available,
             direct_observations: vec![],
             inferences: vec![],
             blind_spots: vec![],
@@ -1352,7 +1358,7 @@ mod tests {
     #[test]
     fn constraints_boundaries_layer_includes_some_optionals() {
         let c = ConstraintsBoundariesLayer {
-            status: "available".into(),
+            status: ConstraintsBoundariesLayerStatus::Available,
             direct_observations: vec![],
             inferences: vec![],
             blind_spots: vec![],
