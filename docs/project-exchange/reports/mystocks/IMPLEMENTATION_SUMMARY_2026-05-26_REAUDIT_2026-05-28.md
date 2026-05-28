@@ -72,4 +72,11 @@ The implementation summary's explicitly deferred recommendations remain deferred
 
 ## Next Step Completed
 
-The actionable next step from this re-audit was the F-6 documentation correction. It has been applied in this branch and should be verified with the standard repo gate before commit.
+The actionable next step from this re-audit was the F-6 documentation correction. It has been applied, verified with the standard repo gate, and followed by structural hygiene guards that keep the current MCP surface documentation aligned with the implemented inventory and Resource handlers.
+
+Follow-up commits:
+
+- `be8174c` corrected the user-facing decision-brief entrypoint wording.
+- `3bc4aaf` added MCP surface documentation drift validation.
+- `919b393` derives Resource URI validation from `src/mcp/resource_handlers.rs`.
+- `b4f226f` validates `docs/mcp-tool-reference.md` tool headings against `MCP_TOOL_INVENTORY`.
