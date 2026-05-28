@@ -8,6 +8,7 @@ from structural_contract_guards import (
     validate_mcp_surface_docs,
     validate_openspec_purpose_placeholders,
 )
+from structural_rust_guards import validate_production_rust_panic_like_calls
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,6 +119,7 @@ def validate_repository(
     errors = validate_limits(root, rules)
     errors.extend(validate_mcp_surface_docs(root))
     errors.extend(validate_openspec_purpose_placeholders(root))
+    errors.extend(validate_production_rust_panic_like_calls(root))
     return errors, len(rules), count_checked_files(root, rules)
 
 

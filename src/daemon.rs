@@ -13,10 +13,13 @@ pub fn run() {
     init_logging();
     check_wsl();
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("Failed to create tokio runtime");
+    let rt = match build_daemon_runtime() {
+        Ok(rt) => rt,
+        Err(e) => {
+            error!("Failed to create tokio runtime: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     rt.block_on(async {
         if let Err(e) = run_daemon().await {
@@ -24,6 +27,12 @@ pub fn run() {
             std::process::exit(1);
         }
     });
+}
+
+fn build_daemon_runtime() -> crate::error::Result<tokio::runtime::Runtime> {
+    Ok(tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?)
 }
 
 pub fn ensure_running_for_mcp() -> crate::error::Result<()> {
@@ -93,11 +102,8 @@ async fn run_daemon() -> crate::error::Result<()> {
     }
 
     // DAEM-03: graceful shutdown on SIGTERM / SIGINT
-    tokio::select! {
-        signal = wait_for_shutdown_signal() => {
-            info!(signal = %signal, "Received shutdown signal");
-        }
-    }
+    let signal = wait_for_shutdown_signal().await?;
+    info!(signal = %signal, "Received shutdown signal");
 
     server_running.store(false, std::sync::atomic::Ordering::Relaxed);
     if let Some(thread) = control_thread {
@@ -256,23 +262,26 @@ fn process_exists(pid: &str) -> bool {
     }
 }
 
-async fn wait_for_shutdown_signal() -> &'static str {
+async fn wait_for_shutdown_signal() -> crate::error::Result<&'static str> {
     #[cfg(unix)]
     {
         use tokio::signal::unix::{signal, SignalKind};
 
-        let mut sigterm =
-            signal(SignalKind::terminate()).expect("failed to install SIGTERM handler");
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => "SIGINT",
+        let mut sigterm = signal(SignalKind::terminate())?;
+        let signal = tokio::select! {
+            result = tokio::signal::ctrl_c() => {
+                result?;
+                "SIGINT"
+            },
             _ = sigterm.recv() => "SIGTERM",
-        }
+        };
+        Ok(signal)
     }
 
     #[cfg(not(unix))]
     {
-        let _ = tokio::signal::ctrl_c().await;
-        "SIGINT"
+        tokio::signal::ctrl_c().await?;
+        Ok("SIGINT")
     }
 }
 

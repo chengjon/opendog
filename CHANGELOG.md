@@ -4,10 +4,15 @@ All notable changes to OPENDOG are documented here.
 
 ## 2026-05-29
 
+### Added
+
+- Structural hygiene validation now rejects panic-like calls (`unwrap`, `expect`, `panic!`, `unreachable!`, `todo!`, `unimplemented!`) in production Rust while ignoring test modules and test files.
+
 ### Changed
 
 - Structural hygiene contract checks for MCP surface documentation and OpenSpec archive placeholders now live in a focused helper module, leaving the main size-budget validator with room for future guards.
 - Structural hygiene tests are split between generic size-budget coverage and contract-guard coverage so both files stay comfortably below script size limits.
+- Daemon runtime and shutdown-signal setup failures now flow through logged `OpenDogError` handling instead of production `expect` panics.
 
 ## 2026-05-28
 
