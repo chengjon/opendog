@@ -37,6 +37,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance execution-strategy profile fields now use concrete strings and evidence-priority lists before rendering MCP JSON.
 - Guidance execution-strategy global-strategy-mode now uses a typed mode enum before rendering MCP JSON.
 - Guidance execution-strategy preferred-primary-tool now uses a typed tool enum before rendering MCP JSON.
+- Guidance execution-strategy preferred-secondary-tool now uses a typed tool enum before rendering MCP JSON.
 - Guidance execution-strategy recommended-flow output now uses a concrete string list inside the typed layer before rendering MCP JSON.
 - Guidance execution-strategy review-focus projection now uses a typed status/source model before rendering MCP JSON.
 - Guidance execution-strategy review-focus projection now uses a concrete optional source-project string before rendering MCP JSON.

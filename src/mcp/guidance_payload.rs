@@ -523,10 +523,10 @@ pub(crate) fn agent_guidance_payload(
                 &workspace_strategy["preferred_primary_tool"],
                 "current_tool",
             )),
-            preferred_secondary_tool: string_field(
+            preferred_secondary_tool: RepoRiskPreferredTool::from_tool(&string_field(
                 &workspace_strategy["preferred_secondary_tool"],
                 "shell",
-            ),
+            )),
             evidence_priority: string_list_field(&workspace_strategy["evidence_priority"]),
             risk_strategy_coupling,
             external_truth_boundary,
