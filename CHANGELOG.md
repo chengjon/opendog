@@ -27,6 +27,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance data-risk focus aggregation now uses a typed distribution model before rendering workspace and execution-strategy JSON.
 - Guidance repo-truth gap aggregation now uses a typed dynamic distribution model before rendering execution-strategy JSON.
 - Guidance repo-risk strategy coupling now uses a typed internal model for coupled/no-signal status, source project, repository-risk finding, and summary text before rendering execution-strategy JSON.
+- Guidance repo-risk strategy coupling now uses concrete optional strings for action, strategy mode, and primary-tool fields before rendering execution-strategy JSON.
 - Guidance execution-strategy summary counts, required-action lists, and focus distributions now use concrete internal types before rendering MCP JSON.
 - Guidance execution-strategy profile fields now use concrete strings and evidence-priority lists before rendering MCP JSON.
 - Guidance execution-strategy recommended-flow output now uses a concrete string list inside the typed layer before rendering MCP JSON.

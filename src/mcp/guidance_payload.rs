@@ -116,10 +116,14 @@ fn execution_strategy_repo_risk_coupling(
 ) -> RepoRiskCoupling {
     let recommended_next_action = project_recommendations
         .first()
-        .map(|recommendation| recommendation["recommended_next_action"].clone())
-        .unwrap_or(Value::Null);
-    let strategy_mode = workspace_strategy["global_strategy_mode"].clone();
-    let preferred_primary_tool = workspace_strategy["preferred_primary_tool"].clone();
+        .and_then(|recommendation| recommendation["recommended_next_action"].as_str())
+        .map(str::to_string);
+    let strategy_mode = workspace_strategy["global_strategy_mode"]
+        .as_str()
+        .map(str::to_string);
+    let preferred_primary_tool = workspace_strategy["preferred_primary_tool"]
+        .as_str()
+        .map(str::to_string);
 
     let no_signal = || {
         RepoRiskCoupling::no_signal(
@@ -148,16 +152,20 @@ fn execution_strategy_repo_risk_coupling(
         return no_signal();
     }
 
-    let strategy_mode_text = workspace_strategy["global_strategy_mode"]
-        .as_str()
-        .unwrap_or("current_strategy");
-    let preferred_primary_tool_text = workspace_strategy["preferred_primary_tool"]
-        .as_str()
-        .unwrap_or("current_tool");
+    let strategy_mode_text = strategy_mode
+        .as_deref()
+        .unwrap_or("current_strategy")
+        .to_string();
+    let preferred_primary_tool_text = preferred_primary_tool
+        .as_deref()
+        .unwrap_or("current_tool")
+        .to_string();
 
     RepoRiskCoupling::coupled(
         project_id,
-        recommendation["recommended_next_action"].clone(),
+        recommendation["recommended_next_action"]
+            .as_str()
+            .map(str::to_string),
         strategy_mode,
         preferred_primary_tool,
         primary_repo_risk_finding,
