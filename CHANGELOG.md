@@ -2,6 +2,18 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-05-28
+
+### Added
+
+- MCP surface documentation coverage now has regression tests that check documented tool headings against the central MCP inventory, derive read-only Resource URI coverage from handlers, and reject removed guidance tool names in current public docs.
+- `fd-attribution` now lives as a main OpenSpec contract after archiving the completed `fix-fd-attribution` change.
+
+### Changed
+
+- Mystocks re-audit and implementation-summary review records now reflect the verified current `master` state, including remediated review notes and committed follow-up evidence.
+- OpenSpec change lifecycle references now point readers to `openspec/specs/fd-attribution/spec.md` and the archived `openspec/changes/archive/2026-05-28-fix-fd-attribution` change instead of the removed active change path.
+
 ## 2026-05-27
 
 ### Added
@@ -10,8 +22,6 @@ All notable changes to OPENDOG are documented here.
 - CLI `opendog report rollup` and MCP `get_activity_rollups` expose retained daily activity summaries after cleanup.
 - MCP `get_build_info` reports binary version/build metadata, storage schema version, daemon state, `OPENDOG_HOME`, and rebuild hints.
 - Storage-retention operations documentation now covers dry-run cleanup, WAL checkpointing, vacuum behavior, and retained rollup verification.
-- MCP tool-reference coverage now has a regression test that checks documented tool headings against the central MCP inventory.
-- Structural hygiene validation now checks current MCP surface docs for tool-count drift, missing/unknown tool-reference headings, removed guidance tool names, and read-only Resource URI drift from the resource handlers.
 - `CONTEXT.md` and ADR records now centralize domain language, process-attribution constraints, daemon-first routing, retained-evidence lifecycle, and contract synchronization decisions.
 - Storage-maintenance MCP payload assembly now starts from typed `StorageMaintenanceAssessment` and `StorageMaintenanceWorkspaceSummary` models for candidate, pressure, mode, summary, workspace totals, and priority-project ordering before rendering JSON.
 
@@ -21,7 +31,6 @@ All notable changes to OPENDOG are documented here.
 - `get_build_info` keeps the top-level response `schema_version` as the build-info contract identifier and exposes the SQLite schema separately as `storage_schema_version`.
 - Mystocks project-exchange reports, audit responses, and feature-introduction counts were synced with the implemented retained-evidence, schema-contract, and documentation-coverage changes.
 - `CLAUDE.md` and historical planning research now distinguish the current 27-tool MCP surface from the original 8-tool Phase 4 baseline.
-- The completed `fix-fd-attribution` OpenSpec change is archived, and `fd-attribution` now lives as a main OpenSpec contract.
 - Storage-maintenance execution-template generation now consumes typed context for project placeholders, cleanup recommendations, cleanup-plan steps, and vacuum signals before rendering MCP JSON.
 - Verification-evidence workspace aggregation now uses typed project summaries and gate distributions before rendering MCP JSON.
 - Single-project verification status and gate-assessment payloads now use typed summaries before rendering MCP JSON.
