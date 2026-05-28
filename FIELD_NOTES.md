@@ -283,7 +283,7 @@ From my perspective as the primary AI observer, the highest-value next actions f
 ## Follow-up: fd attribution fix validation
 
 > Review date: 2026-05-08
-> Change: `openspec/changes/fix-fd-attribution`
+> Change: `openspec/changes/fix-fd-attribution` at implementation time; archived at `openspec/changes/archive/2026-05-28-fix-fd-attribution`, with the current contract in `openspec/specs/fd-attribution/spec.md`.
 
 ### Implementation outcome
 

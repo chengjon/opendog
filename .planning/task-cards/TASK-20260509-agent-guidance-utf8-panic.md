@@ -63,7 +63,7 @@ This task hardens guidance and mock-detection text processing. It does not chang
 
 ## Guardrails
 
-- Keep this task independent from `openspec/changes/fix-fd-attribution`.
+- Keep this task independent from archived change `openspec/changes/archive/2026-05-28-fix-fd-attribution` and the current `fd-attribution` OpenSpec contract.
 - Do not modify `src/core/scanner.rs` unless a new OpenSpec change is approved.
 - Preserve existing mock-detection categories and ranking behavior unless the regression fix requires a minimal parser-safety adjustment.
 

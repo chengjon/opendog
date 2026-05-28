@@ -4,7 +4,7 @@ Purpose: summarize the OpenDog-side changes that matter before mystocks retests 
 
 ## Main Outcomes
 
-- FD attribution credibility is governed by `openspec/changes/fix-fd-attribution`.
+- FD attribution credibility is governed by `openspec/specs/fd-attribution/spec.md`, originating from archived change `openspec/changes/archive/2026-05-28-fix-fd-attribution`.
 - MCP `get_stats` and `get_unused_files` now expose bounded file rows with `result_window` metadata.
 - MCP read-only Resources are implemented for project list and per-project verification state.
 - Daemon IPC integrity errors now distinguish empty/truncated daemon responses from normal serialization errors.
@@ -31,7 +31,7 @@ Passed on OpenDog side:
 - `cargo test`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `python3 scripts/validate_planning_governance.py`
-- `openspec validate fix-fd-attribution`
+- `openspec validate fix-fd-attribution` at implementation time; after archive, validate the retained contract with `openspec validate --specs --strict`
 - `cargo build --release`
 
 Release binary checked for MCP retest:

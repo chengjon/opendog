@@ -21,6 +21,7 @@ All notable changes to OPENDOG are documented here.
 - `get_build_info` keeps the top-level response `schema_version` as the build-info contract identifier and exposes the SQLite schema separately as `storage_schema_version`.
 - Mystocks project-exchange reports, audit responses, and feature-introduction counts were synced with the implemented retained-evidence, schema-contract, and documentation-coverage changes.
 - `CLAUDE.md` and historical planning research now distinguish the current 27-tool MCP surface from the original 8-tool Phase 4 baseline.
+- The completed `fix-fd-attribution` OpenSpec change is archived, and `fd-attribution` now lives as a main OpenSpec contract.
 - Storage-maintenance execution-template generation now consumes typed context for project placeholders, cleanup recommendations, cleanup-plan steps, and vacuum signals before rendering MCP JSON.
 - Verification-evidence workspace aggregation now uses typed project summaries and gate distributions before rendering MCP JSON.
 - Single-project verification status and gate-assessment payloads now use typed summaries before rendering MCP JSON.
