@@ -276,6 +276,43 @@ impl Serialize for RepoRiskStrategyMode {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum RepoRiskPreferredTool {
+    Opendog,
+    Shell,
+    ShellVerification,
+    Other(String),
+}
+
+impl RepoRiskPreferredTool {
+    pub(crate) fn from_tool(value: &str) -> Self {
+        match value {
+            "opendog" => Self::Opendog,
+            "shell" => Self::Shell,
+            "shell_verification" => Self::ShellVerification,
+            value => Self::Other(value.to_string()),
+        }
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            Self::Opendog => "opendog",
+            Self::Shell => "shell",
+            Self::ShellVerification => "shell_verification",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for RepoRiskPreferredTool {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub(crate) struct RepoRiskFindingDetails {
     kind: String,
@@ -340,7 +377,7 @@ pub(crate) struct RepoRiskCoupling {
     source_project_id: Option<String>,
     recommended_next_action: Option<RecommendedNextAction>,
     strategy_mode: Option<RepoRiskStrategyMode>,
-    preferred_primary_tool: Option<String>,
+    preferred_primary_tool: Option<RepoRiskPreferredTool>,
     primary_repo_risk_finding: Option<RepoRiskFinding>,
     summary: Option<String>,
 }
@@ -349,7 +386,7 @@ impl RepoRiskCoupling {
     pub(crate) fn no_signal(
         recommended_next_action: Option<RecommendedNextAction>,
         strategy_mode: Option<RepoRiskStrategyMode>,
-        preferred_primary_tool: Option<String>,
+        preferred_primary_tool: Option<RepoRiskPreferredTool>,
     ) -> Self {
         Self {
             status: RepoRiskCouplingStatus::NoRepoRiskSignal,
@@ -367,7 +404,7 @@ impl RepoRiskCoupling {
         source_project_id: &str,
         recommended_next_action: Option<RecommendedNextAction>,
         strategy_mode: Option<RepoRiskStrategyMode>,
-        preferred_primary_tool: Option<String>,
+        preferred_primary_tool: Option<RepoRiskPreferredTool>,
         primary_repo_risk_finding: RepoRiskFinding,
         summary: String,
     ) -> Self {
@@ -929,7 +966,7 @@ mod tests {
         let coupling = RepoRiskCoupling::no_signal(
             Some(RecommendedNextAction::StartMonitor),
             Some(RepoRiskStrategyMode::CollectEvidenceFirst),
-            Some("opendog".to_string()),
+            Some(RepoRiskPreferredTool::Opendog),
         );
 
         let v = serde_json::to_value(&coupling).unwrap();
@@ -959,7 +996,7 @@ mod tests {
             "proj_a",
             Some(RecommendedNextAction::StabilizeRepositoryState),
             Some(RepoRiskStrategyMode::StabilizeBeforeModify),
-            Some("shell_verification".to_string()),
+            Some(RepoRiskPreferredTool::ShellVerification),
             finding,
             "Top repository risk keeps the workspace in stabilize_first mode.".to_string(),
         );
@@ -1150,7 +1187,7 @@ mod tests {
             risk_strategy_coupling: RepoRiskCoupling::no_signal(
                 None,
                 Some(RepoRiskStrategyMode::Other("evidence_first".to_string())),
-                Some("opendog".to_string()),
+                Some(RepoRiskPreferredTool::Opendog),
             ),
             external_truth_boundary: ExternalTruthBoundary::no_priority_project(),
             review_focus_projection: ReviewFocusProjection::no_priority_project(),

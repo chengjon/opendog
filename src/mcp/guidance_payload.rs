@@ -11,8 +11,8 @@ use super::{
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
         ObservationSummary, RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding,
-        RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary, WorkspaceObservationLayer,
+        RepoRiskPreferredTool, RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary,
+        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -124,7 +124,7 @@ fn execution_strategy_repo_risk_coupling(
         .map(RepoRiskStrategyMode::from_mode);
     let preferred_primary_tool = workspace_strategy["preferred_primary_tool"]
         .as_str()
-        .map(str::to_string);
+        .map(RepoRiskPreferredTool::from_tool);
 
     let no_signal = || {
         RepoRiskCoupling::no_signal(
@@ -159,7 +159,8 @@ fn execution_strategy_repo_risk_coupling(
         .unwrap_or("current_strategy")
         .to_string();
     let preferred_primary_tool_text = preferred_primary_tool
-        .as_deref()
+        .as_ref()
+        .map(RepoRiskPreferredTool::as_str)
         .unwrap_or("current_tool")
         .to_string();
 
