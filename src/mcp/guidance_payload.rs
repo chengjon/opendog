@@ -515,10 +515,10 @@ pub(crate) fn agent_guidance_payload(
             status: "available".to_string(),
             recommended_flow: string_list_field(&recommended_flow),
             project_recommendations: sorted_project_recommendations.clone(),
-            global_strategy_mode: string_field(
+            global_strategy_mode: RepoRiskStrategyMode::from_mode(&string_field(
                 &workspace_strategy["global_strategy_mode"],
                 "current_strategy",
-            ),
+            )),
             preferred_primary_tool: string_field(
                 &workspace_strategy["preferred_primary_tool"],
                 "current_tool",
