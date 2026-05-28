@@ -1,12 +1,24 @@
 # Review: review-plan.md
 
-**Type**: md / plan | **Perspective**: auto (completeness + consistency + feasibility) | **Date**: 2026-05-09 | **Reviewer**: Claude
+**Type**: md / plan | **Perspective**: auto (completeness + consistency + feasibility) | **Date**: 2026-05-09 | **Updated**: 2026-05-28 | **Reviewer**: Claude
 
 ---
 
 ## Executive Summary
 
-This is a well-structured review plan for the fd-attribution credibility fix, with accurate cross-references to the live codebase and clear acceptance criteria. However, every task it describes has already been implemented, tests pass (240/240), and FIELD_NOTES.md records completed validation -- yet the plan is written entirely in future tense and lacks any acknowledgment that the work is done. The plan also omits downstream-consumer regression checks and leaves the `openspec validate` acceptance criterion without expected output.
+This review originally found that `review-plan.md` was technically accurate but read like a forward-looking plan after implementation was already complete. The current `review-plan.md` now addresses those review notes by documenting current state, downstream consumer checks, evidence-bound acceptance criteria, OpenSpec success output, and the post-implementation approval boundary.
+
+The Evidence Verification, Checklist Results, Findings, and Scoring sections below preserve the original 2026-05-09 review snapshot. Use the Post-Remediation Status section for the current disposition.
+
+## Post-Remediation Status [2026-05-28]
+
+| Original review item | Current status | Current evidence |
+|----------------------|----------------|------------------|
+| Plan read as future work although implementation was complete | Resolved | `review-plan.md` now begins with `Current State` and `Governance Outcome` sections. |
+| Missing downstream-consumer regression verification | Resolved | `review-plan.md` Proposed Work step 7 covers `opendog stats`, `opendog unused`, `opendog report window`, and `get_guidance` / `opendog agent-guidance` contract compatibility. |
+| `openspec validate` acceptance criterion lacked expected output | Resolved | Acceptance criteria now state that `openspec validate fix-fd-attribution` must exit 0 and report `Change 'fix-fd-attribution' is valid`. |
+| Procfs fd-stability assumption was not scoped | Resolved | Scan-cycle deduplication now explicitly scopes `(pid, fd)` identity to one scan cycle and does not claim cross-cycle fd stability. |
+| Approval gate was ambiguous after implementation | Resolved | The Approval Gate now states that project-owner approval is required before any further implementation or behavioral edits. |
 
 ## Document Metadata
 
@@ -144,6 +156,6 @@ This is a well-structured review plan for the fd-attribution credibility fix, wi
 
 ## Verdict
 
-**APPROVE_WITH_NOTES**
+**APPROVE_REMEDIATED**
 
-The plan is technically accurate and well-structured with correct codebase references and clear scope boundaries. All described work is already implemented and validated. The main issues are: (1) the plan reads as forward-looking when the work is complete, risking confusion; (2) acceptance criteria lack evidence bindings and downstream consumer verification; (3) two minor open questions from the design document remain unaddressed. None of these block the change itself, but updating the plan to reflect actual state would improve its value as a review artifact.
+The original review notes are retained for traceability, and the current `review-plan.md` now remediates the non-blocking documentation issues that led to `APPROVE_WITH_NOTES`.
