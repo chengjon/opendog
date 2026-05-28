@@ -7,6 +7,7 @@ All notable changes to OPENDOG are documented here.
 ### Changed
 
 - Structural hygiene contract checks for MCP surface documentation and OpenSpec archive placeholders now live in a focused helper module, leaving the main size-budget validator with room for future guards.
+- Structural hygiene tests are split between generic size-budget coverage and contract-guard coverage so both files stay comfortably below script size limits.
 
 ## 2026-05-28
 
