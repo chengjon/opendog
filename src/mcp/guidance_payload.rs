@@ -10,9 +10,10 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionEvidencePriority,
-        ExecutionStrategyLayer, ObservationSummary, RecommendedNextAction, RepoRiskCoupling,
-        RepoRiskFinding, RepoRiskPreferredTool, RepoRiskStrategyMode, RepoTruthGapDistribution,
-        RepoTruthSummary, StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
+        ExecutionStrategyLayer, ExecutionStrategyLayerStatus, ObservationSummary,
+        RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding, RepoRiskPreferredTool,
+        RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
+        VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -512,7 +513,7 @@ pub(crate) fn agent_guidance_payload(
     );
     value["guidance"]["layers"]["execution_strategy"] =
         to_value_or_error("ExecutionStrategyLayer", ExecutionStrategyLayer {
-            status: "available".to_string(),
+            status: ExecutionStrategyLayerStatus::Available,
             recommended_flow: string_list_field(&recommended_flow),
             project_recommendations: sorted_project_recommendations.clone(),
             global_strategy_mode: RepoRiskStrategyMode::from_mode(&string_field(

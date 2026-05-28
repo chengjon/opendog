@@ -640,9 +640,15 @@ pub(crate) struct WorkspaceObservationLayer {
     pub(crate) notes: Vec<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ExecutionStrategyLayerStatus {
+    Available,
+}
+
 #[derive(Serialize)]
 pub(crate) struct ExecutionStrategyLayer {
-    pub(crate) status: String,
+    pub(crate) status: ExecutionStrategyLayerStatus,
     pub(crate) recommended_flow: Vec<String>,
     pub(crate) project_recommendations: Vec<Value>,
     pub(crate) global_strategy_mode: RepoRiskStrategyMode,
@@ -1225,7 +1231,7 @@ mod tests {
         repo_truth_distribution.increment_gap("missing_test");
 
         let e = ExecutionStrategyLayer {
-            status: "available".into(),
+            status: ExecutionStrategyLayerStatus::Available,
             recommended_flow: vec!["refresh evidence".to_string(), "review risk".to_string()],
             project_recommendations: vec![],
             global_strategy_mode: RepoRiskStrategyMode::Other("evidence_first".to_string()),
