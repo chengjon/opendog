@@ -297,7 +297,7 @@ enum ReviewFocusProjectionStatus {
 pub(crate) struct ReviewFocusProjection {
     status: ReviewFocusProjectionStatus,
     source: Option<String>,
-    source_project_id: Value,
+    source_project_id: Option<String>,
     review_focus: Value,
 }
 
@@ -306,12 +306,12 @@ impl ReviewFocusProjection {
         Self {
             status: ReviewFocusProjectionStatus::NoPriorityProject,
             source: None,
-            source_project_id: Value::Null,
+            source_project_id: None,
             review_focus: Value::Null,
         }
     }
 
-    pub(crate) fn available(source_project_id: Value, review_focus: Value) -> Self {
+    pub(crate) fn available(source_project_id: Option<String>, review_focus: Value) -> Self {
         Self {
             status: ReviewFocusProjectionStatus::Available,
             source: Some("top_priority_project".to_string()),
@@ -894,6 +894,20 @@ mod tests {
         assert_eq!(v["kind"], "dependency_lockfile_anomaly");
         assert_eq!(v["details"]["kind"], "manifest_without_lockfile_change");
         assert_eq!(v["details"]["directory"], ".");
+    }
+
+    #[test]
+    fn review_focus_projection_available_serializes_source_project() {
+        let projection = ReviewFocusProjection::available(
+            Some("proj_a".to_string()),
+            json!("inspect hot files"),
+        );
+
+        let v = serde_json::to_value(&projection).unwrap();
+        assert_eq!(v["status"], "available");
+        assert_eq!(v["source"], "top_priority_project");
+        assert_eq!(v["source_project_id"], "proj_a");
+        assert_eq!(v["review_focus"], "inspect hot files");
     }
 
     #[test]

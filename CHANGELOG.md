@@ -33,6 +33,7 @@ All notable changes to OPENDOG are documented here.
 - Guidance execution-strategy profile fields now use concrete strings and evidence-priority lists before rendering MCP JSON.
 - Guidance execution-strategy recommended-flow output now uses a concrete string list inside the typed layer before rendering MCP JSON.
 - Guidance execution-strategy review-focus projection now uses a typed status/source model before rendering MCP JSON.
+- Guidance execution-strategy review-focus projection now uses a concrete optional source-project string before rendering MCP JSON.
 - Guidance execution-strategy external-truth boundary now uses a typed status/source/checks model before rendering MCP JSON.
 - Decision-support action profiles now use a typed internal model for action class, phase, mutability scope, verification requirement, and primary-goal text before rendering MCP JSON.
 - Decision-support risk profiles now use a typed internal model for risk-tier selection, gate fallback, blockers, repo-risk findings, and manual-review flags before rendering MCP JSON.

@@ -10,7 +10,7 @@ pub(crate) fn review_focus_projection_for_top_project(
     };
 
     ReviewFocusProjection::available(
-        recommendation["project_id"].clone(),
+        recommendation["project_id"].as_str().map(str::to_string),
         recommendation["review_focus"].clone(),
     )
 }
