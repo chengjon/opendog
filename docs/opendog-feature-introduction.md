@@ -155,7 +155,7 @@ opendog start --id <id>
 
 AI agent 的推荐第一入口是 `get_guidance`。它可以先读取工作区或单项目 summary，再根据返回的推荐动作调用更具体的工具，例如 `get_stats`、`get_unused_files`、`get_verification_status`、`get_data_risk_candidates` 或 `get_time_window_report`。
 
-如果 AI 需要一个更聚焦的单项目决策包，可以使用 `get_decision_brief`（MCP）或 `opendog decision-brief`（CLI），直接获得 recommended next action、execution sequence 和 risk profile。
+如果 AI 需要一个更聚焦的单项目决策包，可以调用 `get_guidance(detail = "decision")`（MCP）或 `opendog decision-brief`（CLI），直接获得 recommended next action、execution sequence 和 risk profile。
 
 人类操作者可以优先使用以下 CLI：
 
