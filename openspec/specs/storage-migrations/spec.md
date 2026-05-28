@@ -1,7 +1,7 @@
 # storage-migrations Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define the storage migration contract for registry and project databases. These requirements ensure fresh databases are versioned, older fixtures migrate forward, and schema changes remain covered by regression tests.
 ## Requirements
 ### Requirement: Registry and project databases are migration-aware
 The system SHALL apply pending schema migrations when opening a registry or project database, and it SHALL keep the on-disk schema version aligned with `SCHEMA_VERSION` via `PRAGMA user_version`.
@@ -23,4 +23,3 @@ The system SHALL include tests that prove the migration path and the post-open s
 - **WHEN** the migration test opens an older fixture database
 - **THEN** the test SHALL verify that the database opens successfully
 - **AND** the test SHALL verify that the resulting schema version matches the current `SCHEMA_VERSION`
-

@@ -1,7 +1,7 @@
 # mcp-tool-inventory Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define the MCP tool inventory as the source of truth for public tool metadata and registration validation. These requirements make tool-surface drift visible in code review and regression tests.
 ## Requirements
 ### Requirement: MCP tool inventory is the source of truth for tool metadata
 The system SHALL maintain a single inventory of MCP tools that enumerates each tool's name, contract ID, params type, payload builder, handler module, and test owner.
@@ -24,4 +24,3 @@ The system SHALL validate the registered MCP tool surface against the inventory 
 #### Scenario: Inventory drift is visible in tests
 - **WHEN** a tool name, contract ID, or payload builder drifts from the inventory
 - **THEN** the corresponding tool-surface or payload contract test SHALL fail
-

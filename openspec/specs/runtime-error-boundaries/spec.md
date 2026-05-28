@@ -1,7 +1,7 @@
 # runtime-error-boundaries Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define the runtime error boundaries that keep MCP, control-plane, payload conversion, and verification flows from panicking in production paths. These requirements preserve structured operator-visible failures when shared state, startup, or payload invariants break.
 ## Requirements
 ### Requirement: MCP and control startup failures are structured errors
 The system SHALL return structured errors for startup and mutex-lock failures in MCP/control code paths instead of panicking inside the application logic.
@@ -26,4 +26,3 @@ The system SHALL avoid production `expect`/`unwrap` calls in MCP payload and dec
 #### Scenario: Verification post-insert lookup remains recoverable
 - **WHEN** the verification layer cannot find the run immediately after insertion
 - **THEN** the system SHALL surface a domain error that callers can handle
-

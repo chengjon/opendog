@@ -1,7 +1,7 @@
 # orphan-module-boundary Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define the module boundary for orphan detection after splitting implementation internals. These requirements preserve the public MCP-facing API while assigning scanner contracts and candidate collection to focused submodules.
 ## Requirements
 ### Requirement: Orphan detection internals preserve their public API during module split
 The system SHALL be able to move orphan detection internals into focused submodules while preserving the public API used by MCP handlers through re-exports or equivalent compatibility shims.
@@ -24,4 +24,3 @@ The system SHALL separate scanner-health validation, candidate collection, built
 #### Scenario: Candidate collection logic is isolated
 - **WHEN** built-in candidate collection or evidence scanning changes
 - **THEN** that logic SHALL live in a named orphan submodule instead of growing the facade module
-

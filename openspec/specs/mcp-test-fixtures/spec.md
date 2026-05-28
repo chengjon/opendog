@@ -1,7 +1,7 @@
 # mcp-test-fixtures Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define how large MCP contract tests share reusable domain fixture builders without hiding behavior assertions. These requirements keep setup centralized while preserving readable, surface-focused test coverage.
 ## Requirements
 ### Requirement: Large MCP tests use reusable domain fixture builders
 The system SHALL provide reusable fixture builders for repeated MCP payload and guidance scenarios so the largest tests describe domain facts instead of repeating inline JSON setup.
@@ -24,4 +24,3 @@ The system SHALL keep payload contract and guidance tests readable by naming hel
 #### Scenario: Payload contracts still verify key surface fields
 - **WHEN** a payload contract test uses shared fixtures
 - **THEN** it SHALL continue to verify representative command strings and schema fields
-

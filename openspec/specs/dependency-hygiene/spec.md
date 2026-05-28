@@ -1,7 +1,7 @@
 # dependency-hygiene Specification
 
 ## Purpose
-TBD - created by archiving change technical-debt-hardening. Update Purpose after archive.
+Define dependency hygiene expectations for schema-related crates and release verification. These requirements keep schema derives on a single dependency path and make duplicate-version checks part of release preparation.
 ## Requirements
 ### Requirement: MCP schema derives use a single schemars path
 The system SHALL compile MCP parameter and DTO schema derives through one schema-derive path so the dependency graph does not carry duplicate `schemars` versions for the same contract surface.
@@ -20,4 +20,3 @@ The system SHALL include a documented dependency hygiene check for duplicate con
 #### Scenario: Hygiene check is part of verification
 - **WHEN** a dependency hygiene change is proposed or merged
 - **THEN** the verification checklist SHALL include a duplicate-dependency review step
-
