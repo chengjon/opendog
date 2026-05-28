@@ -94,7 +94,7 @@ pub(crate) fn external_truth_boundary_for_top_project(
     };
 
     ExternalTruthBoundary::available(
-        recommendation["project_id"].clone(),
+        recommendation["project_id"].as_str().map(str::to_string),
         mode,
         repo_state_required,
         verification_required,

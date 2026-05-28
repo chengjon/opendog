@@ -332,7 +332,7 @@ enum ExternalTruthBoundaryStatus {
 pub(crate) struct ExternalTruthBoundary {
     status: ExternalTruthBoundaryStatus,
     source: Option<String>,
-    source_project_id: Value,
+    source_project_id: Option<String>,
     mode: Option<String>,
     repo_state_required: bool,
     verification_required: bool,
@@ -346,7 +346,7 @@ impl ExternalTruthBoundary {
         Self {
             status: ExternalTruthBoundaryStatus::NoPriorityProject,
             source: None,
-            source_project_id: Value::Null,
+            source_project_id: None,
             mode: None,
             repo_state_required: false,
             verification_required: false,
@@ -357,7 +357,7 @@ impl ExternalTruthBoundary {
     }
 
     pub(crate) fn available(
-        source_project_id: Value,
+        source_project_id: Option<String>,
         mode: &str,
         repo_state_required: bool,
         verification_required: bool,
@@ -908,6 +908,27 @@ mod tests {
         assert_eq!(v["source"], "top_priority_project");
         assert_eq!(v["source_project_id"], "proj_a");
         assert_eq!(v["review_focus"], "inspect hot files");
+    }
+
+    #[test]
+    fn external_truth_boundary_available_serializes_source_project() {
+        let boundary = ExternalTruthBoundary::available(
+            Some("proj_a".to_string()),
+            "must_switch_to_external_truth",
+            true,
+            false,
+            vec!["working_tree_conflicted".to_string()],
+            vec!["git status".to_string()],
+            "Top project needs direct repository truth before broader changes.",
+        );
+
+        let v = serde_json::to_value(&boundary).unwrap();
+        assert_eq!(v["status"], "available");
+        assert_eq!(v["source"], "top_priority_project");
+        assert_eq!(v["source_project_id"], "proj_a");
+        assert_eq!(v["mode"], "must_switch_to_external_truth");
+        assert_eq!(v["repo_state_required"], true);
+        assert_eq!(v["minimum_external_checks"][0], "git status");
     }
 
     #[test]
