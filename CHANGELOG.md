@@ -19,6 +19,7 @@ All notable changes to OPENDOG are documented here.
 - Project-configuration integration tests now live in `tests/integration_test/storage_project_snapshot/project_config.rs`, keeping the storage/snapshot integration module below its structural size ceiling.
 - Decision-brief execution-template rendering now lives in `src/cli/output/guidance_output/decision_brief_output/execution_templates.rs`, reducing the main decision-brief output formatter without changing rendered CLI output.
 - MCP guidance type serialization tests now live in `src/mcp/guidance_types/tests.rs`, reducing the production guidance type module while preserving the existing payload contract coverage.
+- MCP storage-maintenance tests now live in `src/mcp/storage_maintenance/tests.rs`, reducing the production storage-maintenance module while preserving cleanup-planning coverage.
 
 ## 2026-05-28
 
