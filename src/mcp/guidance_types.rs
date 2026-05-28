@@ -204,7 +204,7 @@ impl RecommendedNextAction {
         }
     }
 
-    fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         match self {
             Self::StartMonitor => "start_monitor",
             Self::TakeSnapshot => "take_snapshot",
@@ -222,6 +222,52 @@ impl RecommendedNextAction {
 }
 
 impl Serialize for RecommendedNextAction {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum RepoRiskStrategyMode {
+    VerifyBeforeModify,
+    StabilizeBeforeModify,
+    CollectWorkspaceContext,
+    CollectEvidenceFirst,
+    VerifyBeforeHighRiskChanges,
+    ActivityGuidedReview,
+    Other(String),
+}
+
+impl RepoRiskStrategyMode {
+    pub(crate) fn from_mode(value: &str) -> Self {
+        match value {
+            "verify_before_modify" => Self::VerifyBeforeModify,
+            "stabilize_before_modify" => Self::StabilizeBeforeModify,
+            "collect_workspace_context" => Self::CollectWorkspaceContext,
+            "collect_evidence_first" => Self::CollectEvidenceFirst,
+            "verify_before_high_risk_changes" => Self::VerifyBeforeHighRiskChanges,
+            "activity_guided_review" => Self::ActivityGuidedReview,
+            value => Self::Other(value.to_string()),
+        }
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            Self::VerifyBeforeModify => "verify_before_modify",
+            Self::StabilizeBeforeModify => "stabilize_before_modify",
+            Self::CollectWorkspaceContext => "collect_workspace_context",
+            Self::CollectEvidenceFirst => "collect_evidence_first",
+            Self::VerifyBeforeHighRiskChanges => "verify_before_high_risk_changes",
+            Self::ActivityGuidedReview => "activity_guided_review",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for RepoRiskStrategyMode {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -293,7 +339,7 @@ pub(crate) struct RepoRiskCoupling {
     source: Option<String>,
     source_project_id: Option<String>,
     recommended_next_action: Option<RecommendedNextAction>,
-    strategy_mode: Option<String>,
+    strategy_mode: Option<RepoRiskStrategyMode>,
     preferred_primary_tool: Option<String>,
     primary_repo_risk_finding: Option<RepoRiskFinding>,
     summary: Option<String>,
@@ -302,7 +348,7 @@ pub(crate) struct RepoRiskCoupling {
 impl RepoRiskCoupling {
     pub(crate) fn no_signal(
         recommended_next_action: Option<RecommendedNextAction>,
-        strategy_mode: Option<String>,
+        strategy_mode: Option<RepoRiskStrategyMode>,
         preferred_primary_tool: Option<String>,
     ) -> Self {
         Self {
@@ -320,7 +366,7 @@ impl RepoRiskCoupling {
     pub(crate) fn coupled(
         source_project_id: &str,
         recommended_next_action: Option<RecommendedNextAction>,
-        strategy_mode: Option<String>,
+        strategy_mode: Option<RepoRiskStrategyMode>,
         preferred_primary_tool: Option<String>,
         primary_repo_risk_finding: RepoRiskFinding,
         summary: String,
@@ -882,7 +928,7 @@ mod tests {
     fn repo_risk_coupling_no_signal_serializes_null_boundaries() {
         let coupling = RepoRiskCoupling::no_signal(
             Some(RecommendedNextAction::StartMonitor),
-            Some("defensive".to_string()),
+            Some(RepoRiskStrategyMode::CollectEvidenceFirst),
             Some("opendog".to_string()),
         );
 
@@ -891,7 +937,7 @@ mod tests {
         assert!(v["source"].is_null());
         assert!(v["source_project_id"].is_null());
         assert_eq!(v["recommended_next_action"], "start_monitor");
-        assert_eq!(v["strategy_mode"], "defensive");
+        assert_eq!(v["strategy_mode"], "collect_evidence_first");
         assert_eq!(v["preferred_primary_tool"], "opendog");
         assert!(v["primary_repo_risk_finding"].is_null());
         assert!(v["summary"].is_null());
@@ -912,7 +958,7 @@ mod tests {
         let coupling = RepoRiskCoupling::coupled(
             "proj_a",
             Some(RecommendedNextAction::StabilizeRepositoryState),
-            Some("stabilize_first".to_string()),
+            Some(RepoRiskStrategyMode::StabilizeBeforeModify),
             Some("shell_verification".to_string()),
             finding,
             "Top repository risk keeps the workspace in stabilize_first mode.".to_string(),
@@ -1103,7 +1149,7 @@ mod tests {
             evidence_priority: vec!["verification".to_string(), "activity".to_string()],
             risk_strategy_coupling: RepoRiskCoupling::no_signal(
                 None,
-                Some("evidence_first".to_string()),
+                Some(RepoRiskStrategyMode::Other("evidence_first".to_string())),
                 Some("opendog".to_string()),
             ),
             external_truth_boundary: ExternalTruthBoundary::no_priority_project(),
