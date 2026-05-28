@@ -234,6 +234,9 @@ def validate_repository(
     rules = load_rules(policy_path)
     errors = validate_limits(root, rules)
     errors.extend(validate_mcp_surface_docs(root))
+    for path in sorted((root / "openspec" / "specs").glob("*/spec.md")):
+        if "TBD - created by archiving" in path.read_text(encoding="utf-8"):
+            errors.append(f"{path.relative_to(root).as_posix()} has archived OpenSpec Purpose placeholder")
     return errors, len(rules), count_checked_files(root, rules)
 
 

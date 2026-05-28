@@ -8,6 +8,7 @@ All notable changes to OPENDOG are documented here.
 
 - MCP surface documentation coverage now has regression tests that check documented tool headings against the central MCP inventory, derive read-only Resource URI coverage from handlers, and reject removed guidance tool names in current public docs.
 - `fd-attribution` now lives as a main OpenSpec contract after archiving the completed `fix-fd-attribution` change.
+- Structural hygiene validation now rejects archived OpenSpec Purpose placeholders in main specs.
 
 ### Changed
 

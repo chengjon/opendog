@@ -202,9 +202,7 @@ const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
                 errors,
             )
 
-    def test_validate_mcp_surface_docs_reports_unknown_tool_reference_headings(
-        self,
-    ) -> None:
+    def test_validate_mcp_surface_docs_reports_unknown_tool_reference_headings(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             self.write_file(
@@ -232,9 +230,7 @@ Current surface: 2 MCP tools.
 
 ## `legacy_tool`
 """
-            complete_doc = (
-                "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
-            )
+            complete_doc = "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
             self.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
             for relative_path in [
                 "README.md",
@@ -250,6 +246,10 @@ Current surface: 2 MCP tools.
                 "docs/mcp-tool-reference.md documents unknown MCP tool heading: legacy_tool",
                 errors,
             )
+            policy_path = self.write_policy(root, [])
+            self.write_file(root, "openspec/specs/fd-attribution/spec.md", "# fd\n\n## Purpose\nTBD - created by archiving change x. Update Purpose after archive.\n")
+            repo_errors, _, _ = structural_hygiene.validate_repository(root, policy_path)
+            self.assertIn("openspec/specs/fd-attribution/spec.md has archived OpenSpec Purpose placeholder", repo_errors)
 
 
 if __name__ == "__main__":
