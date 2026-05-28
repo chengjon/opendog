@@ -41,6 +41,17 @@ After the remediation, the current user-facing documentation set was scanned for
 
 Those remaining matches are intentionally preserved as historical or internal-context records, not current public MCP tool guidance.
 
+## MCP Surface Consistency Scan
+
+The current code and user-facing docs were also checked for MCP surface count drift:
+
+- `src/mcp/tool_inventory.rs` defines 27 public MCP tools in `MCP_TOOL_INVENTORY`.
+- Current reference docs that claim a tool count (`docs/mcp-tool-reference.md`, `QUICKSTART.md`, `FUNCTION_TREE.md`, `CLAUDE.md`) still say 27 tools.
+- Current reference docs that enumerate tools (`docs/mcp-tool-reference.md`, README, `QUICKSTART.md`, `FUNCTION_TREE.md`, `CLAUDE.md`) mention all 27 public tool names.
+- Read-only Resources remain documented as `opendog://projects` and `opendog://project/{id}/verification`, matching the resource/template handlers.
+
+No MCP surface documentation correction was needed in this pass.
+
 ## Remaining Deferred Items
 
 The implementation summary's explicitly deferred recommendations remain deferred:
