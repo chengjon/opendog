@@ -328,12 +328,19 @@ enum ExternalTruthBoundaryStatus {
     Available,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ExternalTruthBoundaryMode {
+    MustSwitchToExternalTruth,
+    OpendogGuidanceCanContinue,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub(crate) struct ExternalTruthBoundary {
     status: ExternalTruthBoundaryStatus,
     source: Option<String>,
     source_project_id: Option<String>,
-    mode: Option<String>,
+    mode: Option<ExternalTruthBoundaryMode>,
     repo_state_required: bool,
     verification_required: bool,
     triggers: Vec<String>,
@@ -358,7 +365,7 @@ impl ExternalTruthBoundary {
 
     pub(crate) fn available(
         source_project_id: Option<String>,
-        mode: &str,
+        mode: ExternalTruthBoundaryMode,
         repo_state_required: bool,
         verification_required: bool,
         triggers: Vec<String>,
@@ -369,7 +376,7 @@ impl ExternalTruthBoundary {
             status: ExternalTruthBoundaryStatus::Available,
             source: Some("top_priority_project".to_string()),
             source_project_id,
-            mode: Some(mode.to_string()),
+            mode: Some(mode),
             repo_state_required,
             verification_required,
             triggers,
@@ -914,7 +921,7 @@ mod tests {
     fn external_truth_boundary_available_serializes_source_project() {
         let boundary = ExternalTruthBoundary::available(
             Some("proj_a".to_string()),
-            "must_switch_to_external_truth",
+            ExternalTruthBoundaryMode::MustSwitchToExternalTruth,
             true,
             false,
             vec!["working_tree_conflicted".to_string()],

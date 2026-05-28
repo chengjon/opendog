@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::super::guidance_types::ExternalTruthBoundary;
+use super::super::guidance_types::{ExternalTruthBoundary, ExternalTruthBoundaryMode};
 use super::string_array_field;
 
 fn push_once(items: &mut Vec<String>, value: &str) {
@@ -75,9 +75,9 @@ pub(crate) fn external_truth_boundary_for_top_project(
     }
 
     let mode = if repo_state_required || verification_required {
-        "must_switch_to_external_truth"
+        ExternalTruthBoundaryMode::MustSwitchToExternalTruth
     } else {
-        "opendog_guidance_can_continue"
+        ExternalTruthBoundaryMode::OpendogGuidanceCanContinue
     };
 
     let summary = match (repo_state_required, verification_required) {
