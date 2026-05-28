@@ -319,6 +319,43 @@ impl Serialize for RepoRiskPreferredTool {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum ExecutionEvidencePriority {
+    Verification,
+    RepositoryRisk,
+    ActivitySignals,
+    Other(String),
+}
+
+impl ExecutionEvidencePriority {
+    pub(crate) fn from_priority(value: &str) -> Self {
+        match value {
+            "verification" => Self::Verification,
+            "repository_risk" => Self::RepositoryRisk,
+            "activity_signals" => Self::ActivitySignals,
+            value => Self::Other(value.to_string()),
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        match self {
+            Self::Verification => "verification",
+            Self::RepositoryRisk => "repository_risk",
+            Self::ActivitySignals => "activity_signals",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for ExecutionEvidencePriority {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub(crate) struct RepoRiskFindingDetails {
     kind: String,
@@ -611,7 +648,7 @@ pub(crate) struct ExecutionStrategyLayer {
     pub(crate) global_strategy_mode: RepoRiskStrategyMode,
     pub(crate) preferred_primary_tool: RepoRiskPreferredTool,
     pub(crate) preferred_secondary_tool: RepoRiskPreferredTool,
-    pub(crate) evidence_priority: Vec<String>,
+    pub(crate) evidence_priority: Vec<ExecutionEvidencePriority>,
     pub(crate) risk_strategy_coupling: RepoRiskCoupling,
     pub(crate) external_truth_boundary: ExternalTruthBoundary,
     pub(crate) review_focus_projection: ReviewFocusProjection,
@@ -1194,7 +1231,10 @@ mod tests {
             global_strategy_mode: RepoRiskStrategyMode::Other("evidence_first".to_string()),
             preferred_primary_tool: RepoRiskPreferredTool::Opendog,
             preferred_secondary_tool: RepoRiskPreferredTool::Shell,
-            evidence_priority: vec!["verification".to_string(), "activity".to_string()],
+            evidence_priority: vec![
+                ExecutionEvidencePriority::Verification,
+                ExecutionEvidencePriority::Other("activity".to_string()),
+            ],
             risk_strategy_coupling: RepoRiskCoupling::no_signal(
                 None,
                 Some(RepoRiskStrategyMode::Other("evidence_first".to_string())),

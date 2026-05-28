@@ -9,10 +9,10 @@ use super::{
     agent_guidance_recommended_flow, base_guidance_layers, build_constraints_boundaries_layer,
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
-        DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionStrategyLayer,
-        ObservationSummary, RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding,
-        RepoRiskPreferredTool, RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary,
-        StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
+        DataRiskFocusDistribution, DataRiskFocusSummary, ExecutionEvidencePriority,
+        ExecutionStrategyLayer, ObservationSummary, RecommendedNextAction, RepoRiskCoupling,
+        RepoRiskFinding, RepoRiskPreferredTool, RepoRiskStrategyMode, RepoTruthGapDistribution,
+        RepoTruthSummary, StabilizationSummary, VerificationSummary, WorkspaceObservationLayer,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -527,7 +527,10 @@ pub(crate) fn agent_guidance_payload(
                 &workspace_strategy["preferred_secondary_tool"],
                 "shell",
             )),
-            evidence_priority: string_list_field(&workspace_strategy["evidence_priority"]),
+            evidence_priority: string_list_field(&workspace_strategy["evidence_priority"])
+                .into_iter()
+                .map(|priority| ExecutionEvidencePriority::from_priority(&priority))
+                .collect(),
             risk_strategy_coupling,
             external_truth_boundary,
             review_focus_projection,
