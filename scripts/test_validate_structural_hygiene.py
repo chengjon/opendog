@@ -129,6 +129,14 @@ Current surface: 1 MCP tools.
 - opendog://projects
 """,
             )
+            self.write_file(
+                root,
+                "src/mcp/resource_handlers.rs",
+                """
+const PROJECTS_URI: &str = "opendog://projects";
+const PROJECT_VERIFICATION_TEMPLATE: &str = "opendog://project/{id}/verification";
+""",
+            )
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
 
@@ -146,6 +154,51 @@ Current surface: 1 MCP tools.
             )
             self.assertIn(
                 "docs/mcp-tool-reference.md is missing read-only MCP resource URI: opendog://project/{id}/verification",
+                errors,
+            )
+
+    def test_validate_mcp_surface_docs_reads_resource_uris_from_handlers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                "src/mcp/tool_inventory.rs",
+                """
+pub(crate) const MCP_TOOL_INVENTORY: &[McpToolSpec] = &[
+    McpToolSpec { name: "get_guidance" },
+];
+
+pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
+    MCP_TOOL_INVENTORY
+}
+""",
+            )
+            self.write_file(
+                root,
+                "src/mcp/resource_handlers.rs",
+                """
+const PROJECTS_URI: &str = "opendog://projects";
+const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
+""",
+            )
+            complete_doc = "Current surface: 1 MCP tools.\n\n- get_guidance\n"
+            for relative_path in [
+                "README.md",
+                "QUICKSTART.md",
+                "FUNCTION_TREE.md",
+                "CLAUDE.md",
+                "docs/mcp-tool-reference.md",
+            ]:
+                self.write_file(
+                    root,
+                    relative_path,
+                    complete_doc + "\n- opendog://projects\n",
+                )
+
+            errors = structural_hygiene.validate_mcp_surface_docs(root)
+
+            self.assertIn(
+                "docs/mcp-tool-reference.md is missing read-only MCP resource URI: opendog://project/{id}/docs",
                 errors,
             )
 

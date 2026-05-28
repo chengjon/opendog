@@ -11,7 +11,7 @@ All notable changes to OPENDOG are documented here.
 - MCP `get_build_info` reports binary version/build metadata, storage schema version, daemon state, `OPENDOG_HOME`, and rebuild hints.
 - Storage-retention operations documentation now covers dry-run cleanup, WAL checkpointing, vacuum behavior, and retained rollup verification.
 - MCP tool-reference coverage now has a regression test that checks documented tool headings against the central MCP inventory.
-- Structural hygiene validation now checks current MCP surface docs for tool-count drift, missing tool names, removed guidance tool names, and read-only Resource URI drift.
+- Structural hygiene validation now checks current MCP surface docs for tool-count drift, missing tool names, removed guidance tool names, and read-only Resource URI drift from the resource handlers.
 - `CONTEXT.md` and ADR records now centralize domain language, process-attribution constraints, daemon-first routing, retained-evidence lifecycle, and contract synchronization decisions.
 - Storage-maintenance MCP payload assembly now starts from typed `StorageMaintenanceAssessment` and `StorageMaintenanceWorkspaceSummary` models for candidate, pressure, mode, summary, workspace totals, and priority-project ordering before rendering JSON.
 

@@ -57,7 +57,7 @@ This scan is now guarded by `scripts/validate_structural_hygiene.py`, which chec
 - current tool-count drift,
 - missing public MCP tool names,
 - removed guidance tool names, and
-- read-only Resource URI drift.
+- read-only Resource URI drift parsed from `src/mcp/resource_handlers.rs`.
 
 ## Remaining Deferred Items
 

@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_FILE = ROOT / ".planning" / "structural_hygiene_rules.json"
 MCP_TOOL_INVENTORY_FILE = ROOT / "src" / "mcp" / "tool_inventory.rs"
+MCP_RESOURCE_HANDLERS_FILE = ROOT / "src" / "mcp" / "resource_handlers.rs"
 MCP_FULL_REFERENCE_DOCS = [
     "docs/mcp-tool-reference.md",
     "README.md",
@@ -29,10 +30,6 @@ MCP_CURRENT_GUIDANCE_DOCS = [
 REMOVED_PUBLIC_MCP_TOOL_NAMES = [
     "get_agent_guidance",
     "get_decision_brief",
-]
-READ_ONLY_MCP_RESOURCE_URIS = [
-    "opendog://projects",
-    "opendog://project/{id}/verification",
 ]
 
 
@@ -133,7 +130,7 @@ def count_checked_files(root: Path, rules: list[dict[str, object]]) -> int:
 
 
 def mcp_tool_names(root: Path = ROOT) -> list[str]:
-    inventory_path = root / "src" / "mcp" / "tool_inventory.rs"
+    inventory_path = root / MCP_TOOL_INVENTORY_FILE.relative_to(ROOT)
     if not inventory_path.exists():
         return []
     inventory = inventory_path.read_text(encoding="utf-8")
@@ -143,6 +140,17 @@ def mcp_tool_names(root: Path = ROOT) -> list[str]:
         return []
     inventory_block = inventory[start:end]
     return re.findall(r'name:\s*"([a-z][a-z0-9_]+)"', inventory_block)
+
+
+def mcp_resource_uris(root: Path = ROOT) -> list[str]:
+    resource_handlers_path = root / MCP_RESOURCE_HANDLERS_FILE.relative_to(ROOT)
+    if not resource_handlers_path.exists():
+        return []
+    resource_handlers = resource_handlers_path.read_text(encoding="utf-8")
+    return re.findall(
+        r'const\s+[A-Z0-9_]+:\s*&str\s*=\s*"(opendog://[^"]+)"',
+        resource_handlers,
+    )
 
 
 def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
@@ -190,7 +198,7 @@ def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
     resource_doc = root / "docs" / "mcp-tool-reference.md"
     if resource_doc.exists():
         text = resource_doc.read_text(encoding="utf-8")
-        for uri in READ_ONLY_MCP_RESOURCE_URIS:
+        for uri in mcp_resource_uris(root):
             if uri not in text:
                 errors.append(
                     f"docs/mcp-tool-reference.md is missing read-only MCP resource URI: {uri}"
