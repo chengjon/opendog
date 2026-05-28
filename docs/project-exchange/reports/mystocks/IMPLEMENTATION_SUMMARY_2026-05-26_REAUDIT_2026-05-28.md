@@ -52,6 +52,13 @@ The current code and user-facing docs were also checked for MCP surface count dr
 
 No MCP surface documentation correction was needed in this pass.
 
+This scan is now guarded by `scripts/validate_structural_hygiene.py`, which checks current MCP reference docs for:
+
+- current tool-count drift,
+- missing public MCP tool names,
+- removed guidance tool names, and
+- read-only Resource URI drift.
+
 ## Remaining Deferred Items
 
 The implementation summary's explicitly deferred recommendations remain deferred:

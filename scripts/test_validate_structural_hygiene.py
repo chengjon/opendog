@@ -99,6 +99,56 @@ class StructuralHygieneValidationTests(unittest.TestCase):
                 rules,
             )
 
+    def test_validate_mcp_surface_docs_reports_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                "src/mcp/tool_inventory.rs",
+                """
+pub(crate) const MCP_TOOL_INVENTORY: &[McpToolSpec] = &[
+    McpToolSpec { name: "get_guidance" },
+    McpToolSpec { name: "get_build_info" },
+];
+
+pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
+    MCP_TOOL_INVENTORY
+}
+""",
+            )
+            self.write_file(
+                root,
+                "docs/mcp-tool-reference.md",
+                """
+# MCP Tool Reference
+
+Current surface: 1 MCP tools.
+
+- get_guidance
+- get_agent_guidance
+- opendog://projects
+""",
+            )
+
+            errors = structural_hygiene.validate_mcp_surface_docs(root)
+
+            self.assertIn(
+                "docs/mcp-tool-reference.md declares 1 MCP tools, expected 2",
+                errors,
+            )
+            self.assertIn(
+                "docs/mcp-tool-reference.md is missing MCP tool name: get_build_info",
+                errors,
+            )
+            self.assertIn(
+                "docs/mcp-tool-reference.md mentions removed MCP tool name: get_agent_guidance",
+                errors,
+            )
+            self.assertIn(
+                "docs/mcp-tool-reference.md is missing read-only MCP resource URI: opendog://project/{id}/verification",
+                errors,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
