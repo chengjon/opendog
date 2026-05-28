@@ -21,6 +21,7 @@ All notable changes to OPENDOG are documented here.
 - MCP guidance type serialization tests now live in `src/mcp/guidance_types/tests.rs`, reducing the production guidance type module while preserving the existing payload contract coverage.
 - MCP storage-maintenance tests now live in `src/mcp/storage_maintenance/tests.rs`, reducing the production storage-maintenance module while preserving cleanup-planning coverage.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
+- Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
 ## 2026-05-28
 
