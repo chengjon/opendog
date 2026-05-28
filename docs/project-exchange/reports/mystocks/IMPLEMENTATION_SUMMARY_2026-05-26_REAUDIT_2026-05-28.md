@@ -31,6 +31,15 @@ Updated `docs/opendog-feature-introduction.md`:
 - Before: AI could use `get_decision_brief` as an MCP entrypoint.
 - After: AI should call `get_guidance(detail = "decision")` as the MCP entrypoint, while `opendog decision-brief` remains the CLI entrypoint.
 
+## Extended Documentation Scan
+
+After the remediation, the current user-facing documentation set was scanned for remaining `get_decision_brief` references:
+
+- Current user-facing docs: 0 remaining matches.
+- Remaining matches: historical architecture reviews, overdesign reviews, implementation plans, audit-response records, source-control-plane internals, and this re-audit's before/after explanation.
+
+Those remaining matches are intentionally preserved as historical or internal-context records, not current public MCP tool guidance.
+
 ## Remaining Deferred Items
 
 The implementation summary's explicitly deferred recommendations remain deferred:
