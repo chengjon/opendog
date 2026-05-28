@@ -13,7 +13,8 @@ use super::{
         ExecutionStrategyLayer, ExecutionStrategyLayerStatus, ObservationSummary,
         RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding, RepoRiskPreferredTool,
         RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary, WorkspaceObservationLayer, WorkspaceObservationLayerStatus,
+        VerificationSummary, WorkspaceObservationAnalysisState, WorkspaceObservationLayer,
+        WorkspaceObservationLayerStatus,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -467,16 +468,16 @@ pub(crate) fn agent_guidance_payload(
         }
     });
     let analysis_state = if project_count == 0 {
-        "empty"
+        WorkspaceObservationAnalysisState::Empty
     } else if monitoring_count == 0 {
-        "insufficient_activity"
+        WorkspaceObservationAnalysisState::InsufficientActivity
     } else if projects_with_stale_snapshot > 0
         || projects_with_stale_activity > 0
         || projects_with_stale_verification > 0
     {
-        "stale"
+        WorkspaceObservationAnalysisState::Stale
     } else {
-        "ready"
+        WorkspaceObservationAnalysisState::Ready
     };
 
     value["guidance"]["layers"]["workspace_observation"] = to_value_or_error(
@@ -485,7 +486,7 @@ pub(crate) fn agent_guidance_payload(
             status: WorkspaceObservationLayerStatus::Available,
             project_count,
             monitoring_count,
-            analysis_state: analysis_state.to_string(),
+            analysis_state,
             projects_missing_snapshot,
             projects_with_stale_snapshot,
             projects_missing_activity,

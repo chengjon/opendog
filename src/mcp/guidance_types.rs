@@ -638,12 +638,21 @@ pub(crate) enum WorkspaceObservationLayerStatus {
     Available,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum WorkspaceObservationAnalysisState {
+    Empty,
+    InsufficientActivity,
+    Ready,
+    Stale,
+}
+
 #[derive(Serialize)]
 pub(crate) struct WorkspaceObservationLayer {
     pub(crate) status: WorkspaceObservationLayerStatus,
     pub(crate) project_count: usize,
     pub(crate) monitoring_count: usize,
-    pub(crate) analysis_state: String,
+    pub(crate) analysis_state: WorkspaceObservationAnalysisState,
     pub(crate) projects_missing_snapshot: usize,
     pub(crate) projects_with_stale_snapshot: usize,
     pub(crate) projects_missing_activity: usize,
@@ -1228,7 +1237,7 @@ mod tests {
             status: WorkspaceObservationLayerStatus::Available,
             project_count: 3,
             monitoring_count: 2,
-            analysis_state: "ready".into(),
+            analysis_state: WorkspaceObservationAnalysisState::Ready,
             projects_missing_snapshot: 0,
             projects_with_stale_snapshot: 1,
             projects_missing_activity: 0,
