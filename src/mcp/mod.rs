@@ -1,6 +1,6 @@
 use rmcp::handler::server::wrapper::{Json, Parameters};
 use rmcp::model::CallToolResult;
-use rmcp::{tool, tool_handler, tool_router};
+use rmcp::{tool, tool_router};
 use serde_json::Value;
 
 use crate::contracts::{
@@ -42,6 +42,7 @@ pub(crate) mod review_candidates;
 mod risk_handlers;
 mod serialization;
 mod server_core;
+mod server_handler;
 mod storage_maintenance;
 mod strategy;
 mod tool_helpers;
@@ -128,7 +129,6 @@ pub(crate) use self::project_recommendation::collect_project_guidance_context;
 #[cfg(test)]
 use self::project_recommendation::{project_overview, recommend_project_action};
 use self::repo_risk::repo_status_risk_layer;
-use self::resource_handlers::{mcp_resource_templates, mcp_resources, read_mcp_resource};
 use self::risk_handlers::{
     handle_get_data_risk_candidates, handle_get_workspace_data_risk_overview,
 };
@@ -477,51 +477,6 @@ impl OpenDogServer {
     ) -> ToolResult {
         let (id, input) = params.into_parts();
         structured_tool_output(handle_close_governance_lane(self, &id, input))
-    }
-}
-
-#[tool_handler(router = Self::tool_router())]
-impl rmcp::ServerHandler for OpenDogServer {
-    fn get_info(&self) -> rmcp::model::ServerInfo {
-        rmcp::model::ServerInfo::new(
-            rmcp::model::ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .build(),
-        )
-        .with_server_info(rmcp::model::Implementation::from_build_env())
-    }
-
-    async fn list_resource_templates(
-        &self,
-        _request: Option<rmcp::model::PaginatedRequestParams>,
-        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> Result<rmcp::model::ListResourceTemplatesResult, rmcp::ErrorData> {
-        Ok(rmcp::model::ListResourceTemplatesResult {
-            resource_templates: mcp_resource_templates(),
-            meta: None,
-            next_cursor: None,
-        })
-    }
-
-    async fn list_resources(
-        &self,
-        _request: Option<rmcp::model::PaginatedRequestParams>,
-        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> Result<rmcp::model::ListResourcesResult, rmcp::ErrorData> {
-        Ok(rmcp::model::ListResourcesResult {
-            resources: mcp_resources(),
-            meta: None,
-            next_cursor: None,
-        })
-    }
-
-    async fn read_resource(
-        &self,
-        request: rmcp::model::ReadResourceRequestParams,
-        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> Result<rmcp::model::ReadResourceResult, rmcp::ErrorData> {
-        read_mcp_resource(self, &request.uri)
     }
 }
 
