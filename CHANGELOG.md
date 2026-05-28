@@ -2,6 +2,12 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-05-29
+
+### Changed
+
+- Structural hygiene contract checks for MCP surface documentation and OpenSpec archive placeholders now live in a focused helper module, leaving the main size-budget validator with room for future guards.
+
 ## 2026-05-28
 
 ### Added
