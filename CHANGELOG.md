@@ -23,6 +23,7 @@ All notable changes to OPENDOG are documented here.
 - MCP tool-router wrapper methods now live in `src/mcp/server_tools.rs`, keeping the root MCP module focused on module wiring and internal exports while preserving the existing RMCP tool surface.
 - MCP guidance type serialization tests now live in `src/mcp/guidance_types/tests.rs`, reducing the production guidance type module while preserving the existing payload contract coverage.
 - MCP storage-maintenance tests now live in `src/mcp/storage_maintenance/tests.rs`, reducing the production storage-maintenance module while preserving cleanup-planning coverage.
+- Planning-governance parsing, function-tree coverage, and roadmap count helpers now live in `scripts/planning_governance_rules.py`, keeping the orchestration script focused on repository I/O and validation reporting.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
