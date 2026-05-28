@@ -41,6 +41,7 @@ fn seed_snapshot_runs(db: &Database, timestamps: &[&str], files_per_run: &[&[(&s
 
 /// Snapshots-only cleanup with keep_snapshot_runs=2 prunes older runs.
 mod activity;
+mod activity_all;
 mod estimate;
 mod scope;
 mod snapshots;
