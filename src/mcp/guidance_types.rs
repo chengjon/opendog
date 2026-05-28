@@ -618,9 +618,15 @@ pub(crate) struct DataRiskFocusSummary {
     pub(crate) projects_requiring_mixed_file_review: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum WorkspaceObservationLayerStatus {
+    Available,
+}
+
 #[derive(Serialize)]
 pub(crate) struct WorkspaceObservationLayer {
-    pub(crate) status: String,
+    pub(crate) status: WorkspaceObservationLayerStatus,
     pub(crate) project_count: usize,
     pub(crate) monitoring_count: usize,
     pub(crate) analysis_state: String,
@@ -1199,7 +1205,7 @@ mod tests {
     #[test]
     fn workspace_observation_layer_serializes() {
         let w = WorkspaceObservationLayer {
-            status: "available".into(),
+            status: WorkspaceObservationLayerStatus::Available,
             project_count: 3,
             monitoring_count: 2,
             analysis_state: "ready".into(),

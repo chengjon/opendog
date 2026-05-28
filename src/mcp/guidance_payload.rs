@@ -13,7 +13,7 @@ use super::{
         ExecutionStrategyLayer, ExecutionStrategyLayerStatus, ObservationSummary,
         RecommendedNextAction, RepoRiskCoupling, RepoRiskFinding, RepoRiskPreferredTool,
         RepoRiskStrategyMode, RepoTruthGapDistribution, RepoTruthSummary, StabilizationSummary,
-        VerificationSummary, WorkspaceObservationLayer,
+        VerificationSummary, WorkspaceObservationLayer, WorkspaceObservationLayerStatus,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
@@ -482,7 +482,7 @@ pub(crate) fn agent_guidance_payload(
     value["guidance"]["layers"]["workspace_observation"] = to_value_or_error(
         "WorkspaceObservationLayer",
         WorkspaceObservationLayer {
-            status: "available".to_string(),
+            status: WorkspaceObservationLayerStatus::Available,
             project_count,
             monitoring_count,
             analysis_state: analysis_state.to_string(),
