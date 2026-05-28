@@ -153,12 +153,21 @@ def mcp_resource_uris(root: Path = ROOT) -> list[str]:
     )
 
 
+def mcp_tool_reference_headings(root: Path = ROOT) -> list[str]:
+    reference_path = root / "docs" / "mcp-tool-reference.md"
+    if not reference_path.exists():
+        return []
+    reference = reference_path.read_text(encoding="utf-8")
+    return re.findall(r"^## `([a-z][a-z0-9_]+)`\s*$", reference, re.MULTILINE)
+
+
 def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     tool_names = mcp_tool_names(root)
     if not tool_names:
         return ["src/mcp/tool_inventory.rs does not expose MCP_TOOL_INVENTORY tool names"]
     expected_count = len(tool_names)
+    expected_tool_names = set(tool_names)
 
     for relative_path in MCP_FULL_REFERENCE_DOCS:
         path = root / relative_path
@@ -183,6 +192,17 @@ def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
         for tool_name in tool_names:
             if tool_name not in text:
                 errors.append(f"{relative_path} is missing MCP tool name: {tool_name}")
+
+    reference_headings = mcp_tool_reference_headings(root)
+    if reference_headings:
+        documented_tool_names = set(reference_headings)
+        for tool_name in sorted(expected_tool_names - documented_tool_names):
+            errors.append(f"docs/mcp-tool-reference.md is missing MCP tool heading: {tool_name}")
+        for tool_name in sorted(documented_tool_names - expected_tool_names):
+            errors.append(f"docs/mcp-tool-reference.md documents unknown MCP tool heading: {tool_name}")
+        for tool_name in sorted(documented_tool_names):
+            if reference_headings.count(tool_name) > 1:
+                errors.append(f"docs/mcp-tool-reference.md documents duplicate MCP tool heading: {tool_name}")
 
     for relative_path in MCP_CURRENT_GUIDANCE_DOCS:
         path = root / relative_path

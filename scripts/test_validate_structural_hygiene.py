@@ -202,6 +202,55 @@ const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
                 errors,
             )
 
+    def test_validate_mcp_surface_docs_reports_unknown_tool_reference_headings(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                "src/mcp/tool_inventory.rs",
+                """
+pub(crate) const MCP_TOOL_INVENTORY: &[McpToolSpec] = &[
+    McpToolSpec { name: "get_guidance" },
+    McpToolSpec { name: "get_build_info" },
+];
+
+pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
+    MCP_TOOL_INVENTORY
+}
+""",
+            )
+            reference_doc = """
+# MCP Tool Reference
+
+Current surface: 2 MCP tools.
+
+## `get_guidance`
+
+## `get_build_info`
+
+## `legacy_tool`
+"""
+            complete_doc = (
+                "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
+            )
+            self.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
+            for relative_path in [
+                "README.md",
+                "QUICKSTART.md",
+                "FUNCTION_TREE.md",
+                "CLAUDE.md",
+            ]:
+                self.write_file(root, relative_path, complete_doc)
+
+            errors = structural_hygiene.validate_mcp_surface_docs(root)
+
+            self.assertIn(
+                "docs/mcp-tool-reference.md documents unknown MCP tool heading: legacy_tool",
+                errors,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

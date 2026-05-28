@@ -55,7 +55,7 @@ No MCP surface documentation correction was needed in this pass.
 This scan is now guarded by `scripts/validate_structural_hygiene.py`, which checks current MCP reference docs for:
 
 - current tool-count drift,
-- missing public MCP tool names,
+- missing, unknown, or duplicate MCP tool-reference headings,
 - removed guidance tool names, and
 - read-only Resource URI drift parsed from `src/mcp/resource_handlers.rs`.
 
