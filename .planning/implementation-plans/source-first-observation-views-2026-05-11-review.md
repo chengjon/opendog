@@ -1,12 +1,23 @@
 # Review: source-first-observation-views-2026-05-11.md
 
-**Type**: .md / plan (implementation) | **Perspective**: auto (completeness + feasibility + architecture + consistency) | **Date**: 2026-05-11 | **Reviewer**: Claude
+**Type**: .md / plan (implementation) | **Perspective**: auto (completeness + feasibility + architecture + consistency) | **Date**: 2026-05-11 | **Updated**: 2026-05-28 | **Reviewer**: Claude
 
 ---
 
 ## Executive Summary
 
-This implementation plan is well-structured with precise file/symbol references that match the live codebase, a sound presentation-layer filter architecture that avoids touching storage or scanner code, and clear backward-compatible defaults. Two medium-severity gaps need attention before implementation: the guidance contract promises filter-aware wording in `workspace_observation` but no task step covers it, and the existing boundary text in stats/unused guidance modules is partially present already, so Task 5 should clarify that it replaces/expands existing strings rather than adding new ones.
+This review originally found a sound source-first observation plan with three pre-implementation clarification gaps. The implemented code now closes those gaps: `workspace_observation` records active `path_classification_filter` values, stats/unused guidance boundary strings were expanded in place, and the payload builder supports conditional filtered fields.
+
+The Evidence Verification, Checklist Results, Findings, and Scoring sections below preserve the original 2026-05-11 review snapshot. Use the Post-Remediation Status section for the current disposition.
+
+## Post-Remediation Status [2026-05-28]
+
+| Original review item | Current status | Current evidence |
+|----------------------|----------------|------------------|
+| Guidance contract promised filter-aware `workspace_observation` without an implementation task | Resolved | `src/mcp/project_guidance/stats_unused/stats.rs` and `unused.rs` inject `path_classification_filter` when a non-default filter is active. |
+| Boundary text replacement vs append behavior was ambiguous | Resolved | Stats guidance now says sampling can miss very brief file reads by MCP hosts or AI assistants; unused guidance now says `access_count=0` means OPENDOG did not observe an open descriptor. |
+| Conditional `filtered_unused_count` builder pattern was not explicit | Resolved | `src/mcp/payloads/analysis_payloads.rs` supports conditional filtered count output and contract tests cover filtered result metadata. |
+| Empty filtered-result edge case was not specified | Resolved | `guidance_marks_active_path_classification_filter_and_empty_filtered_result` verifies guidance marks active filters and explains empty filtered results. |
 
 ## Document Metadata
 
@@ -175,6 +186,6 @@ This implementation plan is well-structured with precise file/symbol references 
 
 ## Verdict
 
-APPROVE_WITH_NOTES
+APPROVE_REMEDIATED
 
-The plan is technically sound and precisely grounded in the codebase. The three medium findings are clarifications, not architectural flaws: (1) the guidance contract promises filter awareness that no task step delivers, (2) Task 5 should state it replaces existing boundary text rather than appending, and (3) the conditional Vec-builder pattern should be shown explicitly. Address these before implementation and the plan is ready to execute.
+The original review notes are retained for traceability, and the implemented source-first observation work now remediates the clarification gaps that led to `APPROVE_WITH_NOTES`.
