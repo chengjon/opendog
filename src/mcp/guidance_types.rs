@@ -174,6 +174,12 @@ enum RepoRiskCouplingStatus {
     Coupled,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum RepoRiskCouplingSource {
+    PrimaryRepoRiskFinding,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum RecommendedNextAction {
     StartMonitor,
@@ -373,7 +379,7 @@ impl RepoRiskFinding {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub(crate) struct RepoRiskCoupling {
     status: RepoRiskCouplingStatus,
-    source: Option<String>,
+    source: Option<RepoRiskCouplingSource>,
     source_project_id: Option<String>,
     recommended_next_action: Option<RecommendedNextAction>,
     strategy_mode: Option<RepoRiskStrategyMode>,
@@ -410,7 +416,7 @@ impl RepoRiskCoupling {
     ) -> Self {
         Self {
             status: RepoRiskCouplingStatus::Coupled,
-            source: Some("primary_repo_risk_finding".to_string()),
+            source: Some(RepoRiskCouplingSource::PrimaryRepoRiskFinding),
             source_project_id: Some(source_project_id.to_string()),
             recommended_next_action,
             strategy_mode,
@@ -999,6 +1005,11 @@ mod tests {
             Some(RepoRiskPreferredTool::ShellVerification),
             finding,
             "Top repository risk keeps the workspace in stabilize_first mode.".to_string(),
+        );
+
+        assert_eq!(
+            coupling.source,
+            Some(RepoRiskCouplingSource::PrimaryRepoRiskFinding)
         );
 
         let v = serde_json::to_value(&coupling).unwrap();
