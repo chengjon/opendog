@@ -28,6 +28,7 @@ All notable changes to OPENDOG are documented here.
 - Retention cleanup all-scope activity/history tests now live in `src/core/retention/tests/activity_all.rs`, keeping activity-scope rollup tests smaller and easier to scan.
 - Monitor-controller project/global configuration reload methods now live in `src/control/config_reload.rs`, keeping the root control module focused on lifecycle wiring and shared query helpers.
 - Daemon-process CLI smoke coverage now delegates report/cleanup and config-reload assertions to focused integration-test helper modules, making the long end-to-end scenario easier to scan.
+- Storage snapshot scan, metadata, isolation, and incremental-update integration cases now live in `tests/integration_test/storage_project_snapshot/snapshot_cases.rs`, leaving the root storage/project snapshot module focused on registry and project-lifecycle coverage.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
