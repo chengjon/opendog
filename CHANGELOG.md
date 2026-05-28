@@ -15,6 +15,7 @@ All notable changes to OPENDOG are documented here.
 - Daemon runtime and shutdown-signal setup failures now flow through logged `OpenDogError` handling instead of production `expect` panics.
 - MCP `ServerHandler` resource wiring now lives in `src/mcp/server_handler.rs`, reducing the root MCP module below its structural size ceiling without changing the public tool surface.
 - Monitor unit tests now live in `src/core/monitor/tests.rs`, reducing the production monitor module well below its structural size ceiling without changing monitor behavior.
+- CLI error rendering now lives in `src/cli/error_output.rs`, keeping the root CLI module below its structural size ceiling while preserving existing error-output tests.
 
 ## 2026-05-28
 

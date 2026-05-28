@@ -1,4 +1,4 @@
-use super::format_error_lines;
+use super::error_output::format_error_lines;
 use crate::error::OpenDogError;
 use crate::guidance::trim_agent_guidance_payload;
 use serde_json::json;

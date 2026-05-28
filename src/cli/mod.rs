@@ -1,6 +1,7 @@
 pub mod output;
 
 mod config_commands;
+mod error_output;
 mod governance_commands;
 mod guidance_commands;
 mod project_commands;
@@ -11,10 +12,10 @@ mod verification_commands;
 use crate::core::project::ProjectManager;
 use crate::core::retention::{CleanupScope, ProjectDataCleanupRequest};
 use crate::core::verification::{ExecuteVerificationInput, RecordVerificationInput};
-use crate::error::OpenDogError;
 use clap::Parser;
 
 use self::config_commands::{cmd_config, ConfigCommand};
+use self::error_output::print_error;
 use self::governance_commands::GovernanceCommand;
 use self::report_commands::{cmd_report, ReportCommand};
 use self::self_update_commands::{cmd_self_update, SelfUpdateCommand};
@@ -442,30 +443,6 @@ pub fn run() {
     if let Err(e) = result {
         print_error(&e);
         std::process::exit(1);
-    }
-}
-
-fn print_error(error: &OpenDogError) {
-    for line in format_error_lines(error) {
-        eprintln!("{}", line);
-    }
-}
-
-fn format_error_lines(error: &OpenDogError) -> Vec<String> {
-    match error {
-        OpenDogError::DaemonControlUnavailable => vec![
-            "Error: daemon appears to be running but the control socket is unavailable."
-                .to_string(),
-            format!(
-                "Hint: check {}, remove a stale socket if needed, or restart `opendog daemon`.",
-                crate::config::daemon_socket_path().display()
-            ),
-            format!(
-                "Hint: if the daemon is wedged, inspect {} and restart the daemon cleanly.",
-                crate::config::daemon_pid_path().display()
-            ),
-        ],
-        _ => vec![format!("Error: {}", error)],
     }
 }
 
