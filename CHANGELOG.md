@@ -25,6 +25,7 @@ All notable changes to OPENDOG are documented here.
 - MCP storage-maintenance tests now live in `src/mcp/storage_maintenance/tests.rs`, reducing the production storage-maintenance module while preserving cleanup-planning coverage.
 - Planning-governance parsing, function-tree coverage, and roadmap count helpers now live in `scripts/planning_governance_rules.py`, keeping the orchestration script focused on repository I/O and validation reporting.
 - Task-card frontmatter parsing, status counting, and rule checks now live in `scripts/task_card_rules.py`, keeping the task-card validation script focused on repository paths and CLI reporting.
+- Project manager regression tests now live in `src/core/project/tests.rs`, keeping the project module focused on project registration, lookup, and stats helpers.
 - Project export regression tests now live in `src/core/export/tests.rs`, keeping the export module focused on portable export assembly and timestamp helpers.
 - Retention cleanup all-scope activity/history tests now live in `src/core/retention/tests/activity_all.rs`, keeping activity-scope rollup tests smaller and easier to scan.
 - Monitor-controller project/global configuration reload methods now live in `src/control/config_reload.rs`, keeping the root control module focused on lifecycle wiring and shared query helpers.
