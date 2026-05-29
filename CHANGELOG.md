@@ -31,6 +31,7 @@ All notable changes to OPENDOG are documented here.
 - Storage snapshot scan, metadata, isolation, and incremental-update integration cases now live in `tests/integration_test/storage_project_snapshot/snapshot_cases.rs`, leaving the root storage/project snapshot module focused on registry and project-lifecycle coverage.
 - Project CLI output formatter tests now live in `src/cli/output/project_output/tests.rs`, keeping the formatter module focused on operator-visible project, stats, unused-file, cleanup, and list output.
 - Data-risk CLI output formatter tests now live in `src/cli/output/guidance_output/data_risk_output_tests.rs`, matching the surrounding guidance-output test-module pattern.
+- Decision-brief workspace, repository, verification, toolchain, and signal context rendering now lives in `src/cli/output/guidance_output/decision_brief_output/context_sections.rs`, keeping the main formatter focused on brief and entrypoint orchestration.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
