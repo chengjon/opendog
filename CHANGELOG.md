@@ -62,6 +62,7 @@ All notable changes to OPENDOG are documented here.
 - MCP tool-inventory regression tests now live in `src/mcp/tool_inventory/tests.rs`, keeping the inventory module focused on canonical tool metadata and accessors.
 - MCP project-recommendation eligibility regression tests now live in `src/mcp/project_recommendation/eligibility/tests.rs`, keeping the eligibility module focused on signal-to-action gating logic.
 - MCP project-recommendation reasoning regression tests now live in `src/mcp/project_recommendation/reasoning/tests.rs`, keeping the reasoning module focused on action selection explanations and priority labels.
+- MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/scoring/tests.rs`, keeping the scoring module focused on signal weighting and action ranking logic.
 - MCP project-recommendation sequencing regression tests now live in `src/mcp/project_recommendation/sequencing/tests.rs`, keeping the sequencing module focused on follow-up recommendation payload assembly.
 - MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/tests.rs`, keeping the recommendation module focused on project overview scoring and guidance construction.
 - MCP data-risk rule regression tests now live in `src/mcp/data_risk/rules/tests.rs`, keeping the rules module focused on candidate type normalization and priority scoring helpers.
