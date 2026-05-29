@@ -12,6 +12,7 @@ All notable changes to OPENDOG are documented here.
 
 - Guidance repo-risk, external-truth, and review-focus type models now live in `src/mcp/guidance_types/repo_risk.rs`, leaving the root guidance type module focused on top-level guidance layer envelopes.
 - Storage maintenance execution templates now live in `src/mcp/storage_maintenance/execution_templates.rs`, leaving the root storage maintenance module focused on cleanup assessment and workspace summary assembly.
+- Agent guidance execution-strategy summary builders now live in `src/mcp/guidance_payload/execution_strategy.rs`, keeping the root guidance payload module focused on workspace envelope assembly.
 - Verification-evidence model regression tests now live in `src/mcp/verification_evidence/model/tests.rs`, leaving `model.rs` as a thin facade over gate, status, and workspace model modules.
 - Verification-evidence gate assessment helpers now live in `src/mcp/verification_evidence/model/gate.rs`, leaving the model facade focused on module wiring.
 - Verification-evidence workspace summary models now live in `src/mcp/verification_evidence/model/workspace.rs`, keeping workspace/project summary shaping separate from gate helper logic.
