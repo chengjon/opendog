@@ -10,7 +10,8 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
-- Verification-evidence status summary models now live in `src/mcp/verification_evidence/model/status.rs`, keeping the main model module focused on gate assessment, workspace summary, and shared helpers.
+- Verification-evidence workspace summary models now live in `src/mcp/verification_evidence/model/workspace.rs`, keeping workspace/project summary shaping separate from gate helper logic.
+- Verification-evidence status summary models now live in `src/mcp/verification_evidence/model/status.rs`, keeping the main model module focused on gate assessment and shared helper logic.
 - MCP data-risk guidance regression tests now live in `src/mcp/data_risk/guidance/tests.rs`, keeping the guidance helper focused on risk guidance and project payload assembly.
 - MCP project-payload regression tests now live in `src/mcp/payloads/project_payloads/tests.rs`, keeping the payload helper focused on project snapshot, monitor, list, and delete response shaping.
 - Agent guidance regression tests now live in `src/guidance/tests.rs`, keeping the guidance module focused on payload trimming and project guidance/decision brief assembly.
