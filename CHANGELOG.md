@@ -81,6 +81,7 @@ All notable changes to OPENDOG are documented here.
 - Decision-support profile facade regression tests now live in `src/mcp/decision_support/profiles/tests.rs`, keeping the facade focused on profile entrypoints and model delegation.
 - MCP strategy-mode regression tests now live in `src/mcp/strategy/tests.rs`, keeping the strategy module focused on workspace strategy scoring and mode selection.
 - MCP observation-sequencing regression tests now live in `src/mcp/observation/tests.rs`, keeping the observation module focused on activity/snapshot sequencing signals.
+- MCP review-candidate regression tests now live in `src/mcp/review_candidates/tests.rs`, keeping the review candidate module focused on candidate shaping and risk hints.
 - Repo-risk finding construction regression tests now live in `src/mcp/repo_risk/findings/tests.rs`, keeping the findings module focused on repository risk signal shaping.
 - Verification command classification regression tests now live in `src/core/verification/tests.rs`, keeping the verification module focused on output summarisation and pipeline detection helpers.
 - Orphan-scan shared type regression tests now live in `src/core/orphan/types/tests.rs`, keeping the type module focused on classifications, rankings, and recommendation models.
