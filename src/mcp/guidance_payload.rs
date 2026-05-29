@@ -10,23 +10,23 @@ use super::{
     default_shell_verification_commands, external_truth_boundary_for_top_project,
     guidance_types::{
         ExecutionEvidencePriority, ExecutionStrategyLayer, ExecutionStrategyLayerStatus,
-        RepoRiskPreferredTool, RepoRiskStrategyMode, WorkspaceObservationAnalysisState,
-        WorkspaceObservationLayer, WorkspaceObservationLayerStatus,
+        RepoRiskPreferredTool, RepoRiskStrategyMode,
     },
     review_focus_projection_for_top_project,
     serialization::to_value_or_error,
     sort_project_recommendations, storage_maintenance_layer, workspace_portfolio_layer,
     workspace_strategy_profile, workspace_toolchain_layer, workspace_verification_evidence_layer,
-    WorkspaceCounts,
 };
 
 mod execution_strategy;
+mod workspace_observation;
 
 use execution_strategy::{
     execution_strategy_data_risk_focus_summary, execution_strategy_observation_summary,
     execution_strategy_repo_risk_coupling, execution_strategy_repo_truth_summary,
     execution_strategy_stabilization_summary, execution_strategy_verification_summary,
 };
+use workspace_observation::WorkspaceObservationFacts;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct ProjectGuidanceState {
     pub(crate) id: String,
@@ -100,98 +100,17 @@ pub(crate) fn agent_guidance_payload(
     project_overviews: &[Value],
     governance: Value,
 ) -> Value {
-    let has_failing_verification = project_overviews.iter().any(|p| {
-        p["verification_evidence"]["failing_runs"]
-            .as_array()
-            .map(|runs| !runs.is_empty())
-            .unwrap_or(false)
-    });
-    let has_mid_operation_repo = project_overviews.iter().any(|p| {
-        p["repo_status_risk"]["operation_states"]
-            .as_array()
-            .map(|states| !states.is_empty())
-            .unwrap_or(false)
-    });
-    let missing_verification_projects = project_overviews
-        .iter()
-        .filter(|p| p["verification_evidence"]["status"] == "not_recorded")
-        .count();
-    let projects_not_ready_for_cleanup = project_overviews
-        .iter()
-        .filter(|p| !p["safe_for_cleanup"].as_bool().unwrap_or(false))
-        .count();
-    let projects_not_ready_for_refactor = project_overviews
-        .iter()
-        .filter(|p| !p["safe_for_refactor"].as_bool().unwrap_or(false))
-        .count();
-    let projects_with_hardcoded_data = project_overviews
-        .iter()
-        .filter(|p| {
-            p["mock_data_summary"]["hardcoded_candidate_count"]
-                .as_u64()
-                .unwrap_or(0)
-                > 0
-        })
-        .count();
-    let projects_missing_snapshot = project_overviews
-        .iter()
-        .filter(|p| p["observation"]["freshness"]["snapshot"]["status"] == "missing")
-        .count();
-    let projects_with_stale_snapshot = project_overviews
-        .iter()
-        .filter(|p| {
-            matches!(
-                p["observation"]["freshness"]["snapshot"]["status"]
-                    .as_str()
-                    .unwrap_or(""),
-                "stale" | "unknown"
-            )
-        })
-        .count();
-    let projects_missing_activity = project_overviews
-        .iter()
-        .filter(|p| p["observation"]["freshness"]["activity"]["status"] == "missing")
-        .count();
-    let projects_with_stale_activity = project_overviews
-        .iter()
-        .filter(|p| {
-            matches!(
-                p["observation"]["freshness"]["activity"]["status"]
-                    .as_str()
-                    .unwrap_or(""),
-                "stale" | "unknown"
-            )
-        })
-        .count();
-    let projects_missing_verification = project_overviews
-        .iter()
-        .filter(|p| p["observation"]["freshness"]["verification"]["status"] == "missing")
-        .count();
-    let projects_with_stale_verification = project_overviews
-        .iter()
-        .filter(|p| {
-            matches!(
-                p["observation"]["freshness"]["verification"]["status"]
-                    .as_str()
-                    .unwrap_or(""),
-                "stale" | "unknown"
-            )
-        })
-        .count();
     let storage_maintenance = storage_maintenance_layer(project_overviews);
-    let projects_with_storage_maintenance_candidates = storage_maintenance
-        ["projects_with_candidates"]
-        .as_u64()
-        .unwrap_or(0);
-    let projects_with_vacuum_candidates = storage_maintenance["projects_with_vacuum_candidates"]
-        .as_u64()
-        .unwrap_or(0);
+    let workspace_observation =
+        WorkspaceObservationFacts::from_projects(project_overviews, &storage_maintenance);
+    let projects_with_hardcoded_data =
+        workspace_observation.projects_with_hardcoded_data_candidates;
     let workspace_strategy = workspace_strategy_profile(
         project_count,
         monitoring_count,
-        has_failing_verification,
-        has_mid_operation_repo,
-        missing_verification_projects,
+        workspace_observation.has_failing_verification,
+        workspace_observation.has_mid_operation_repo,
+        workspace_observation.missing_verification_projects,
     );
     let sorted_project_recommendations =
         sort_project_recommendations(project_recommendations, project_overviews);
@@ -249,50 +168,12 @@ pub(crate) fn agent_guidance_payload(
             "layers": base_guidance_layers(),
         }
     });
-    let analysis_state = if project_count == 0 {
-        WorkspaceObservationAnalysisState::Empty
-    } else if monitoring_count == 0 {
-        WorkspaceObservationAnalysisState::InsufficientActivity
-    } else if projects_with_stale_snapshot > 0
-        || projects_with_stale_activity > 0
-        || projects_with_stale_verification > 0
-    {
-        WorkspaceObservationAnalysisState::Stale
-    } else {
-        WorkspaceObservationAnalysisState::Ready
-    };
-
-    value["guidance"]["layers"]["workspace_observation"] = to_value_or_error(
-        "WorkspaceObservationLayer",
-        WorkspaceObservationLayer {
-            status: WorkspaceObservationLayerStatus::Available,
-            project_count,
-            monitoring_count,
-            analysis_state,
-            projects_missing_snapshot,
-            projects_with_stale_snapshot,
-            projects_missing_activity,
-            projects_with_stale_activity,
-            projects_missing_verification,
-            projects_with_stale_verification,
-            projects_with_storage_maintenance_candidates,
-            projects_with_vacuum_candidates,
-            total_storage_reclaimable_bytes: storage_maintenance["total_approx_reclaimable_bytes"]
-                .clone(),
-            data_risk_focus_distribution: data_risk_focus_summary
-                .data_risk_focus_distribution
-                .to_value(),
-            projects_requiring_hardcoded_review: json!(
-                data_risk_focus_summary.projects_requiring_hardcoded_review
-            ),
-            projects_requiring_mock_review: json!(
-                data_risk_focus_summary.projects_requiring_mock_review
-            ),
-            projects_requiring_mixed_file_review: json!(
-                data_risk_focus_summary.projects_requiring_mixed_file_review
-            ),
-            notes: notes.to_vec(),
-        },
+    value["guidance"]["layers"]["workspace_observation"] = workspace_observation.layer_value(
+        project_count,
+        monitoring_count,
+        &storage_maintenance,
+        &data_risk_focus_summary,
+        notes,
     );
     value["guidance"]["layers"]["execution_strategy"] =
         to_value_or_error("ExecutionStrategyLayer", ExecutionStrategyLayer {
@@ -330,19 +211,21 @@ pub(crate) fn agent_guidance_payload(
                 "When verification is missing, prefer running and recording test/lint/build evidence before high-risk edits.",
                 "When snapshot, activity, or verification evidence is stale, refresh it before trusting OPENDOG-driven sequencing.",
             ],
-            projects_not_ready_for_cleanup,
-            projects_not_ready_for_refactor,
+            projects_not_ready_for_cleanup: workspace_observation.projects_not_ready_for_cleanup,
+            projects_not_ready_for_refactor: workspace_observation.projects_not_ready_for_refactor,
             projects_with_hardcoded_data_candidates: projects_with_hardcoded_data,
-            projects_missing_snapshot,
-            projects_with_stale_snapshot,
-            projects_missing_activity,
-            projects_with_stale_activity,
-            projects_missing_verification,
-            projects_with_stale_verification,
-            projects_with_storage_maintenance_candidates,
-            projects_with_vacuum_candidates,
-            review_opendog_retention_before_large_cleanup:
-                projects_with_storage_maintenance_candidates > 0,
+            projects_missing_snapshot: workspace_observation.projects_missing_snapshot,
+            projects_with_stale_snapshot: workspace_observation.projects_with_stale_snapshot,
+            projects_missing_activity: workspace_observation.projects_missing_activity,
+            projects_with_stale_activity: workspace_observation.projects_with_stale_activity,
+            projects_missing_verification: workspace_observation.projects_missing_verification,
+            projects_with_stale_verification: workspace_observation.projects_with_stale_verification,
+            projects_with_storage_maintenance_candidates: workspace_observation
+                .projects_with_storage_maintenance_candidates,
+            projects_with_vacuum_candidates: workspace_observation.projects_with_vacuum_candidates,
+            review_opendog_retention_before_large_cleanup: workspace_observation
+                .projects_with_storage_maintenance_candidates
+                > 0,
             recommend_manual_review_for_hardcoded_data: projects_with_hardcoded_data > 0,
             data_risk_focus_distribution: data_risk_focus_summary
                 .data_risk_focus_distribution
@@ -396,18 +279,7 @@ pub(crate) fn agent_guidance_payload(
                 .to_string(),
         ],
         default_shell_verification_commands(),
-        Some(WorkspaceCounts {
-            projects_not_ready_for_cleanup,
-            projects_not_ready_for_refactor,
-            projects_with_hardcoded_data_candidates: projects_with_hardcoded_data,
-            projects_missing_snapshot,
-            projects_with_stale_snapshot,
-            projects_missing_activity,
-            projects_with_stale_activity,
-            projects_missing_verification,
-            projects_with_stale_verification,
-            projects_with_storage_maintenance_candidates,
-        }),
+        Some(workspace_observation.workspace_counts()),
     );
     value["guidance"]["layers"]["governance"] = governance;
     value
