@@ -10,6 +10,7 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
+- Orphan subject classification regression tests now live in `src/core/orphan/classification/tests.rs`, keeping the classifier focused on evidence-signal to subject-state mapping.
 - Error display and conversion regression tests now live in `src/error/tests.rs`, keeping `OpenDogError` focused on error variants and shared result typing.
 - MCP repo-truth constraint regression tests now live in `src/mcp/constraints/repo_truth/tests.rs`, keeping the repo-truth projection helper focused on gap and shell-check derivation.
 - Core stats regression tests now live in `src/core/stats/tests.rs`, keeping the stats module focused on project summary and file-stat query helpers.
