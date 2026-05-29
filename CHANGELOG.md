@@ -10,6 +10,7 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
+- Core stats regression tests now live in `src/core/stats/tests.rs`, keeping the stats module focused on project summary and file-stat query helpers.
 - MCP guidance-scaffold regression tests now live in `src/mcp/guidance_scaffold/tests.rs`, keeping the scaffold helper focused on default guidance layer construction.
 - Storage schema regression tests now live in `src/storage/schema/tests.rs`, keeping the schema module focused on registry/project SQL constants and schema versioning.
 - Config ignore-pattern regression tests now live in `src/config/ignore/tests.rs`, keeping the ignore helper focused on path matching and default policy logic.
