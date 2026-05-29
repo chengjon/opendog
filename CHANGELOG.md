@@ -10,6 +10,7 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
+- MCP project-payload regression tests now live in `src/mcp/payloads/project_payloads/tests.rs`, keeping the payload helper focused on project snapshot, monitor, list, and delete response shaping.
 - Agent guidance regression tests now live in `src/guidance/tests.rs`, keeping the guidance module focused on payload trimming and project guidance/decision brief assembly.
 - Orphan subject classification regression tests now live in `src/core/orphan/classification/tests.rs`, keeping the classifier focused on evidence-signal to subject-state mapping.
 - Error display and conversion regression tests now live in `src/error/tests.rs`, keeping `OpenDogError` focused on error variants and shared result typing.
