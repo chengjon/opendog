@@ -62,6 +62,7 @@ All notable changes to OPENDOG are documented here.
 - MCP project-recommendation reasoning regression tests now live in `src/mcp/project_recommendation/reasoning/tests.rs`, keeping the reasoning module focused on action selection explanations and priority labels.
 - MCP project-recommendation sequencing regression tests now live in `src/mcp/project_recommendation/sequencing/tests.rs`, keeping the sequencing module focused on follow-up recommendation payload assembly.
 - MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/tests.rs`, keeping the recommendation module focused on project overview scoring and guidance construction.
+- MCP data-risk rule regression tests now live in `src/mcp/data_risk/rules/tests.rs`, keeping the rules module focused on candidate type normalization and priority scoring helpers.
 - MCP data-risk report regression tests now live in `src/mcp/data_risk/report/tests.rs`, keeping the report module focused on candidate report shaping and summary payload construction.
 - Config patching regression tests now live in `src/config/patching/tests.rs`, keeping the patching module focused on config update semantics and list-patch helpers.
 - Config loading and default-policy regression tests now live in `src/config/tests.rs`, keeping the root config module focused on project config types and persistence helpers.
