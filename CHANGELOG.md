@@ -60,6 +60,7 @@ All notable changes to OPENDOG are documented here.
 - MCP observation-sequencing regression tests now live in `src/mcp/observation/tests.rs`, keeping the observation module focused on activity/snapshot sequencing signals.
 - Repo-risk finding construction regression tests now live in `src/mcp/repo_risk/findings/tests.rs`, keeping the findings module focused on repository risk signal shaping.
 - Verification command classification regression tests now live in `src/core/verification/tests.rs`, keeping the verification module focused on output summarisation and pipeline detection helpers.
+- Orphan-scan shared type regression tests now live in `src/core/orphan/types/tests.rs`, keeping the type module focused on classifications, rankings, and recommendation models.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
