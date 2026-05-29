@@ -50,6 +50,7 @@ All notable changes to OPENDOG are documented here.
 - MCP request-parameter parsing regression tests now live in `src/mcp/params/tests.rs`, keeping the params module focused on request shape parsing and validation helpers.
 - MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/tests.rs`, keeping the recommendation module focused on project overview scoring and guidance construction.
 - MCP data-risk report regression tests now live in `src/mcp/data_risk/report/tests.rs`, keeping the report module focused on candidate report shaping and summary payload construction.
+- Config patching regression tests now live in `src/config/patching/tests.rs`, keeping the patching module focused on config update semantics and list-patch helpers.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
