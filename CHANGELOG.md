@@ -32,6 +32,7 @@ All notable changes to OPENDOG are documented here.
 - Daemon-process CLI smoke coverage now delegates report/cleanup and config-reload assertions to focused integration-test helper modules, making the long end-to-end scenario easier to scan.
 - Storage snapshot scan, metadata, isolation, and incremental-update integration cases now live in `tests/integration_test/storage_project_snapshot/snapshot_cases.rs`, leaving the root storage/project snapshot module focused on registry and project-lifecycle coverage.
 - Project CLI output formatter tests now live in `src/cli/output/project_output/tests.rs`, keeping the formatter module focused on operator-visible project, stats, unused-file, cleanup, and list output.
+- Orphan module facade regression tests now live in `src/core/orphan/tests.rs`, keeping the root orphan module focused on submodule wiring and public re-exports.
 - Orphan scan regression tests now live in `src/core/orphan/scan/tests.rs`, keeping the scan module focused on candidate discovery and external-report merging.
 - Orphan evidence aggregation regression tests now live in `src/core/orphan/evidence/tests.rs`, keeping the evidence module focused on signal shaping, summaries, and recommendation inputs.
 - Data-risk CLI output formatter tests now live in `src/cli/output/guidance_output/data_risk_output_tests.rs`, matching the surrounding guidance-output test-module pattern.
