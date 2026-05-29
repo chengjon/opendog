@@ -15,6 +15,7 @@ All notable changes to OPENDOG are documented here.
 - Agent guidance execution-strategy summary builders now live in `src/mcp/guidance_payload/execution_strategy.rs`, keeping the root guidance payload module focused on workspace envelope assembly.
 - Decision-support risk profile models now live in `src/mcp/decision_support/profiles/model/risk.rs`, leaving the root profile model focused on action classification.
 - Analysis payload regression tests now live in `src/mcp/payloads/analysis_payloads/tests.rs`, keeping the payload builder module focused on response assembly.
+- Attention workspace-portfolio queueing and recommendation sorting now live in `src/mcp/attention/portfolio.rs`, leaving the root attention module focused on project attention scoring.
 - Verification-evidence model regression tests now live in `src/mcp/verification_evidence/model/tests.rs`, leaving `model.rs` as a thin facade over gate, status, and workspace model modules.
 - Verification-evidence gate assessment helpers now live in `src/mcp/verification_evidence/model/gate.rs`, leaving the model facade focused on module wiring.
 - Verification-evidence workspace summary models now live in `src/mcp/verification_evidence/model/workspace.rs`, keeping workspace/project summary shaping separate from gate helper logic.
