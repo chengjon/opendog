@@ -1,5 +1,6 @@
 use super::*;
 use crate::core::scanner::FileSighting;
+use crate::error::OpenDogError;
 use notify::{event::ModifyKind, Event, EventKind};
 use tempfile::TempDir;
 
