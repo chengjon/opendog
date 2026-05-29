@@ -58,6 +58,7 @@ All notable changes to OPENDOG are documented here.
 - Decision-support execution-template catalog regression tests now live in `src/mcp/decision_support/execution_templates/catalog/tests.rs`, keeping the catalog module focused on template definitions and lookup behavior.
 - MCP strategy-mode regression tests now live in `src/mcp/strategy/tests.rs`, keeping the strategy module focused on workspace strategy scoring and mode selection.
 - MCP observation-sequencing regression tests now live in `src/mcp/observation/tests.rs`, keeping the observation module focused on activity/snapshot sequencing signals.
+- Repo-risk finding construction regression tests now live in `src/mcp/repo_risk/findings/tests.rs`, keeping the findings module focused on repository risk signal shaping.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
