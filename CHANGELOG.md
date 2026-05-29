@@ -65,6 +65,7 @@ All notable changes to OPENDOG are documented here.
 - MCP config-payload regression tests now live in `src/mcp/payloads/config_payloads/tests.rs`, keeping the payload module focused on config export and patch response shaping.
 - MCP decision-constraint regression tests now live in `src/mcp/constraints/tests.rs`, keeping the constraints module focused on constraint extraction and payload assembly.
 - Decision-support execution-template catalog regression tests now live in `src/mcp/decision_support/execution_templates/catalog/tests.rs`, keeping the catalog module focused on template definitions and lookup behavior.
+- Decision-support profile facade regression tests now live in `src/mcp/decision_support/profiles/tests.rs`, keeping the facade focused on profile entrypoints and model delegation.
 - MCP strategy-mode regression tests now live in `src/mcp/strategy/tests.rs`, keeping the strategy module focused on workspace strategy scoring and mode selection.
 - MCP observation-sequencing regression tests now live in `src/mcp/observation/tests.rs`, keeping the observation module focused on activity/snapshot sequencing signals.
 - Repo-risk finding construction regression tests now live in `src/mcp/repo_risk/findings/tests.rs`, keeping the findings module focused on repository risk signal shaping.
