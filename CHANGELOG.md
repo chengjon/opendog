@@ -19,6 +19,7 @@ All notable changes to OPENDOG are documented here.
 - Project guidance stats path-filter regression tests now live in `src/mcp/project_guidance/stats_unused/stats/tests.rs`, keeping the stats guidance module focused on payload assembly.
 - CLI config command regression tests now live in `src/cli/config_commands/tests.rs`, keeping the config command module focused on command dispatch and payload assembly.
 - Decision-support entrypoint model regression tests now live in `src/mcp/decision_support/entrypoints/model/tests.rs`, keeping the entrypoint model focused on action-to-tool routing data.
+- Workspace toolchain aggregation now lives in `src/mcp/toolchain/workspace.rs`, leaving the root toolchain module focused on project-level profile detection.
 - Verification-evidence model regression tests now live in `src/mcp/verification_evidence/model/tests.rs`, leaving `model.rs` as a thin facade over gate, status, and workspace model modules.
 - Verification-evidence gate assessment helpers now live in `src/mcp/verification_evidence/model/gate.rs`, leaving the model facade focused on module wiring.
 - Verification-evidence workspace summary models now live in `src/mcp/verification_evidence/model/workspace.rs`, keeping workspace/project summary shaping separate from gate helper logic.
