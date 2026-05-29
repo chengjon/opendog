@@ -54,6 +54,7 @@ All notable changes to OPENDOG are documented here.
 - Project-guidance unused-file regression tests now live in `src/mcp/project_guidance/stats_unused/unused/tests.rs`, keeping the unused-file module focused on classification and summary helpers.
 - MCP request-parameter parsing regression tests now live in `src/mcp/params/tests.rs`, keeping the params module focused on request shape parsing and validation helpers.
 - MCP tool-inventory regression tests now live in `src/mcp/tool_inventory/tests.rs`, keeping the inventory module focused on canonical tool metadata and accessors.
+- MCP project-recommendation sequencing regression tests now live in `src/mcp/project_recommendation/sequencing/tests.rs`, keeping the sequencing module focused on follow-up recommendation payload assembly.
 - MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/tests.rs`, keeping the recommendation module focused on project overview scoring and guidance construction.
 - MCP data-risk report regression tests now live in `src/mcp/data_risk/report/tests.rs`, keeping the report module focused on candidate report shaping and summary payload construction.
 - Config patching regression tests now live in `src/config/patching/tests.rs`, keeping the patching module focused on config update semantics and list-patch helpers.
