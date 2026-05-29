@@ -35,6 +35,7 @@ All notable changes to OPENDOG are documented here.
 - Monitor runtime helpers for process locks, inotify limit checks, thread cleanup, and timestamps now live in `src/core/monitor/runtime.rs`, keeping the monitor root focused on scanner/watcher orchestration and scan-result processing.
 - CLI guidance JSON integration assertions now live in focused `guidance_and_risk` and `verification` helper modules under `tests/integration_test/cli_guidance/json_outputs/`, leaving the root test focused on fixture setup and project registration.
 - Usage-trend bucket helper tests now live in `src/core/report/usage_trend/tests.rs`, keeping the report module focused on trend query construction and aggregation.
+- Mock/data-risk text-file and path-kind classification helpers now live in `src/mcp/mock_detection/path_classification.rs`, keeping the detector root focused on candidate extraction and scoring flow.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
