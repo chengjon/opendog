@@ -50,6 +50,7 @@ All notable changes to OPENDOG are documented here.
 - Storage governance lane/node query regression tests now live in `src/storage/queries/governance/tests.rs`, keeping the governance query module focused on SQL persistence and read-model helpers.
 - Storage retention query regression tests now live in `src/storage/queries/retention/tests.rs`, keeping the retention query module focused on SQL persistence and retained rollup helpers.
 - Workspace decision-brief and data-risk summary regression tests now live in `src/mcp/workspace_decision/tests.rs`, keeping the workspace decision module focused on decision payload assembly.
+- Project-guidance unused-file regression tests now live in `src/mcp/project_guidance/stats_unused/unused/tests.rs`, keeping the unused-file module focused on classification and summary helpers.
 - MCP request-parameter parsing regression tests now live in `src/mcp/params/tests.rs`, keeping the params module focused on request shape parsing and validation helpers.
 - MCP tool-inventory regression tests now live in `src/mcp/tool_inventory/tests.rs`, keeping the inventory module focused on canonical tool metadata and accessors.
 - MCP project-recommendation scoring regression tests now live in `src/mcp/project_recommendation/tests.rs`, keeping the recommendation module focused on project overview scoring and guidance construction.
