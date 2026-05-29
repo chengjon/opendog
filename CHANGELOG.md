@@ -54,6 +54,7 @@ All notable changes to OPENDOG are documented here.
 - Config loading and default-policy regression tests now live in `src/config/tests.rs`, keeping the root config module focused on project config types and persistence helpers.
 - Storage-maintenance model regression tests now live in `src/mcp/storage_maintenance/model/tests.rs`, keeping the model module focused on cleanup scope, policy, and recommendation data structures.
 - Repo-risk collection regression tests now live in `src/mcp/repo_risk/collection/tests.rs`, keeping the collection module focused on workspace repository evidence gathering.
+- MCP decision-constraint regression tests now live in `src/mcp/constraints/tests.rs`, keeping the constraints module focused on constraint extraction and payload assembly.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
