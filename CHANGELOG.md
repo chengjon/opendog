@@ -37,6 +37,7 @@ All notable changes to OPENDOG are documented here.
 - Usage-trend bucket helper tests now live in `src/core/report/usage_trend/tests.rs`, keeping the report module focused on trend query construction and aggregation.
 - Mock/data-risk text-file and path-kind classification helpers now live in `src/mcp/mock_detection/path_classification.rs`, keeping the detector root focused on candidate extraction and scoring flow.
 - MCP attention scoring and portfolio regression tests now live in `src/mcp/attention/tests.rs`, keeping the attention module focused on scoring, batching, enrichment, portfolio, and recommendation sorting logic.
+- Governance lifecycle and observation-hint regression tests now live in `src/core/governance/tests.rs`, keeping the core governance module focused on lane/node state transitions and query behavior.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
