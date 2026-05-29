@@ -48,6 +48,7 @@ All notable changes to OPENDOG are documented here.
 - Control fallback-routing regression tests now live in `src/control/fallback/tests.rs`, keeping the fallback facade focused on daemon-first routing and local-service handoff logic.
 - MCP toolchain detection and command-hint regression tests now live in `src/mcp/toolchain/tests.rs`, keeping the toolchain module focused on environment evidence extraction and payload construction.
 - Storage governance lane/node query regression tests now live in `src/storage/queries/governance/tests.rs`, keeping the governance query module focused on SQL persistence and read-model helpers.
+- Storage retention query regression tests now live in `src/storage/queries/retention/tests.rs`, keeping the retention query module focused on SQL persistence and retained rollup helpers.
 - Workspace decision-brief and data-risk summary regression tests now live in `src/mcp/workspace_decision/tests.rs`, keeping the workspace decision module focused on decision payload assembly.
 - MCP request-parameter parsing regression tests now live in `src/mcp/params/tests.rs`, keeping the params module focused on request shape parsing and validation helpers.
 - MCP tool-inventory regression tests now live in `src/mcp/tool_inventory/tests.rs`, keeping the inventory module focused on canonical tool metadata and accessors.
