@@ -1,0 +1,211 @@
+use super::*;
+use crate::storage::queries;
+use crate::storage::queries::SnapshotEntry;
+use rusqlite::params;
+
+fn test_db() -> Database {
+    let dir = tempfile::tempdir().unwrap();
+    let db_path = dir.path().join("test.db");
+    let db = Database::open_project(&db_path).unwrap();
+    Box::leak(Box::new(dir));
+    db
+}
+
+fn insert_snapshot(db: &Database, paths: &[&str]) {
+    let entries: Vec<SnapshotEntry> = paths
+        .iter()
+        .map(|&path| SnapshotEntry {
+            path: path.to_string(),
+            size: 100,
+            mtime: 0,
+            file_type: "rs".to_string(),
+            scan_timestamp: "1".to_string(),
+        })
+        .collect();
+    queries::insert_snapshot_batch(db, &entries).unwrap();
+}
+
+fn insert_stat(db: &Database, path: &str, access_count: i64) {
+    db.execute(
+        "INSERT INTO file_stats (file_path, access_count, estimated_duration_ms, modification_count, first_seen_time, last_updated)
+         VALUES (?1, ?2, 0, 0, '1', '1')",
+        params![path, access_count],
+    )
+    .unwrap();
+}
+
+#[test]
+fn csv_export_uses_deterministic_header() {
+    let csv = render_csv_export(&[StatsEntry {
+        file_path: "src/main.rs".to_string(),
+        size: 12,
+        file_type: "rs".to_string(),
+        access_count: 3,
+        estimated_duration_ms: 99,
+        modification_count: 1,
+        last_access_time: Some("1".to_string()),
+        first_seen_time: Some("1".to_string()),
+    }]);
+    assert_eq!(
+        csv.lines().next().unwrap_or_default(),
+        "file_path,file_type,size,access_count,estimated_duration_ms,modification_count,last_access_time,first_seen_time"
+    );
+}
+
+#[test]
+fn export_rows_supports_stats_unused_and_core_views() {
+    let db = test_db();
+    insert_snapshot(&db, &["used.rs", "unused.rs", "core.rs"]);
+    insert_stat(&db, "used.rs", 1);
+    insert_stat(&db, "core.rs", 10);
+
+    assert_eq!(export_rows(&db, ExportView::Stats, 5).unwrap().len(), 3);
+    assert_eq!(export_rows(&db, ExportView::Unused, 5).unwrap().len(), 1);
+    assert_eq!(export_rows(&db, ExportView::Core, 5).unwrap().len(), 1);
+}
+
+#[test]
+fn json_export_includes_portable_contract_fields() {
+    let export = build_portable_export(
+        "demo",
+        ExportFormat::Json,
+        ExportView::Stats,
+        ProjectSummary {
+            total_files: 1,
+            accessed_files: 1,
+            unused_files: 0,
+        },
+        vec![StatsEntry {
+            file_path: "src/main.rs".to_string(),
+            size: 12,
+            file_type: "rs".to_string(),
+            access_count: 3,
+            estimated_duration_ms: 99,
+            modification_count: 1,
+            last_access_time: Some("1".to_string()),
+            first_seen_time: Some("1".to_string()),
+        }],
+    );
+    let value: serde_json::Value =
+        serde_json::from_str(&render_json_export(&export).unwrap()).unwrap();
+    assert_eq!(value["schema_version"], PORTABLE_PROJECT_EXPORT_V1);
+    assert_eq!(value["project_id"], "demo");
+    assert_eq!(value["format"], "json");
+    assert_eq!(value["view"], "stats");
+    assert_eq!(value["row_count"], 1);
+}
+
+#[test]
+fn export_view_parse_rejects_invalid_value() {
+    let err = ExportView::parse("html").unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("view must be one of: stats, unused, core"));
+    assert!(err.to_string().contains("html"));
+}
+
+#[test]
+fn export_format_parse_rejects_invalid_value() {
+    let err = ExportFormat::parse("xml").unwrap_err();
+    assert!(err.to_string().contains("format must be one of: json, csv"));
+    assert!(err.to_string().contains("xml"));
+}
+
+// ── escape_csv_field unit tests ──
+
+#[test]
+fn escape_csv_field_plain_string_returned_as_is() {
+    assert_eq!(escape_csv_field("hello"), "hello");
+    assert_eq!(escape_csv_field("src/main.rs"), "src/main.rs");
+}
+
+#[test]
+fn escape_csv_field_comma_gets_quoted() {
+    assert_eq!(escape_csv_field("a,b"), "\"a,b\"");
+}
+
+#[test]
+fn escape_csv_field_double_quote_gets_doubled_and_quoted() {
+    assert_eq!(escape_csv_field("say \"hi\""), "\"say \"\"hi\"\"\"");
+}
+
+#[test]
+fn escape_csv_field_newline_gets_quoted() {
+    assert_eq!(escape_csv_field("line1\nline2"), "\"line1\nline2\"");
+}
+
+#[test]
+fn escape_csv_field_comma_and_double_quote() {
+    assert_eq!(escape_csv_field("a,\"b"), "\"a,\"\"b\"");
+}
+
+#[test]
+fn escape_csv_field_empty_string_returned_as_is() {
+    assert_eq!(escape_csv_field(""), "");
+}
+
+#[test]
+fn escape_csv_field_all_three_special_chars() {
+    assert_eq!(escape_csv_field("a,\"b\nc"), "\"a,\"\"b\nc\"");
+}
+
+// ── render_csv_export edge-case tests ──
+
+#[test]
+fn render_csv_export_empty_rows_produces_only_header() {
+    let csv = render_csv_export(&[]);
+    assert_eq!(
+        csv,
+        "file_path,file_type,size,access_count,estimated_duration_ms,modification_count,last_access_time,first_seen_time"
+    );
+    assert_eq!(csv.lines().count(), 1);
+}
+
+#[test]
+fn render_csv_export_none_optional_fields_render_empty() {
+    let csv = render_csv_export(&[StatsEntry {
+        file_path: "x.rs".to_string(),
+        size: 10,
+        file_type: "rs".to_string(),
+        access_count: 0,
+        estimated_duration_ms: 0,
+        modification_count: 0,
+        last_access_time: None,
+        first_seen_time: None,
+    }]);
+    let mut lines = csv.lines();
+    let _header = lines.next().unwrap();
+    let data_line = lines.next().unwrap();
+    // The last two fields (optional timestamps) should be empty strings
+    assert!(data_line.ends_with(","));
+    // There should be exactly 8 comma-separated values (7 commas)
+    assert_eq!(data_line.matches(',').count(), 7);
+}
+
+#[test]
+fn render_csv_export_column_order_matches_csv_columns() {
+    let row = StatsEntry {
+        file_path: "p".to_string(),
+        size: 1,
+        file_type: "py".to_string(),
+        access_count: 2,
+        estimated_duration_ms: 3,
+        modification_count: 4,
+        last_access_time: Some("T5".to_string()),
+        first_seen_time: Some("T6".to_string()),
+    };
+    let csv = render_csv_export(&[row]);
+    let mut lines = csv.lines();
+    let header = lines.next().unwrap();
+    assert_eq!(header, CSV_COLUMNS.join(","));
+    let data = lines.next().unwrap();
+    let fields: Vec<&str> = data.split(',').collect();
+    assert_eq!(fields[0], "p");
+    assert_eq!(fields[1], "py");
+    assert_eq!(fields[2], "1");
+    assert_eq!(fields[3], "2");
+    assert_eq!(fields[4], "3");
+    assert_eq!(fields[5], "4");
+    assert_eq!(fields[6], "T5");
+    assert_eq!(fields[7], "T6");
+}
