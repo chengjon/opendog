@@ -10,6 +10,7 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
+- Config ignore-pattern regression tests now live in `src/config/ignore/tests.rs`, keeping the ignore helper focused on path matching and default policy logic.
 - Storage database regression tests now live in `src/storage/database/tests.rs`, keeping the database facade focused on connection opening and schema initialization.
 - Structural hygiene contract checks for MCP surface documentation and OpenSpec archive placeholders now live in a focused helper module, leaving the main size-budget validator with room for future guards.
 - Structural hygiene tests are split between generic size-budget coverage and contract-guard coverage so both files stay comfortably below script size limits.
