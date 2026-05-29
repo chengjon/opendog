@@ -10,6 +10,7 @@ All notable changes to OPENDOG are documented here.
 
 ### Changed
 
+- Storage database regression tests now live in `src/storage/database/tests.rs`, keeping the database facade focused on connection opening and schema initialization.
 - Structural hygiene contract checks for MCP surface documentation and OpenSpec archive placeholders now live in a focused helper module, leaving the main size-budget validator with room for future guards.
 - Structural hygiene tests are split between generic size-budget coverage and contract-guard coverage so both files stay comfortably below script size limits.
 - Daemon runtime and shutdown-signal setup failures now flow through logged `OpenDogError` handling instead of production `expect` panics.
