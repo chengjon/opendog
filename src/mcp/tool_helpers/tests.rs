@@ -1,0 +1,243 @@
+use super::*;
+use std::io;
+
+#[test]
+fn error_code_project_exists() {
+    let err = OpenDogError::ProjectExists("demo".into());
+    assert_eq!(open_dog_error_code(&err), "project_exists");
+}
+
+#[test]
+fn error_code_project_not_found() {
+    let err = OpenDogError::ProjectNotFound("demo".into());
+    assert_eq!(open_dog_error_code(&err), "project_not_found");
+}
+
+#[test]
+fn error_code_invalid_project_id() {
+    let err = OpenDogError::InvalidProjectId("bad!".into());
+    assert_eq!(open_dog_error_code(&err), "invalid_project_id");
+}
+
+#[test]
+fn error_code_invalid_path() {
+    let err = OpenDogError::InvalidPath("/nope".into());
+    assert_eq!(open_dog_error_code(&err), "invalid_path");
+}
+
+#[test]
+fn error_code_invalid_verification() {
+    let err = OpenDogError::InvalidVerification("bad".into());
+    assert_eq!(open_dog_error_code(&err), "invalid_verification");
+}
+
+#[test]
+fn error_code_verification_record_missing() {
+    let err = OpenDogError::VerificationRecordMissing("x".into());
+    assert_eq!(open_dog_error_code(&err), "verification_record_missing");
+}
+
+#[test]
+fn error_code_governance_lane_not_found() {
+    let err = OpenDogError::GovernanceLaneNotFound("lane-1".into());
+    assert_eq!(open_dog_error_code(&err), "governance_lane_not_found");
+}
+
+#[test]
+fn error_code_governance_node_state_required() {
+    let err = OpenDogError::GovernanceNodeStateRequired("node-1".into());
+    assert_eq!(open_dog_error_code(&err), "governance_node_state_required");
+}
+
+#[test]
+fn error_code_invalid_input() {
+    let err = OpenDogError::InvalidInput("wat".into());
+    assert_eq!(open_dog_error_code(&err), "invalid_input");
+}
+
+#[test]
+fn error_code_daemon_already_running() {
+    let err = OpenDogError::DaemonAlreadyRunning("123".into());
+    assert_eq!(open_dog_error_code(&err), "daemon_already_running");
+}
+
+#[test]
+fn error_code_monitor_already_running() {
+    let err = OpenDogError::MonitorAlreadyRunning("demo".into());
+    assert_eq!(open_dog_error_code(&err), "monitor_already_running");
+}
+
+#[test]
+fn error_code_daemon_unavailable() {
+    assert_eq!(
+        open_dog_error_code(&OpenDogError::DaemonUnavailable),
+        "daemon_unavailable"
+    );
+}
+
+#[test]
+fn error_code_daemon_control_unavailable() {
+    assert_eq!(
+        open_dog_error_code(&OpenDogError::DaemonControlUnavailable),
+        "daemon_control_unavailable"
+    );
+}
+
+#[test]
+fn error_code_daemon_response_integrity() {
+    let err = OpenDogError::DaemonResponseIntegrity("truncated".into());
+    assert_eq!(open_dog_error_code(&err), "daemon_response_integrity_error");
+}
+
+#[test]
+fn error_code_remote_control() {
+    let err = OpenDogError::RemoteControl("fail".into());
+    assert_eq!(open_dog_error_code(&err), "remote_control_error");
+}
+
+#[test]
+fn error_code_mcp() {
+    let err = OpenDogError::Mcp("oops".into());
+    assert_eq!(open_dog_error_code(&err), "mcp_error");
+}
+
+#[test]
+fn error_code_lock_poisoned() {
+    let err = OpenDogError::LockPoisoned("state".into());
+    assert_eq!(open_dog_error_code(&err), "lock_poisoned");
+}
+
+#[test]
+fn error_code_database() {
+    let err = OpenDogError::Database(rusqlite::Error::InvalidParameterName("x".into()));
+    assert_eq!(open_dog_error_code(&err), "database_error");
+}
+
+#[test]
+fn error_code_io() {
+    let err = OpenDogError::Io(io::Error::new(io::ErrorKind::NotFound, "gone"));
+    assert_eq!(open_dog_error_code(&err), "io_error");
+}
+
+#[test]
+fn error_code_serialization() {
+    let err = OpenDogError::Serialization(serde_json::from_str::<()>("bad").unwrap_err());
+    assert_eq!(open_dog_error_code(&err), "serialization_error");
+}
+
+#[test]
+fn error_code_schema_migration() {
+    let err = OpenDogError::SchemaMigration("v2".into());
+    assert_eq!(open_dog_error_code(&err), "schema_migration_error");
+}
+
+#[test]
+fn error_code_walk() {
+    let walk_err = walkdir::WalkDir::new("/nonexistent_opendog_test_path_xyz")
+        .into_iter()
+        .find_map(|r| r.err())
+        .expect("walking a nonexistent dir should produce an error");
+    let err = OpenDogError::Walk(walk_err);
+    assert_eq!(open_dog_error_code(&err), "walk_error");
+}
+
+// validation_error_json tests
+
+#[test]
+fn validation_error_json_without_project() {
+    let Json(value) = validation_error_json("v1", None, "bad_request", "missing field");
+    assert_eq!(value["schema_version"], "v1");
+    assert_eq!(value["status"], "error");
+    assert_eq!(value["error_code"], "bad_request");
+    assert_eq!(value["error"], "missing field");
+    assert!(value.get("project_id").is_none());
+}
+
+#[test]
+fn validation_error_json_with_project() {
+    let Json(value) = validation_error_json("v1", Some("demo"), "bad_request", "missing field");
+    assert_eq!(value["schema_version"], "v1");
+    assert_eq!(value["project_id"], "demo");
+    assert_eq!(value["status"], "error");
+    assert_eq!(value["error_code"], "bad_request");
+    assert_eq!(value["error"], "missing field");
+}
+
+#[test]
+fn validation_error_json_carries_no_extra_fields() {
+    let Json(value) = validation_error_json("v1", None, "err", "msg");
+    assert!(value.get("remediation").is_none());
+}
+
+// error_json_for remediation branch tests
+
+#[test]
+fn error_json_for_daemon_control_unavailable_includes_remediation() {
+    let err = OpenDogError::DaemonControlUnavailable;
+    let Json(value) = error_json_for("test.v1", None, &err);
+    assert_eq!(value["status"], "error");
+    assert_eq!(value["error_code"], "daemon_control_unavailable");
+    let socket = value["remediation"]["socket_path"].as_str().unwrap();
+    assert!(
+        socket.contains(".opendog"),
+        "socket_path should contain '.opendog', got: {socket}"
+    );
+    let actions = value["remediation"]["suggested_actions"]
+        .as_array()
+        .unwrap();
+    assert_eq!(actions.len(), 3);
+}
+
+#[test]
+fn error_json_for_daemon_control_unavailable_with_project_id() {
+    let err = OpenDogError::DaemonControlUnavailable;
+    let Json(value) = error_json_for("test.v1", Some("proj-1"), &err);
+    assert_eq!(value["project_id"], "proj-1");
+    assert_eq!(value["error_code"], "daemon_control_unavailable");
+    assert!(value.get("remediation").is_some());
+    let actions = value["remediation"]["suggested_actions"]
+        .as_array()
+        .unwrap();
+    assert_eq!(actions.len(), 3);
+}
+
+#[test]
+fn error_json_for_daemon_response_integrity_includes_remediation() {
+    let err = OpenDogError::DaemonResponseIntegrity("truncated".into());
+    let Json(value) = error_json_for("test.v1", None, &err);
+    assert_eq!(value["error_code"], "daemon_response_integrity_error");
+    let actions = value["remediation"]["suggested_actions"]
+        .as_array()
+        .unwrap();
+    assert_eq!(actions.len(), 3);
+    let has_retry = actions
+        .iter()
+        .any(|a| a.as_str().unwrap().contains("Retry"));
+    assert!(
+        has_retry,
+        "suggested_actions should include an item containing 'Retry'"
+    );
+}
+
+#[test]
+fn error_json_for_generic_error_has_no_remediation() {
+    let err = OpenDogError::ProjectNotFound("x".into());
+    let Json(value) = error_json_for("test.v1", None, &err);
+    assert_eq!(value["error_code"], "project_not_found");
+    assert!(
+        value.get("remediation").is_none(),
+        "generic errors should not include a remediation field"
+    );
+}
+
+#[test]
+fn error_json_for_generic_error_with_project() {
+    let err = OpenDogError::ProjectNotFound("x".into());
+    let Json(value) = error_json_for("test.v1", Some("proj-2"), &err);
+    assert_eq!(value["project_id"], "proj-2");
+    assert_eq!(value["error_code"], "project_not_found");
+    assert!(
+        value.get("remediation").is_none(),
+        "generic errors should not include a remediation field even with project_id"
+    );
+}
