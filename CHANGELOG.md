@@ -44,6 +44,7 @@ All notable changes to OPENDOG are documented here.
 - Mock/data-risk detection regression tests now live in `src/mcp/mock_detection/tests.rs`, keeping the detector root focused on candidate extraction, evidence shaping, and scoring orchestration.
 - Decision-support execution-template enrichment regression tests now live in `src/mcp/decision_support/execution_templates/enrichment/tests.rs`, keeping the enrichment module focused on tool context and template data assembly.
 - Control-protocol request/response serialization regression tests now live in `src/control/protocol/tests.rs`, keeping the protocol module focused on daemon control message types and helpers.
+- MCP toolchain detection and command-hint regression tests now live in `src/mcp/toolchain/tests.rs`, keeping the toolchain module focused on environment evidence extraction and payload construction.
 - Extended MCP, verification, governance, orphan-scan, service, and error JSON contracts now live in `docs/json-contracts-mcp-governance.md`, keeping the root JSON contract index below its structural size ceiling.
 - Detailed MCP `get_guidance` request shapes, schema notes, and response-field guidance now live in `docs/mcp-tool-reference-get-guidance.md`, keeping the root MCP tool reference below its structural size ceiling while preserving canonical tool headings.
 
