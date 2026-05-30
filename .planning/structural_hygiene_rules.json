@@ -155,20 +155,6 @@
       "max_bytes": 10000
     },
     {
-      "name": "docs-reference",
-      "include": [
-        "docs/**/*.md"
-      ],
-      "exclude": [
-        "docs/json-contracts.md",
-        "docs/mcp-tool-reference.md",
-        "docs/project-exchange/reports/**/*.md",
-        "docs/superpowers/**/*.md"
-      ],
-      "max_lines": 950,
-      "max_bytes": 26000
-    },
-    {
       "name": "json-contracts",
       "include": [
         "docs/json-contracts.md"
@@ -183,40 +169,6 @@
       ],
       "max_lines": 1000,
       "max_bytes": 50000
-    },
-    {
-      "name": "project-exchange-reports",
-      "include": [
-        "docs/project-exchange/reports/**/*.md"
-      ],
-      "max_lines": 1500,
-      "max_bytes": 120000
-    },
-    {
-      "name": "planning-docs",
-      "include": [
-        ".planning/**/*.md"
-      ],
-      "max_lines": 650,
-      "max_bytes": 26000
-    },
-    {
-      "name": "root-docs",
-      "include": [
-        "README.md",
-        "CLAUDE.md",
-        "REVIEW.md"
-      ],
-      "max_lines": 600,
-      "max_bytes": 30000
-    },
-    {
-      "name": "quickstart-guide",
-      "include": [
-        "QUICKSTART.md"
-      ],
-      "max_lines": 1000,
-      "max_bytes": 60000
     }
   ]
 }
