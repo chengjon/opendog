@@ -1,7 +1,7 @@
 use super::*;
-use crate::config::ProjectConfigOverrides;
+use crate::config::{ProjectConfigOverrides, ProjectInfo};
 use crate::storage::queries::StatsEntry;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::path::PathBuf;
 
 fn make_project_info(id: &str, root: &str) -> ProjectInfo {
@@ -157,6 +157,47 @@ fn collect_workspace_data_risk_summaries_filters_by_candidate_type() {
     // With only mock path candidates, filtering to "hardcoded" eliminates mock,
     // leaving 0 mock and 0 hardcoded => no summary pushed
     assert!(summaries.is_empty());
+}
+
+#[test]
+fn workspace_data_risk_payload_wraps_projects_and_guidance() {
+    let dir = tempfile::tempdir().unwrap();
+    let mock_dir = dir.path().join("mocks");
+    std::fs::create_dir_all(&mock_dir).unwrap();
+    std::fs::write(mock_dir.join("data.json"), "{}").unwrap();
+
+    let project = make_project_info("proj-mock", dir.path().to_str().unwrap());
+    let entries = vec![make_stats_entry("mocks/data.json")];
+
+    let payload = workspace_data_risk_payload(
+        "test.workspace-data-risk.v1",
+        &[project],
+        "all",
+        "low",
+        5,
+        move |_p: &ProjectInfo| entries.clone(),
+        |_id: &str| None,
+    );
+
+    assert_eq!(payload["schema_version"], "test.workspace-data-risk.v1");
+    assert_eq!(payload["total_registered_projects"], 1);
+    assert_eq!(payload["matched_project_count"], 1);
+    assert_eq!(payload["candidate_type"], "all");
+    assert_eq!(payload["min_review_priority"], "low");
+    assert_eq!(payload["project_limit"], 5);
+    assert_eq!(payload["projects"].as_array().unwrap().len(), 1);
+    assert_eq!(payload["projects"][0]["project_id"], "proj-mock");
+    assert_eq!(
+        payload["guidance"]["layers"]["workspace_observation"]["matched_project_count"],
+        1
+    );
+    assert_eq!(
+        payload["guidance"]["layers"]["multi_project_portfolio"]["priority_projects"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 // --- decision_brief_payload ---
