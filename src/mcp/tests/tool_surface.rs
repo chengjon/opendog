@@ -17,7 +17,15 @@ fn registered_tool_names() -> BTreeSet<String> {
 }
 
 fn mcp_tool_router_source() -> &'static str {
-    include_str!("../server_tools.rs")
+    concat!(
+        include_str!("../server_tools.rs"),
+        include_str!("../server_tools/analysis.rs"),
+        include_str!("../server_tools/config.rs"),
+        include_str!("../server_tools/governance.rs"),
+        include_str!("../server_tools/lifecycle.rs"),
+        include_str!("../server_tools/risk.rs"),
+        include_str!("../server_tools/verification.rs"),
+    )
 }
 
 fn documented_tool_names() -> BTreeSet<String> {
