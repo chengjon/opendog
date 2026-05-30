@@ -128,7 +128,7 @@ fn mcp_tool_surface_excludes_operator_only_mutation_tools() {
 
 #[test]
 fn observation_tool_params_expose_path_classification_filter() {
-    let params_source = include_str!("../params.rs");
+    let params_source = include_str!("../params/basic.rs");
     let mcp_router_source = mcp_tool_router_source();
 
     assert!(params_source.contains("pub path_classification: Option<String>"));

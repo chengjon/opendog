@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::orphan::OrphanSubjectKind;
+use crate::core::orphan::{OrphanSubject, OrphanSubjectKind};
 use serde_json::json;
 
 // ---- RecordVerificationParams::into_parts ----
