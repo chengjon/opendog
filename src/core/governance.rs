@@ -1,141 +1,17 @@
+mod helpers;
+mod hints;
+mod types;
+
+use self::helpers::{json_to_string, now_timestamp, string_list_to_json};
+use self::hints::compute_observation_hints;
 use crate::error::{OpenDogError, Result};
 use crate::storage::database::Database;
-use crate::storage::queries::{
-    self, get_data_risk_cache, GovernanceLane, GovernanceNode, NewGovernanceLane,
-    UpsertGovernanceNode,
+use crate::storage::queries::{self, GovernanceLane, NewGovernanceLane, UpsertGovernanceNode};
+
+pub use self::types::{
+    CloseLaneInput, CreateLaneInput, GetGovernanceStateInput, GovernanceLaneSummary,
+    GovernanceState, ObservationHints, UpsertNodeInput, UpsertNodeResult,
 };
-use serde::{Deserialize, Serialize};
-
-// ---------------------------------------------------------------------------
-// Input / output types
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateLaneInput {
-    pub lane_id: String,
-    pub title: String,
-    pub description: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpsertNodeInput {
-    pub node_id: String,
-    pub lane_id: String,
-    pub state: Option<String>,
-    pub summary: Option<String>,
-    pub evidence_refs: Option<Vec<String>>,
-    pub artifact_refs: Option<Vec<String>>,
-    pub reported_git_head: Option<String>,
-    pub suggested_next: Option<String>,
-    pub forbidden_scope: Option<Vec<String>>,
-    pub external_anchors: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetGovernanceStateInput {
-    pub lane_id: Option<String>,
-    pub node_id: Option<String>,
-    pub active_only: Option<bool>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CloseLaneInput {
-    pub lane_id: String,
-    pub action: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ObservationHints {
-    pub snapshot_freshness: String,
-    pub verification_status: String,
-    pub data_risk_candidates: usize,
-    pub unused_files: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GovernanceState {
-    pub lanes: Vec<GovernanceLaneSummary>,
-    pub nodes: Vec<GovernanceNode>,
-    pub observation_hints: ObservationHints,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GovernanceLaneSummary {
-    pub lane_id: String,
-    pub title: String,
-    pub status: String,
-    pub node_count: usize,
-    pub active_nodes: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpsertNodeResult {
-    pub node_id: String,
-    pub lane_id: String,
-    pub state: String,
-    pub created: bool,
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-fn now_timestamp() -> String {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    now.as_secs().to_string()
-}
-
-fn json_to_string(val: &Option<serde_json::Value>) -> Option<String> {
-    val.as_ref().map(|v| v.to_string())
-}
-
-fn string_list_to_json(list: &Option<Vec<String>>) -> Option<String> {
-    list.as_ref()
-        .map(|items| serde_json::to_string(items).unwrap_or_else(|_| "[]".to_string()))
-}
-
-fn compute_observation_hints(db: &Database) -> ObservationHints {
-    // Snapshot freshness — check if any snapshot data exists
-    let snapshot_freshness = if let Ok(entries) = queries::get_snapshot_paths(db) {
-        if !entries.is_empty() {
-            "fresh"
-        } else {
-            "unknown"
-        }
-    } else {
-        "unknown"
-    };
-
-    // Verification status
-    let verification_status = match queries::get_latest_verification_runs(db) {
-        Ok(runs) if runs.iter().all(|r| r.status == "passed") => "passed",
-        Ok(runs) if runs.is_empty() => "not_recorded",
-        _ => "failed",
-    };
-
-    // Unused files count
-    let unused_files = queries::count_unused(db).unwrap_or(0) as usize;
-
-    // Data risk candidates — read from cache populated by data-risk detection
-    let data_risk_candidates: usize = get_data_risk_cache(db)
-        .ok()
-        .flatten()
-        .map(|c| c.mock_candidate_count + c.hardcoded_candidate_count)
-        .unwrap_or(0);
-
-    ObservationHints {
-        snapshot_freshness: snapshot_freshness.to_string(),
-        verification_status: verification_status.to_string(),
-        data_risk_candidates,
-        unused_files,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Public business logic
-// ---------------------------------------------------------------------------
 
 /// Create a new governance lane.
 pub fn create_lane(db: &Database, input: CreateLaneInput) -> Result<GovernanceLane> {
@@ -298,10 +174,6 @@ pub fn close_lane(db: &Database, input: CloseLaneInput) -> Result<(String, usize
         ))),
     }
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests;
