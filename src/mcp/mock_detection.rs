@@ -1,124 +1,28 @@
-use std::fs;
 use std::path::Path;
 
 use crate::storage::queries::StatsEntry;
 
 use super::{path_kind_score, review_priority_score, DataCandidate, MockDataReport};
 
+mod content;
+mod hardcoded;
 mod path_classification;
 
+use self::content::{
+    content_has_template_placeholder, content_preview_snippet, count_keyword_hits,
+    matched_keywords, read_file_sample,
+};
+#[cfg(test)]
+use self::content::{next_char_boundary, previous_char_boundary};
+use self::hardcoded::{
+    allow_runtime_shared_hardcoded_amplification, discounted_weak_literal_hits,
+    hardcoded_confidence, hardcoded_review_priority, is_strong_hardcoded_combo,
+};
 use self::path_classification::{classify_path_kind, is_text_like_file, path_is_test_only};
 #[cfg(test)]
 use self::path_classification::{
     path_is_documentation, path_is_generated_artifact, path_is_runtime_shared,
 };
-
-fn read_file_sample(root: &Path, relative_path: &str) -> Option<String> {
-    let full_path = root.join(relative_path);
-    let metadata = fs::metadata(&full_path).ok()?;
-    if metadata.len() > 128 * 1024 {
-        return None;
-    }
-    let bytes = fs::read(full_path).ok()?;
-    let sample_len = bytes.len().min(16 * 1024);
-    String::from_utf8(bytes[..sample_len].to_vec()).ok()
-}
-
-fn count_keyword_hits(haystack: &str, keywords: &[&str]) -> usize {
-    keywords.iter().filter(|kw| haystack.contains(**kw)).count()
-}
-
-fn content_has_template_placeholder(content_lower: &str) -> bool {
-    content_lower.contains("${")
-        || content_lower.contains("{{")
-        || content_lower.contains("<your_")
-        || content_lower.contains("<insert_")
-        || content_lower.contains("example.com")
-}
-
-fn is_strong_hardcoded_combo(
-    path_classification: &str,
-    business_hits: usize,
-    literal_hits: usize,
-) -> bool {
-    match path_classification {
-        "runtime_shared" => business_hits >= 2 && literal_hits >= 2,
-        "test_only" | "generated_artifact" => false,
-        _ => business_hits >= 3 && literal_hits >= 2,
-    }
-}
-
-fn allow_runtime_shared_hardcoded_amplification(
-    path_classification: &str,
-    combo_is_strong: bool,
-) -> bool {
-    path_classification == "runtime_shared" && combo_is_strong
-}
-
-fn hardcoded_review_priority(
-    path_classification: &str,
-    has_template_placeholder: bool,
-) -> &'static str {
-    if path_classification == "runtime_shared" && !has_template_placeholder {
-        "high"
-    } else if path_classification == "documentation" || has_template_placeholder {
-        "low"
-    } else {
-        "medium"
-    }
-}
-
-fn hardcoded_confidence(path_classification: &str, has_template_placeholder: bool) -> &'static str {
-    if path_classification == "runtime_shared" && !has_template_placeholder {
-        "high"
-    } else if path_classification == "documentation" || has_template_placeholder {
-        "low"
-    } else {
-        "medium"
-    }
-}
-
-fn discounted_weak_literal_hits(raw_weak_hits: usize) -> usize {
-    raw_weak_hits / 2
-}
-
-fn matched_keywords(haystack: &str, keywords: &[&str], limit: usize) -> Vec<String> {
-    keywords
-        .iter()
-        .filter(|kw| haystack.contains(**kw))
-        .take(limit)
-        .map(|kw| (*kw).to_string())
-        .collect()
-}
-
-fn content_preview_snippet(content: &str, keywords: &[String]) -> Option<String> {
-    let lower = content.to_lowercase();
-    for keyword in keywords {
-        if let Some(index) = lower.find(keyword) {
-            let start = previous_char_boundary(content, index.saturating_sub(24));
-            let end = next_char_boundary(content, (index + keyword.len() + 40).min(content.len()));
-            let snippet = content[start..end].replace(['\n', '\r'], " ");
-            return Some(snippet);
-        }
-    }
-    None
-}
-
-fn previous_char_boundary(value: &str, mut index: usize) -> usize {
-    index = index.min(value.len());
-    while index > 0 && !value.is_char_boundary(index) {
-        index -= 1;
-    }
-    index
-}
-
-fn next_char_boundary(value: &str, mut index: usize) -> usize {
-    index = index.min(value.len());
-    while index < value.len() && !value.is_char_boundary(index) {
-        index += 1;
-    }
-    index
-}
 
 pub(crate) fn detect_mock_data_report(root: &Path, entries: &[StatsEntry]) -> MockDataReport {
     let strong_mock_path_tokens = [
