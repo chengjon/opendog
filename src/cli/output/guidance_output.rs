@@ -4,15 +4,15 @@ mod decision_brief_output;
 
 use serde_json::Value;
 
-pub(super) fn print_agent_guidance(guidance: &Value) {
+pub fn print_agent_guidance(guidance: &Value) {
     agent_guidance_output::print_agent_guidance(guidance);
 }
 
-pub(super) fn print_decision_brief(payload: &Value) {
+pub fn print_decision_brief(payload: &Value) {
     decision_brief_output::print_decision_brief(payload);
 }
 
-pub(super) fn print_data_risk(
+pub fn print_data_risk(
     id: &str,
     candidate_type: &str,
     min_review_priority: &str,
@@ -22,7 +22,7 @@ pub(super) fn print_data_risk(
     data_risk_output::print_data_risk(id, candidate_type, min_review_priority, rendered, guidance);
 }
 
-pub(super) fn print_workspace_data_risk(
+pub fn print_workspace_data_risk(
     candidate_type: &str,
     min_review_priority: &str,
     project_limit: usize,

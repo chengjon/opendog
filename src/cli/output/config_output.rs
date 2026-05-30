@@ -3,14 +3,14 @@ use crate::config::{
     ProjectConfigView, RetentionPolicy,
 };
 
-pub(super) fn print_global_config(config: &ProjectConfig) {
+pub fn print_global_config(config: &ProjectConfig) {
     println!("Global defaults:");
     print_vec("  Ignore patterns", &config.ignore_patterns);
     print_vec("  Process whitelist", &config.process_whitelist);
     print_retention_policy("  Retention policy", &config.retention);
 }
 
-pub(super) fn print_project_config(view: &ProjectConfigView) {
+pub fn print_project_config(view: &ProjectConfigView) {
     println!("Project '{}' configuration:", view.project_id);
     print_vec(
         "  Effective ignore patterns",
@@ -48,7 +48,7 @@ pub(super) fn print_project_config(view: &ProjectConfigView) {
     );
 }
 
-pub(super) fn print_project_config_update(result: &ProjectConfigUpdateResult) {
+pub fn print_project_config_update(result: &ProjectConfigUpdateResult) {
     print_project_config(&ProjectConfigView {
         project_id: result.project_id.clone(),
         global_defaults: result.global_defaults.clone(),
@@ -59,7 +59,7 @@ pub(super) fn print_project_config_update(result: &ProjectConfigUpdateResult) {
     print_reload_summary(&result.project_id, &result.reload);
 }
 
-pub(super) fn print_global_config_update(result: &GlobalConfigUpdateResult) {
+pub fn print_global_config_update(result: &GlobalConfigUpdateResult) {
     print_global_config(&result.global_defaults);
     println!();
     println!(
@@ -82,7 +82,7 @@ pub(super) fn print_global_config_update(result: &GlobalConfigUpdateResult) {
     );
 }
 
-pub(super) fn print_project_config_reload(
+pub fn print_project_config_reload(
     id: &str,
     reload: &ProjectConfigReload,
     effective: &ProjectConfig,

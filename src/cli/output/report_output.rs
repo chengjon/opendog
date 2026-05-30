@@ -4,7 +4,7 @@ use crate::core::report::{
 
 use super::truncate;
 
-pub(super) fn print_time_window_report(id: &str, report: &TimeWindowReport) {
+pub fn print_time_window_report(id: &str, report: &TimeWindowReport) {
     println!(
         "Project '{}' — window={} sightings={} files={} processes={} modifications={}",
         id,
@@ -39,7 +39,7 @@ pub(super) fn print_time_window_report(id: &str, report: &TimeWindowReport) {
     }
 }
 
-pub(super) fn print_snapshot_comparison(id: &str, comparison: &SnapshotComparison) {
+pub fn print_snapshot_comparison(id: &str, comparison: &SnapshotComparison) {
     println!(
         "Project '{}' — snapshot {} -> {}",
         id, comparison.base_run.run_id, comparison.head_run.run_id
@@ -71,7 +71,7 @@ pub(super) fn print_snapshot_comparison(id: &str, comparison: &SnapshotCompariso
     }
 }
 
-pub(super) fn print_usage_trends(id: &str, report: &UsageTrendReport) {
+pub fn print_usage_trends(id: &str, report: &UsageTrendReport) {
     println!(
         "Project '{}' — trend window={} bucket={} tracked_files={}",
         id, report.window, report.summary.bucket_size, report.summary.tracked_files
@@ -106,7 +106,7 @@ pub(super) fn print_usage_trends(id: &str, report: &UsageTrendReport) {
     }
 }
 
-pub(super) fn print_activity_rollups(id: &str, report: &ActivityRollupReport) {
+pub fn print_activity_rollups(id: &str, report: &ActivityRollupReport) {
     println!(
         "Project '{}' — activity rollups window={} bucket={} returned_days={}/{}",
         id,

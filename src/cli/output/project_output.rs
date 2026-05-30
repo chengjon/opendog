@@ -7,20 +7,20 @@ use crate::storage::queries::StatsEntry;
 
 use super::truncate;
 
-pub(super) fn print_registered(info: &ProjectInfo) {
+pub fn print_registered(info: &ProjectInfo) {
     println!("Project '{}' registered.", info.id);
     println!("  Root: {}", info.root_path.display());
     println!("  DB:   {}", info.db_path.display());
 }
 
-pub(super) fn print_snapshot_result(id: &str, result: &SnapshotResult) {
+pub fn print_snapshot_result(id: &str, result: &SnapshotResult) {
     println!("Snapshot for project '{}':", id);
     println!("  Total files:  {}", result.total_files);
     println!("  New files:    {}", result.new_files);
     println!("  Removed:      {}", result.removed_files);
 }
 
-pub(super) fn print_stats(
+pub fn print_stats(
     id: &str,
     summary: &ProjectSummary,
     entries: &[StatsEntry],
@@ -74,7 +74,7 @@ pub(super) fn print_stats(
     }
 }
 
-pub(super) fn print_unused(
+pub fn print_unused(
     id: &str,
     unused: &[StatsEntry],
     filter: FilePathClassificationFilter,
@@ -111,7 +111,7 @@ pub(super) fn print_unused(
     }
 }
 
-pub(super) fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupResult) {
+pub fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupResult) {
     println!(
         "Project '{}' — cleanup scope={} dry_run={} vacuum={}",
         id, result.scope, result.dry_run, result.vacuum
@@ -162,7 +162,7 @@ pub(super) fn print_cleanup_data_result(id: &str, result: &ProjectDataCleanupRes
     }
 }
 
-pub(super) fn print_project_list(projects: &[ProjectInfo]) {
+pub fn print_project_list(projects: &[ProjectInfo]) {
     if projects.is_empty() {
         println!("No projects registered.");
         return;

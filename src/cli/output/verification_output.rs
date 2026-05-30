@@ -3,7 +3,7 @@ use crate::storage::queries::VerificationRun;
 
 use super::truncate;
 
-pub(super) fn print_verification_recorded(id: &str, run: &VerificationRun) {
+pub fn print_verification_recorded(id: &str, run: &VerificationRun) {
     println!(
         "Recorded {} result for project '{}': {} ({})",
         run.kind, id, run.status, run.command
@@ -17,7 +17,7 @@ pub(super) fn print_verification_recorded(id: &str, run: &VerificationRun) {
     println!("  Finished: {}", run.finished_at);
 }
 
-pub(super) fn print_verification_status(id: &str, runs: &[VerificationRun]) {
+pub fn print_verification_status(id: &str, runs: &[VerificationRun]) {
     println!("Latest verification results for project '{}':", id);
     if runs.is_empty() {
         println!("  No verification results recorded yet.");
@@ -43,7 +43,7 @@ pub(super) fn print_verification_status(id: &str, runs: &[VerificationRun]) {
     }
 }
 
-pub(super) fn print_verification_executed(id: &str, result: &ExecutedVerificationResult) {
+pub fn print_verification_executed(id: &str, result: &ExecutedVerificationResult) {
     println!(
         "Executed {} verification for project '{}': {} ({})",
         result.run.kind, id, result.run.status, result.run.command
