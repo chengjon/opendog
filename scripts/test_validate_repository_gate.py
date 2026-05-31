@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -32,6 +33,15 @@ class RepositoryGateTests(unittest.TestCase):
             ],
             command_names,
         )
+
+    def test_github_workflow_delegates_to_repository_gate(self) -> None:
+        workflow = REPO_ROOT / ".github" / "workflows" / "repository-gate.yml"
+        content = workflow.read_text()
+
+        self.assertIn("pull_request:", content)
+        self.assertIn("push:", content)
+        self.assertIn("@fission-ai/openspec@1.2.0", content)
+        self.assertIn("python3 scripts/validate_repository_gate.py", content)
 
     def test_main_stops_at_first_failure(self) -> None:
         calls: list[str] = []
