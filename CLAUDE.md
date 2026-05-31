@@ -25,6 +25,17 @@ cargo run -- data-risk --id myproject             # project data-risk view
 cargo run -- workspace-data-risk                  # workspace data-risk view
 ```
 
+Validation gates:
+
+```bash
+cargo fmt --check
+cargo test --quiet
+cargo clippy --all-targets --all-features -- -D warnings
+python3 scripts/validate_tech_debt_baseline.py
+python3 scripts/validate_planning_governance.py
+python3 scripts/validate_structural_hygiene.py
+```
+
 ## Tech Stack
 
 | Component | Crate | Notes |

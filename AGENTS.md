@@ -9,7 +9,8 @@
 `cargo test` runs the full suite; `cargo test test_snapshot` narrows to snapshot coverage; `RUST_LOG=debug cargo test -- --nocapture` helps debug failures.
 `cargo clippy --all-targets --all-features -- -D warnings` is the lint gate used throughout the repo.
 `cargo fmt --check` enforces standard Rust formatting.
-`python3 scripts/validate_planning_governance.py` validates task cards, FT mappings, roadmap counts, and structural hygiene.
+`python3 scripts/validate_tech_debt_baseline.py` validates the full technical-debt baseline, including Rust check/clippy and dependency observations.
+`python3 scripts/validate_planning_governance.py` validates task cards, FT mappings, roadmap counts, structural hygiene, and the lightweight technical-debt baseline gate.
 
 ## Coding Style & Naming Conventions
 Follow Rust 2021 defaults: 4-space indentation, `snake_case` for files/functions/modules, `UpperCamelCase` for types, and `SCREAMING_SNAKE_CASE` for constants. Keep CLI/MCP handlers thin and move reusable logic into `core`, `control`, `storage`, or focused `mcp` helpers. Prefer extending small submodules over growing catch-all files, especially around `src/mcp/` and planning-related validators.
