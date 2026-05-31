@@ -13,6 +13,7 @@ class ExternalSecurityAuditWorkflowTests(unittest.TestCase):
 
         self.assertIn("workflow_dispatch:", content)
         self.assertIn("cron:", content)
+        self.assertIn('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"', content)
         self.assertIn("cargo install cargo-audit --version 0.22.1 --locked", content)
         self.assertIn("cargo audit --color never", content)
         self.assertIn("cargo install cargo-deny --version 0.19.8 --locked", content)
