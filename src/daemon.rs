@@ -235,14 +235,58 @@ fn spawn_background_daemon() -> crate::error::Result<()> {
 }
 
 fn wait_for_daemon_ready(timeout: std::time::Duration) -> crate::error::Result<()> {
+    use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+    use std::sync::mpsc;
+
+    let socket_path = config::daemon_socket_path();
+    let (event_tx, event_rx) = mpsc::channel::<()>();
+    let callback_tx = event_tx.clone();
+    let mut _event_tx_keepalive = Some(event_tx);
+    let mut _watcher = None;
+    if let Some(parent) = socket_path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            warn!(error = %e, "Failed to prepare daemon socket watch directory");
+        } else {
+            let watched_socket_path = socket_path.clone();
+            match RecommendedWatcher::new(
+                move |res: std::result::Result<notify::Event, notify::Error>| {
+                    if let Ok(event) = res {
+                        if event.paths.iter().any(|path| path == &watched_socket_path) {
+                            let _ = callback_tx.send(());
+                        }
+                    }
+                },
+                Config::default(),
+            ) {
+                Ok(mut watcher) => {
+                    if let Err(e) = watcher.watch(parent, RecursiveMode::NonRecursive) {
+                        warn!(error = %e, "Failed to watch daemon socket directory");
+                    } else {
+                        _event_tx_keepalive = None;
+                        _watcher = Some(watcher);
+                    }
+                }
+                Err(e) => warn!(error = %e, "Failed to create daemon socket watcher"),
+            }
+        }
+    }
+
     let deadline = std::time::Instant::now() + timeout;
     loop {
         match DaemonClient::new().ping() {
             Ok(()) => return Ok(()),
-            Err(OpenDogError::DaemonUnavailable | OpenDogError::DaemonControlUnavailable)
-                if std::time::Instant::now() < deadline =>
-            {
-                std::thread::sleep(std::time::Duration::from_millis(100));
+            Err(e @ (OpenDogError::DaemonUnavailable | OpenDogError::DaemonControlUnavailable)) => {
+                let now = std::time::Instant::now();
+                if now >= deadline {
+                    return Err(e);
+                }
+                let remaining = deadline.saturating_duration_since(now);
+                let wait_for = if socket_path.exists() {
+                    remaining.min(std::time::Duration::from_millis(100))
+                } else {
+                    remaining
+                };
+                let _ = event_rx.recv_timeout(wait_for);
             }
             Err(e) => return Err(e),
         }
