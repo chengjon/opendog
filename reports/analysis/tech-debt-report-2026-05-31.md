@@ -45,7 +45,7 @@ Measured state:
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
 - `python3 scripts/validate_tech_debt_baseline.py`: passed.
-- Structural hygiene scan: 497 files within configured size budgets.
+- Structural hygiene scan: 499 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -154,7 +154,7 @@ P1 - Current iteration:
 
 P2 - Next iteration:
 
-- Review the first scheduled/manual `External Security Audit` run and decide whether it should stay independent or become required before releases.
+- Keep `External Security Audit` independent from the standard repository gate unless release policy later requires external security scans on every release branch.
 - Decide whether to add `cargo-deny` policy checks later for license/source policy, separate from `cargo-audit` CVE checks.
 - Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
 
@@ -178,6 +178,7 @@ python3 scripts/validate_structural_hygiene.py
 python3 scripts/validate_tech_debt_baseline.py
 python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 python3 scripts/validate_repository_gate.py
+python3 scripts/check_external_security_audit_status.py --repo chengjon/opendog --branch master --max-age-hours 168
 git diff --check
 ```
 
@@ -199,4 +200,5 @@ External workflow:
 
 ```bash
 gh workflow run "External Security Audit"
+python3 scripts/check_external_security_audit_status.py --repo chengjon/opendog --branch master --max-age-hours 168
 ```

@@ -31,6 +31,7 @@ def gate_commands() -> list[GateCommand]:
                 "python3",
                 "-m",
                 "unittest",
+                "scripts.test_check_external_security_audit_status",
                 "scripts.test_external_security_audit_workflow",
                 "scripts.test_validate_structural_hygiene",
                 "scripts.test_structural_contract_guards",
