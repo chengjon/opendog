@@ -1,9 +1,10 @@
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use opendog::contracts::CLI_DECISION_BRIEF_V1;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
-use std::thread::sleep;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
@@ -16,15 +17,46 @@ mod report_flow;
 
 fn wait_for_daemon_ready(home: &Path) {
     let socket = home.join(".opendog/data/daemon.sock");
+    let socket_dir = socket.parent().expect("daemon socket should have a parent");
+    fs::create_dir_all(socket_dir).expect("daemon socket directory should be creatable");
+
+    let (tx, rx) = mpsc::channel::<()>();
+    let watched_socket = socket.clone();
+    let mut watcher = RecommendedWatcher::new(
+        move |res: std::result::Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                if event.paths.iter().any(|path| path == &watched_socket) {
+                    let _ = tx.send(());
+                }
+            }
+        },
+        Config::default(),
+    )
+    .expect("daemon socket watcher should start");
+    watcher
+        .watch(socket_dir, RecursiveMode::NonRecursive)
+        .expect("daemon socket directory should be watchable");
+
     let deadline = Instant::now() + Duration::from_secs(5);
-    while Instant::now() < deadline {
+    loop {
         if socket.exists() {
             let output = run_cli(home, &["list"]);
             if output.status.success() {
                 return;
             }
         }
-        sleep(Duration::from_millis(100));
+        let now = Instant::now();
+        if now >= deadline {
+            break;
+        }
+
+        let remaining = deadline.saturating_duration_since(now);
+        let wait_for = if socket.exists() {
+            remaining.min(Duration::from_millis(100))
+        } else {
+            remaining
+        };
+        let _ = rx.recv_timeout(wait_for);
     }
     panic!("daemon socket did not become ready: {}", socket.display());
 }

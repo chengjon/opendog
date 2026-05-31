@@ -20,7 +20,7 @@
   "ignored_test_count": 0,
   "should_panic_test_count": 0,
   "test_placeholder_assert_count": 0,
-  "test_sleep_call_count": 7,
+  "test_sleep_call_count": 5,
   "backend_todo_count": 0,
   "backend_placeholder_count": 0,
   "large_file_count_python": 0,
@@ -112,14 +112,6 @@
       },
       {
         "file": "src/core/monitor.rs",
-        "count": 1
-      },
-      {
-        "file": "src/cli/project_commands/lifecycle.rs",
-        "count": 1
-      },
-      {
-        "file": "tests/integration_test/daemon_process_cli.rs",
         "count": 1
       }
     ]

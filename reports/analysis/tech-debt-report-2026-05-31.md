@@ -65,19 +65,17 @@ Measured state:
 - `should_panic` tests: 0.
 - Placeholder assertions: 0.
 - Test TODO/FIXME/HACK/XXX comments: 0.
-- Sleep calls in test-bearing files: 7.
+- Sleep calls in test-bearing files: 5.
 
 Observed sleep call locations:
 
 - `src/daemon.rs`: 2.
 - `src/control/transport.rs`: 2.
 - `src/core/monitor.rs`: 1.
-- `src/cli/project_commands/lifecycle.rs`: 1.
-- `tests/integration_test/daemon_process_cli.rs`: 1.
 
 Notes:
 
-- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, and MCP session daemon teardown pid-file polling waits. Those tests now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, a process wait channel with timeout for daemon termination, and a file-system event watcher for pid-file removal. The remaining sleep calls are observed rather than gated because several are polling or timing-bound daemon/control paths. They should be revisited only when a deterministic readiness/event primitive is available.
+- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, MCP session daemon teardown pid-file polling waits, and daemon-process CLI readiness sleep polling. Those tests now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, a process wait channel with timeout for daemon termination, file-system event watchers for pid-file removal and socket creation, and command success checks for readiness. The remaining test-bearing-file sleep calls are observed rather than gated because all are polling or timing-bound daemon/control/monitor production paths. One additional foreground CLI monitor loop sleep remains in `src/cli/project_commands/lifecycle.rs` outside the test-bearing metric and should be revisited only with a deterministic stop/wakeup primitive.
 
 ## D4: Documentation
 
