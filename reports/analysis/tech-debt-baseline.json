@@ -1,0 +1,137 @@
+{
+  "metric_version": "v1.0",
+  "generated_at": "2026-05-31T02:27:49Z",
+  "generated_by": "Codex tech-debt-checker",
+  "project": "opendog",
+  "rust_check_errors": 0,
+  "rust_clippy_errors": 0,
+  "rust_clippy_warnings": 0,
+  "backend_lint_errors": 0,
+  "backend_lint_warnings": 0,
+  "production_panic_count": 0,
+  "production_unwrap_count": 0,
+  "production_expect_count": 0,
+  "production_allow_count": 0,
+  "production_todo_macro_count": 0,
+  "production_unimplemented_count": 0,
+  "production_dbg_count": 0,
+  "production_todo_comment_count": 0,
+  "skip_xfail_count": 0,
+  "ignored_test_count": 0,
+  "should_panic_test_count": 0,
+  "test_placeholder_assert_count": 0,
+  "test_sleep_call_count": 10,
+  "backend_todo_count": 0,
+  "backend_placeholder_count": 0,
+  "large_file_count_python": 0,
+  "large_file_count_frontend": 0,
+  "large_file_count_code": 0,
+  "policy_document_over_1000_count": 0,
+  "debt_exception_count": 0,
+  "duplicate_dependency_crate_count": 4,
+  "dependency_audit_available": false,
+  "secret_scan_available": false,
+  "backend_static_code_analysis": {
+    "files_analyzed": 489,
+    "rust_files_analyzed": 478,
+    "python_files_analyzed": 11,
+    "total_issues": 10,
+    "critical_issues": 0,
+    "warning_issues": 10,
+    "suggestion_issues": 0,
+    "docstring_issues": 0,
+    "type_annotation_issues": 0,
+    "pydantic_issues": 0,
+    "import_issues": 0,
+    "security_issues": 0,
+    "endpoint_function_issues": 0
+  },
+  "documentation_policy": {
+    "documents": [
+      {
+        "file": "docs/mcp-tool-reference.md",
+        "line_count": 846,
+        "line_limit": 1000,
+        "status": "within_policy"
+      },
+      {
+        "file": "docs/json-contracts.md",
+        "line_count": 773,
+        "line_limit": 1000,
+        "status": "within_policy"
+      }
+    ],
+    "historical_documents_excluded": true,
+    "function_tree_excluded": true
+  },
+  "dependency_observations": {
+    "direct_dependencies": 15,
+    "dev_dependencies": 2,
+    "duplicate_crates": [
+      "hashbrown",
+      "memchr",
+      "serde_core",
+      "serde_json"
+    ],
+    "local_low_risk_fix_available": false,
+    "notes": "hashbrown duplication is transitive via rusqlite/hashlink and process-wrap/indexmap; serde-related duplicates are same-version normal/proc-macro graph contexts."
+  },
+  "test_observations": {
+    "sleep_call_files": [
+      {
+        "file": "src/daemon.rs",
+        "count": 2
+      },
+      {
+        "file": "src/control/transport.rs",
+        "count": 2
+      },
+      {
+        "file": "src/core/monitor.rs",
+        "count": 1
+      },
+      {
+        "file": "tests/integration_test/daemon_process_cli.rs",
+        "count": 2
+      },
+      {
+        "file": "tests/integration_test/mcp_session_reuse.rs",
+        "count": 2
+      },
+      {
+        "file": "tests/integration_test/daemon_control.rs",
+        "count": 1
+      }
+    ]
+  },
+  "dimension_ratings": {
+    "D1_code_quality": "A",
+    "D2_architecture": "A",
+    "D3_testing": "B",
+    "D4_documentation": "A",
+    "D5_dependencies": "C",
+    "D6_process_security": "B"
+  },
+  "gated_metrics": [
+    "rust_check_errors",
+    "rust_clippy_errors",
+    "production_panic_count",
+    "production_unwrap_count",
+    "production_expect_count",
+    "production_allow_count",
+    "production_todo_macro_count",
+    "production_unimplemented_count",
+    "production_dbg_count",
+    "ignored_test_count",
+    "should_panic_test_count",
+    "test_placeholder_assert_count",
+    "large_file_count_code",
+    "policy_document_over_1000_count"
+  ],
+  "observed_metrics": [
+    "test_sleep_call_count",
+    "duplicate_dependency_crate_count",
+    "dependency_audit_available",
+    "secret_scan_available"
+  ]
+}

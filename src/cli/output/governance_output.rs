@@ -78,6 +78,8 @@ pub fn print_lane_closed(id: &str, lane_id: &str, action: &str, status: &str, no
 fn truncate_str(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()
+    } else if max <= 3 {
+        ".".repeat(max)
     } else {
         s.chars().take(max - 3).collect::<String>() + "..."
     }
@@ -108,10 +110,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "subtract with overflow")]
-    fn truncate_str_max_zero_panics() {
-        // max=0 causes underflow in max-3; documents current behavior
-        let _ = truncate_str("abc", 0);
+    fn truncate_str_max_zero_returns_empty() {
+        assert_eq!(truncate_str("abc", 0), "");
     }
 
     #[test]
@@ -136,10 +136,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "subtract with overflow")]
-    fn truncate_str_max_two_panics() {
-        // max=2 causes underflow in max-3; documents current behavior
-        let _ = truncate_str("hello", 2);
+    fn truncate_str_max_two_returns_two_dots() {
+        assert_eq!(truncate_str("hello", 2), "..");
     }
 
     #[test]
