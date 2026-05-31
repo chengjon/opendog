@@ -56,9 +56,9 @@
     "findings": []
   },
   "backend_static_code_analysis": {
-    "files_analyzed": 502,
+    "files_analyzed": 503,
     "rust_files_analyzed": 478,
-    "python_files_analyzed": 24,
+    "python_files_analyzed": 25,
     "total_issues": 10,
     "critical_issues": 0,
     "warning_issues": 10,

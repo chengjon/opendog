@@ -6,7 +6,7 @@ Generated: 2026-05-31T02:27:49Z
 
 Overall status: WARN.
 
-The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because external vulnerability/security audit tools are not installed in the local environment and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix.
+The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix. External `cargo-audit` and `gitleaks` scans are now available through the independent `External Security Audit` workflow.
 
 Scope constraints honored:
 
@@ -45,7 +45,7 @@ Measured state:
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
 - `python3 scripts/validate_tech_debt_baseline.py`: passed.
-- Structural hygiene scan: 496 files within configured size budgets.
+- Structural hygiene scan: 497 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -109,6 +109,7 @@ Measured state:
 - Internal dependency audit: available via `internal-cargo-inventory`.
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
+- External dependency audit workflow: available via `.github/workflows/external-security-audit.yml`.
 - `cargo-audit`: unavailable.
 - `cargo-deny`: unavailable.
 
@@ -120,7 +121,7 @@ Dependency interpretation:
 
 Recommended next step:
 
-- Add `cargo-audit` or `cargo-deny` later if vulnerability database gating is required; the current built-in gate covers inventory/lockfile presence but does not claim CVE coverage.
+- Run the `External Security Audit` workflow manually or on its weekly schedule for CVE-backed `cargo-audit` coverage; the built-in gate covers inventory/lockfile presence in the standard repository gate.
 
 ## D6: Process And Security
 
@@ -132,12 +133,13 @@ Measured state:
 - Production TODO/FIXME/HACK/XXX comments: 0.
 - Internal high-confidence secret scan: available.
 - High-confidence secret findings: 0.
+- External secret scan workflow: available via `.github/workflows/external-security-audit.yml`.
 - `gitleaks`: unavailable.
 - `trufflehog`: unavailable.
 
 Notes:
 
-- The built-in secret scan covers high-confidence token/private-key patterns without storing matched secret values; external scanners remain optional future hardening.
+- The built-in secret scan covers high-confidence token/private-key patterns without storing matched secret values. The external workflow runs pinned `gitleaks` for broader scanner coverage outside the standard repository gate.
 - Governance and structural validators are passing and should remain part of the standard gate.
 
 ## Priority Plan
@@ -152,8 +154,8 @@ P1 - Current iteration:
 
 P2 - Next iteration:
 
-- Decide whether to add external CVE-backed dependency scanning through `cargo-audit` or `cargo-deny`.
-- Decide whether to add external historical/entropy-based secret scanning through `gitleaks` or another scanner.
+- Review the first scheduled/manual `External Security Audit` run and decide whether it should stay independent or become required before releases.
+- Decide whether to add `cargo-deny` policy checks later for license/source policy, separate from `cargo-audit` CVE checks.
 - Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
 
 P3 - Backlog:
@@ -189,8 +191,12 @@ python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/t
 Optional external measurements not available in this environment:
 
 ```bash
-cargo audit
 cargo deny check
-gitleaks detect
 trufflehog filesystem .
+```
+
+External workflow:
+
+```bash
+gh workflow run "External Security Audit"
 ```
