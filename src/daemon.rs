@@ -107,6 +107,7 @@ async fn run_daemon() -> crate::error::Result<()> {
 
     server_running.store(false, std::sync::atomic::Ordering::Relaxed);
     if let Some(thread) = control_thread {
+        thread.thread().unpark();
         let _ = thread.join();
     }
 

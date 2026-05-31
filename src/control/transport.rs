@@ -70,11 +70,11 @@ pub fn spawn_control_server_at(
                     }
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    std::thread::sleep(Duration::from_millis(100));
+                    std::thread::park_timeout(Duration::from_millis(100));
                 }
                 Err(e) => {
                     warn!(error = %e, "Daemon control socket accept failed");
-                    std::thread::sleep(Duration::from_millis(200));
+                    std::thread::park_timeout(Duration::from_millis(200));
                 }
             }
         }
