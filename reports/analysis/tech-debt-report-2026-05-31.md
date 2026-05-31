@@ -1,6 +1,6 @@
 # Technical Debt Report - opendog
 
-Generated: 2026-05-31T15:39:11Z
+Generated: 2026-05-31T15:55:31Z
 
 ## Executive Summary
 
@@ -65,7 +65,7 @@ Measured state:
 - `should_panic` tests: 0.
 - Placeholder assertions: 0.
 - Test TODO/FIXME/HACK/XXX comments: 0.
-- Sleep calls in test-bearing files: 9.
+- Sleep calls in test-bearing files: 8.
 
 Observed sleep call locations:
 
@@ -74,11 +74,10 @@ Observed sleep call locations:
 - `src/core/monitor.rs`: 1.
 - `tests/integration_test/daemon_process_cli.rs`: 2.
 - `tests/integration_test/mcp_session_reuse.rs`: 1.
-- `tests/integration_test/daemon_control.rs`: 1.
 
 Notes:
 
-- Removed the redundant MCP session reuse socket polling wait; the second MCP session now relies on the normal daemon readiness path. The remaining sleep calls are observed rather than gated because several are polling or timing-bound daemon/control paths. They should be revisited only when a deterministic readiness/event primitive is available.
+- Removed redundant MCP session reuse socket polling and daemon-control startup polling waits; those tests now rely on the normal daemon readiness path and the fact that the control listener is bound before `spawn_control_server_at` returns. The remaining sleep calls are observed rather than gated because several are polling or timing-bound daemon/control paths. They should be revisited only when a deterministic readiness/event primitive is available.
 
 ## D4: Documentation
 

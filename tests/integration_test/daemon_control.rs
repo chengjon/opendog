@@ -14,7 +14,6 @@ use tempfile::TempDir;
 fn test_daemon_control_roundtrip() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
-    use std::time::{Duration, Instant};
 
     let dir = TempDir::new().unwrap();
     let data_dir = dir.path().join("data");
@@ -30,13 +29,7 @@ fn test_daemon_control_roundtrip() {
     let server = spawn_control_server_at(socket_path.clone(), controller, running.clone()).unwrap();
     let client = DaemonClient::with_socket_path(socket_path);
 
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while let Err(error) = client.ping() {
-        if Instant::now() >= deadline {
-            panic!("daemon control server did not become ready: {error}");
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
+    client.ping().unwrap();
     let info = client
         .create_project("demo", project_dir.to_str().unwrap())
         .unwrap();
