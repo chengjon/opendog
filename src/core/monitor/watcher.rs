@@ -4,22 +4,30 @@ use crate::storage::database::Database;
 use rusqlite::params;
 use std::path::Path;
 use std::sync::atomic::Ordering;
+use std::sync::mpsc;
 use std::sync::Arc;
-use std::time::Duration;
 use tracing::{error, info, warn};
 
 use super::{lock_snapshots::read_config_snapshot, now_secs, thread_finished, MonitorState};
 
-pub(super) fn start_file_watcher(db: &Database, root: &Path, state: &Arc<MonitorState>) {
-    use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-    use std::sync::mpsc;
+pub(super) enum WatcherMessage {
+    Event(notify::Event),
+    Stop,
+}
 
-    let (tx, rx) = mpsc::channel::<Event>();
+pub(super) fn start_file_watcher(
+    db: &Database,
+    root: &Path,
+    state: &Arc<MonitorState>,
+    rx: mpsc::Receiver<WatcherMessage>,
+    tx: mpsc::Sender<WatcherMessage>,
+) {
+    use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 
     let mut watcher = match RecommendedWatcher::new(
         move |res: std::result::Result<Event, notify::Error>| {
             if let Ok(event) = res {
-                let _ = tx.send(event);
+                let _ = tx.send(WatcherMessage::Event(event));
             }
         },
         Config::default(),
@@ -41,8 +49,8 @@ pub(super) fn start_file_watcher(db: &Database, root: &Path, state: &Arc<Monitor
     info!(root = %root.display(), "File watcher started");
 
     while state.running.load(Ordering::Relaxed) {
-        match rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(event) => {
+        match rx.recv() {
+            Ok(WatcherMessage::Event(event)) => {
                 let skip = event.paths.iter().any(|p| {
                     let name = p.file_name().unwrap_or_default().to_string_lossy();
                     name.ends_with(".db") || name.ends_with(".db-wal") || name.ends_with(".db-shm")
@@ -54,8 +62,7 @@ pub(super) fn start_file_watcher(db: &Database, root: &Path, state: &Arc<Monitor
                     warn!(error = %e, "Failed to record file event");
                 }
             }
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Ok(WatcherMessage::Stop) | Err(_) => break,
         }
     }
 

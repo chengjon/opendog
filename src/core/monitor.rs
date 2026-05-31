@@ -7,7 +7,7 @@ use rusqlite::params;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 use tracing::{debug, error, info};
 
@@ -31,12 +31,17 @@ struct MonitorState {
     running: AtomicBool,
     active_threads: AtomicUsize,
     lock_path: PathBuf,
+    scan_wait: Mutex<()>,
+    scan_wake: Condvar,
     config: std::sync::RwLock<ProjectConfig>,
     snapshot_paths: std::sync::RwLock<HashSet<String>>,
 }
 
 pub struct MonitorHandle {
     state: Arc<MonitorState>,
+    watcher_tx: std::sync::mpsc::Sender<watcher::WatcherMessage>,
+    scanner_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
+    watcher_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
 impl MonitorHandle {
@@ -45,7 +50,17 @@ impl MonitorHandle {
     }
 
     pub fn stop(&self) {
-        self.state.running.store(false, Ordering::Relaxed);
+        {
+            let _guard = match self.state.scan_wait.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            self.state.running.store(false, Ordering::Release);
+            self.state.scan_wake.notify_all();
+        }
+        let _ = self.watcher_tx.send(watcher::WatcherMessage::Stop);
+        Self::join_thread(&self.scanner_thread);
+        Self::join_thread(&self.watcher_thread);
     }
 
     pub fn current_config(&self) -> ProjectConfig {
@@ -56,6 +71,16 @@ impl MonitorHandle {
         lock_snapshots::replace_config_snapshot(&self.state, config);
         if let Some(snapshot_paths) = snapshot_paths {
             lock_snapshots::replace_snapshot_paths_snapshot(&self.state, snapshot_paths);
+        }
+    }
+
+    fn join_thread(thread: &Mutex<Option<std::thread::JoinHandle<()>>>) {
+        let thread = match thread.lock() {
+            Ok(mut guard) => guard.take(),
+            Err(poisoned) => poisoned.into_inner().take(),
+        };
+        if let Some(thread) = thread {
+            let _ = thread.join();
         }
     }
 }
@@ -78,17 +103,16 @@ pub fn start_monitor(
         running: AtomicBool::new(true),
         active_threads: AtomicUsize::new(2),
         lock_path: lock_path.clone(),
+        scan_wait: Mutex::new(()),
+        scan_wake: Condvar::new(),
         config: std::sync::RwLock::new(config),
         snapshot_paths: std::sync::RwLock::new(snapshot_paths),
     });
-    let handle = MonitorHandle {
-        state: state.clone(),
-    };
 
     let scanner_db_path = db_path.to_path_buf();
     let scanner_state = state.clone();
     let scanner_root = root_path.clone();
-    std::thread::spawn(move || {
+    let scanner_thread = std::thread::spawn(move || {
         let db = match Database::open_project(&scanner_db_path) {
             Ok(d) => d,
             Err(e) => {
@@ -122,7 +146,22 @@ pub fn start_monitor(
                 error!(error = %e, "Failed to process scan results");
             }
 
-            std::thread::sleep(Duration::from_secs(DEFAULT_SCAN_INTERVAL_SECS));
+            let guard = match scanner_state.scan_wait.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            if !scanner_state.running.load(Ordering::Acquire) {
+                break;
+            }
+            match scanner_state
+                .scan_wake
+                .wait_timeout(guard, Duration::from_secs(DEFAULT_SCAN_INTERVAL_SECS))
+            {
+                Ok((_guard, _timeout)) => {}
+                Err(poisoned) => {
+                    drop(poisoned.into_inner());
+                }
+            }
         }
 
         flush_open_durations(&db, &mut open_state, now_secs());
@@ -133,7 +172,9 @@ pub fn start_monitor(
     let watcher_db_path = db_path.to_path_buf();
     let watcher_state = state.clone();
     let watcher_root = root_path.clone();
-    std::thread::spawn(move || {
+    let (watcher_tx, watcher_rx) = std::sync::mpsc::channel::<watcher::WatcherMessage>();
+    let watcher_event_tx = watcher_tx.clone();
+    let watcher_thread = std::thread::spawn(move || {
         let db = match Database::open_project(&watcher_db_path) {
             Ok(d) => d,
             Err(e) => {
@@ -142,10 +183,21 @@ pub fn start_monitor(
                 return;
             }
         };
-        start_file_watcher(&db, &watcher_root, &watcher_state);
+        start_file_watcher(
+            &db,
+            &watcher_root,
+            &watcher_state,
+            watcher_rx,
+            watcher_event_tx,
+        );
     });
 
-    Ok(handle)
+    Ok(MonitorHandle {
+        state,
+        watcher_tx,
+        scanner_thread: Mutex::new(Some(scanner_thread)),
+        watcher_thread: Mutex::new(Some(watcher_thread)),
+    })
 }
 
 fn process_scan_results(

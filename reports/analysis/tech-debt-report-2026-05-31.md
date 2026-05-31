@@ -65,16 +65,13 @@ Measured state:
 - `should_panic` tests: 0.
 - Placeholder assertions: 0.
 - Test TODO/FIXME/HACK/XXX comments: 0.
-- Sleep calls in test-bearing files: 2.
+- Sleep calls in test-bearing files: 0.
 
-Observed sleep call locations:
-
-- `src/daemon.rs`: 1.
-- `src/core/monitor.rs`: 1.
+Observed sleep call locations: none.
 
 Notes:
 
-- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, MCP session daemon teardown pid-file polling waits, daemon-process CLI readiness sleep polling, foreground CLI monitor loop sleep polling, daemon auto-start readiness sleep polling, and daemon control accept-loop sleep backoff. Those paths now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, process or file-system event watchers where appropriate, command success checks for readiness, channel waits for signal-driven foreground and daemon-start paths, and a wakeable `park_timeout` accept-loop backoff for daemon shutdown. The remaining test-bearing-file sleep calls are observed rather than gated because they are timing-bound daemon/monitor production paths.
+- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, MCP session daemon teardown pid-file polling waits, daemon-process CLI readiness sleep polling, foreground CLI monitor loop sleep polling, daemon auto-start readiness sleep polling, daemon control accept-loop sleep backoff, daemon shutdown fixed sleep, and monitor scanner interval sleep. Those paths now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, process or file-system event watchers where appropriate, command success checks for readiness, channel waits for signal-driven foreground and daemon-start paths, a wakeable `park_timeout` accept-loop backoff for daemon shutdown, and synchronous monitor stop/join semantics.
 
 ## D4: Documentation
 
@@ -156,7 +153,7 @@ P2 - Next iteration:
 
 - Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
 - Keep `cargo-deny` duplicate dependency findings at `warn` until a low-risk transitive dependency convergence path exists.
-- Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
+- Keep sleep-call regressions at zero unless a deterministic readiness/event primitive is not available.
 
 P3 - Backlog:
 

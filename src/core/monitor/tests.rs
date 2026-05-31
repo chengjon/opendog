@@ -86,6 +86,8 @@ fn record_file_event_stores_project_relative_paths() {
         running: AtomicBool::new(true),
         active_threads: AtomicUsize::new(0),
         lock_path: dir.path().join("monitor.lock"),
+        scan_wait: Mutex::new(()),
+        scan_wake: Condvar::new(),
         config: std::sync::RwLock::new(ProjectConfig::default()),
         snapshot_paths: std::sync::RwLock::new(HashSet::new()),
     });
@@ -135,6 +137,24 @@ fn acquire_monitor_lock_replaces_stale_lock() {
     assert!(acquire_monitor_lock(&lock_path).is_ok());
     let pid = std::fs::read_to_string(&lock_path).unwrap();
     assert_eq!(pid, std::process::id().to_string());
+}
+
+#[test]
+fn monitor_stop_releases_lock_before_return() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("src/main.rs"), "fn main() {}\n").unwrap();
+    let db_path = dir.path().join("project.db");
+    let _db = Database::open_project(&db_path).unwrap();
+    let lock_path = monitor_lock_path(&db_path);
+
+    let handle = start_monitor(&db_path, root, ProjectConfig::default()).unwrap();
+    assert!(lock_path.exists());
+
+    handle.stop();
+
+    assert!(!lock_path.exists());
 }
 
 #[test]

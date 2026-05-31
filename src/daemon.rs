@@ -126,7 +126,6 @@ async fn run_daemon() -> crate::error::Result<()> {
         }
         controller.stop_all();
     }
-    std::thread::sleep(std::time::Duration::from_millis(250));
 
     // Notify systemd we're stopping
     let _ = sd_notify::notify(&[sd_notify::NotifyState::Stopping]);

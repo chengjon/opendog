@@ -53,7 +53,7 @@ pub(super) fn replace_snapshot_paths_snapshot(
 mod tests {
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicBool, AtomicUsize};
-    use std::sync::Arc;
+    use std::sync::{Arc, Condvar, Mutex};
 
     use super::*;
 
@@ -62,6 +62,8 @@ mod tests {
             running: AtomicBool::new(true),
             active_threads: AtomicUsize::new(0),
             lock_path: PathBuf::from("monitor.lock"),
+            scan_wait: Mutex::new(()),
+            scan_wake: Condvar::new(),
             config: std::sync::RwLock::new(config),
             snapshot_paths: std::sync::RwLock::new(snapshot_paths),
         })
