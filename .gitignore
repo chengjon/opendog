@@ -7,3 +7,4 @@
 .claude/
 __pycache__/
 *.pyc
+reports/analysis/tech-debt-baseline-drift-report.json
