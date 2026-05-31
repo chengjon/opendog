@@ -342,12 +342,38 @@ def measure_secret_scan_metrics(root: Path, files: list[Path]) -> dict[str, Any]
     }
 
 
-def measure_tool_availability() -> dict[str, bool]:
+def external_security_audit_workflow(root: Path) -> dict[str, bool]:
+    workflows_dir = root / ".github" / "workflows"
+    result = {
+        "dependency": False,
+        "secret": False,
+    }
+    if not workflows_dir.exists():
+        return result
+    for workflow in workflows_dir.glob("*.y*ml"):
+        try:
+            text = workflow.read_text(encoding="utf-8").lower()
+        except UnicodeDecodeError:
+            continue
+        result["dependency"] |= (
+            "cargo audit" in text or "cargo-audit" in text or "cargo deny" in text or "cargo-deny" in text
+        )
+        result["secret"] |= "gitleaks" in text or "trufflehog" in text
+    return result
+
+
+def measure_tool_availability(root: Path | None = None) -> dict[str, bool]:
     dependency_tool_available = dependency_audit_tool() is not None
     secret_tool_available = secret_scan_tool() is not None
+    workflow_availability = (
+        external_security_audit_workflow(root)
+        if root is not None
+        else {"dependency": False, "secret": False}
+    )
     return {
         "dependency_audit_available": True,
         "secret_scan_available": True,
-        "external_dependency_audit_available": dependency_tool_available,
-        "external_secret_scan_available": secret_tool_available,
+        "external_dependency_audit_available": dependency_tool_available
+        or workflow_availability["dependency"],
+        "external_secret_scan_available": secret_tool_available or workflow_availability["secret"],
     }

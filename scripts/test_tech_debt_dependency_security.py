@@ -74,6 +74,34 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
         self.assertTrue(availability["dependency_audit_available"])
         self.assertTrue(availability["secret_scan_available"])
 
+    def test_tool_availability_detects_external_security_audit_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                ".github/workflows/external-security-audit.yml",
+                "\n".join(
+                    [
+                        "name: External Security Audit",
+                        "jobs:",
+                        "  cargo-audit:",
+                        "    steps:",
+                        "      - run: cargo audit --color never",
+                        "  cargo-deny:",
+                        "    steps:",
+                        "      - run: cargo deny check advisories",
+                        "  gitleaks:",
+                        "    steps:",
+                        "      - run: gitleaks detect --source=.",
+                    ]
+                ),
+            )
+
+            availability = debt_metrics.measure_tool_availability(root)
+
+        self.assertTrue(availability["external_dependency_audit_available"])
+        self.assertTrue(availability["external_secret_scan_available"])
+
     def test_secret_scan_counts_high_confidence_tokens_without_storing_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

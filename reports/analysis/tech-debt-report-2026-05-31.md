@@ -100,6 +100,7 @@ Measured state:
 - Locked dependency packages: 193.
 - `cargo tree -d --depth 3` duplicate crate groups: `hashbrown`, `memchr`, `serde_core`, `serde_json`.
 - Internal dependency audit: available via `internal-cargo-inventory`.
+- Baseline external dependency audit availability: available through the external security workflow.
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
 - External dependency audit workflow: available via `.github/workflows/external-security-audit.yml`.
@@ -126,6 +127,7 @@ Measured state:
 - Debt exception annotations: 0.
 - Production TODO/FIXME/HACK/XXX comments: 0.
 - Internal high-confidence secret scan: available.
+- Baseline external secret scan availability: available through the external security workflow.
 - High-confidence secret findings: 0.
 - External secret scan workflow: available via `.github/workflows/external-security-audit.yml`.
 - Release readiness gate: available via `scripts/check_release_readiness.py`.
@@ -138,6 +140,7 @@ Notes:
 - The built-in secret scan covers high-confidence token/private-key patterns without storing matched secret values. The external workflow runs pinned `gitleaks` for broader scanner coverage outside the standard repository gate.
 - Governance and structural validators are passing and should remain part of the standard gate.
 - The CI workflows use Node 24-compatible first-party action versions to avoid accumulating Node.js 20 JavaScript runtime deprecation debt.
+- Technical-debt baseline collection now detects the external security workflow so current-HEAD release readiness and baseline availability metrics agree.
 
 ## Priority Plan
 
