@@ -37,8 +37,6 @@ struct MonitorState {
 
 pub struct MonitorHandle {
     state: Arc<MonitorState>,
-    #[allow(dead_code)]
-    root_path: PathBuf,
 }
 
 impl MonitorHandle {
@@ -85,7 +83,6 @@ pub fn start_monitor(
     });
     let handle = MonitorHandle {
         state: state.clone(),
-        root_path: root_path.clone(),
     };
 
     let scanner_db_path = db_path.to_path_buf();

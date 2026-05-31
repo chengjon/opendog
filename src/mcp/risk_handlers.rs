@@ -8,7 +8,8 @@ use crate::error::OpenDogError;
 use super::{
     error_json_for, normalize_candidate_type, normalize_min_review_priority,
     project_data_risk_payload, validation_error_json, workspace_data_risk_payload, DataRiskParams,
-    OpenDogServer, WorkspaceDataRiskParams, MCP_DATA_RISK_V1, MCP_WORKSPACE_DATA_RISK_V1,
+    OpenDogServer, ProjectDataRiskPayloadInput, WorkspaceDataRiskParams, MCP_DATA_RISK_V1,
+    MCP_WORKSPACE_DATA_RISK_V1,
 };
 
 pub(super) fn handle_get_data_risk_candidates(
@@ -65,16 +66,18 @@ pub(super) fn handle_get_data_risk_candidates(
     })();
 
     match result {
-        Ok((db, root_path, entries)) => Json(project_data_risk_payload(
-            MCP_DATA_RISK_V1,
-            &id,
-            &candidate_type,
-            &min_review_priority,
-            limit,
-            &root_path,
-            &entries,
-            Some(&db),
-        )),
+        Ok((db, root_path, entries)) => {
+            Json(project_data_risk_payload(ProjectDataRiskPayloadInput {
+                schema_version: MCP_DATA_RISK_V1,
+                id: &id,
+                candidate_type: &candidate_type,
+                min_review_priority: &min_review_priority,
+                limit,
+                root_path: &root_path,
+                entries: &entries,
+                db: Some(&db),
+            }))
+        }
         Err(e) => error_json_for(MCP_DATA_RISK_V1, Some(&id), &e),
     }
 }

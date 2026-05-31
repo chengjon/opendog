@@ -5,7 +5,7 @@ use crate::core::stats;
 use crate::error::OpenDogError;
 use crate::mcp::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,
-    workspace_data_risk_payload,
+    workspace_data_risk_payload, ProjectDataRiskPayloadInput,
 };
 
 use super::output;
@@ -96,16 +96,16 @@ pub(super) fn cmd_data_risk(
         .get(id)?
         .ok_or_else(|| OpenDogError::ProjectNotFound(id.to_string()))?;
     let entries = stats::get_stats(&db)?;
-    let payload = project_data_risk_payload(
-        CLI_DATA_RISK_V1,
+    let payload = project_data_risk_payload(ProjectDataRiskPayloadInput {
+        schema_version: CLI_DATA_RISK_V1,
         id,
-        &candidate_type,
-        &min_review_priority,
+        candidate_type: &candidate_type,
+        min_review_priority: &min_review_priority,
         limit,
-        &info.root_path,
-        &entries,
-        Some(&db),
-    );
+        root_path: &info.root_path,
+        entries: &entries,
+        db: Some(&db),
+    });
     if json_output {
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {

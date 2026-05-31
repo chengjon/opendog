@@ -22,16 +22,16 @@ impl MonitorController {
 
         self.with_project_info_db(id, |info, db| {
             let entries = stats::get_stats(db)?;
-            Ok(project_data_risk_payload(
+            Ok(project_data_risk_payload(ProjectDataRiskPayloadInput {
                 schema_version,
                 id,
-                &candidate_type,
-                &min_review_priority,
-                limit.max(1),
-                &info.root_path,
-                &entries,
-                Some(db),
-            ))
+                candidate_type: &candidate_type,
+                min_review_priority: &min_review_priority,
+                limit: limit.max(1),
+                root_path: &info.root_path,
+                entries: &entries,
+                db: Some(db),
+            }))
         })
     }
 

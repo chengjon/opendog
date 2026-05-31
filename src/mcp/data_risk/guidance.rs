@@ -94,17 +94,29 @@ pub(crate) fn data_risk_guidance(root_path: &Path, report: &MockDataReport) -> V
     guidance
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn project_data_risk_payload(
-    schema_version: &str,
-    id: &str,
-    candidate_type: &str,
-    min_review_priority: &str,
-    limit: usize,
-    root_path: &Path,
-    entries: &[StatsEntry],
-    db: Option<&Database>,
-) -> Value {
+pub(crate) struct ProjectDataRiskPayloadInput<'a> {
+    pub(crate) schema_version: &'a str,
+    pub(crate) id: &'a str,
+    pub(crate) candidate_type: &'a str,
+    pub(crate) min_review_priority: &'a str,
+    pub(crate) limit: usize,
+    pub(crate) root_path: &'a Path,
+    pub(crate) entries: &'a [StatsEntry],
+    pub(crate) db: Option<&'a Database>,
+}
+
+pub(crate) fn project_data_risk_payload(input: ProjectDataRiskPayloadInput<'_>) -> Value {
+    let ProjectDataRiskPayloadInput {
+        schema_version,
+        id,
+        candidate_type,
+        min_review_priority,
+        limit,
+        root_path,
+        entries,
+        db,
+    } = input;
+
     let report = detect_mock_data_report(root_path, entries);
 
     // Cache unfiltered counts for governance observation hints

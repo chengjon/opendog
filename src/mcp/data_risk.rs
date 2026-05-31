@@ -5,7 +5,7 @@ mod workspace;
 
 #[cfg(test)]
 pub(crate) use self::guidance::data_risk_guidance;
-pub(crate) use self::guidance::project_data_risk_payload;
+pub(crate) use self::guidance::{project_data_risk_payload, ProjectDataRiskPayloadInput};
 pub(crate) use self::rules::{
     normalize_candidate_type, normalize_min_review_priority, path_kind_score, review_priority_score,
 };

@@ -21,7 +21,7 @@ use crate::guidance::{
 };
 use crate::mcp::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,
-    workspace_data_risk_payload,
+    workspace_data_risk_payload, ProjectDataRiskPayloadInput,
 };
 use crate::storage::queries::{GovernanceLane, StatsEntry, VerificationRun};
 use serde_json::Value;

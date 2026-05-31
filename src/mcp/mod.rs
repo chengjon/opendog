@@ -73,6 +73,7 @@ use self::data_risk::path_kind_score;
 pub(crate) use self::data_risk::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,
     review_priority_score, workspace_data_risk_overview_payload, DataCandidate, MockDataReport,
+    ProjectDataRiskPayloadInput,
 };
 use self::decision_support::{
     decision_action_profile, decision_entrypoints_payload, decision_execution_templates,

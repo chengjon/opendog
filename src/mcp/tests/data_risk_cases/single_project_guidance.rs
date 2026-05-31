@@ -1,6 +1,6 @@
 use super::*;
 use crate::contracts::MCP_DATA_RISK_V1;
-use crate::mcp::project_data_risk_payload;
+use crate::mcp::{project_data_risk_payload, ProjectDataRiskPayloadInput};
 
 #[test]
 fn data_risk_guidance_surfaces_counts_and_candidates() {
@@ -24,16 +24,16 @@ fn data_risk_guidance_surfaces_counts_and_candidates() {
     let report = detect_mock_data_report(dir.path(), &entries);
 
     let guidance = data_risk_guidance(dir.path(), &report);
-    let payload = project_data_risk_payload(
-        MCP_DATA_RISK_V1,
-        "demo",
-        "all",
-        "low",
-        10,
-        dir.path(),
-        &entries,
-        None,
-    );
+    let payload = project_data_risk_payload(ProjectDataRiskPayloadInput {
+        schema_version: MCP_DATA_RISK_V1,
+        id: "demo",
+        candidate_type: "all",
+        min_review_priority: "low",
+        limit: 10,
+        root_path: dir.path(),
+        entries: &entries,
+        db: None,
+    });
     assert_eq!(
         guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
         json!(1)
@@ -105,16 +105,16 @@ fn data_risk_guidance_runtime_shared_thin_combo_with_weak_path_token_stays_none(
     let report = detect_mock_data_report(dir.path(), &entries);
 
     let guidance = data_risk_guidance(dir.path(), &report);
-    let payload = project_data_risk_payload(
-        MCP_DATA_RISK_V1,
-        "demo",
-        "all",
-        "low",
-        10,
-        dir.path(),
-        &entries,
-        None,
-    );
+    let payload = project_data_risk_payload(ProjectDataRiskPayloadInput {
+        schema_version: MCP_DATA_RISK_V1,
+        id: "demo",
+        candidate_type: "all",
+        min_review_priority: "low",
+        limit: 10,
+        root_path: dir.path(),
+        entries: &entries,
+        db: None,
+    });
 
     assert_eq!(
         guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
@@ -157,16 +157,16 @@ fn data_risk_guidance_runtime_shared_weak_literal_pair_stays_none() {
     let report = detect_mock_data_report(dir.path(), &entries);
 
     let guidance = data_risk_guidance(dir.path(), &report);
-    let payload = project_data_risk_payload(
-        MCP_DATA_RISK_V1,
-        "demo",
-        "all",
-        "low",
-        10,
-        dir.path(),
-        &entries,
-        None,
-    );
+    let payload = project_data_risk_payload(ProjectDataRiskPayloadInput {
+        schema_version: MCP_DATA_RISK_V1,
+        id: "demo",
+        candidate_type: "all",
+        min_review_priority: "low",
+        limit: 10,
+        root_path: dir.path(),
+        entries: &entries,
+        db: None,
+    });
 
     assert_eq!(
         guidance["layers"]["execution_strategy"]["hardcoded_candidate_count"],
