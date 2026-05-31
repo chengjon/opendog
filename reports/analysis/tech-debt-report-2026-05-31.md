@@ -133,7 +133,7 @@ Measured state:
 - High-confidence secret findings: 0.
 - External secret scan workflow: available via `.github/workflows/external-security-audit.yml`.
 - Release readiness gate: available via `scripts/check_release_readiness.py`.
-- GitHub Actions Node 24 JavaScript runtime opt-in: enabled for repository and external security workflows.
+- GitHub Actions Node 24-compatible action versions: enabled for repository and external security workflows.
 - `gitleaks`: unavailable.
 - `trufflehog`: unavailable.
 
@@ -141,7 +141,7 @@ Notes:
 
 - The built-in secret scan covers high-confidence token/private-key patterns without storing matched secret values. The external workflow runs pinned `gitleaks` for broader scanner coverage outside the standard repository gate.
 - Governance and structural validators are passing and should remain part of the standard gate.
-- The CI workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` to avoid accumulating Node.js 20 runtime deprecation debt while keeping current pinned action versions.
+- The CI workflows use Node 24-compatible first-party action versions to avoid accumulating Node.js 20 JavaScript runtime deprecation debt.
 
 ## Priority Plan
 

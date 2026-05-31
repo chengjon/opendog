@@ -45,7 +45,9 @@ class RepositoryGateTests(unittest.TestCase):
 
         self.assertIn("pull_request:", content)
         self.assertIn("push:", content)
-        self.assertIn('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"', content)
+        self.assertIn("actions/checkout@v6", content)
+        self.assertIn("actions/setup-python@v6", content)
+        self.assertIn("actions/setup-node@v6", content)
         self.assertIn("@fission-ai/openspec@1.2.0", content)
         self.assertIn("python3 scripts/validate_repository_gate.py", content)
 
