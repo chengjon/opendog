@@ -1,6 +1,6 @@
 {
   "metric_version": "v1.0",
-  "generated_at": "2026-05-31T15:55:31Z",
+  "generated_at": "2026-05-31T16:08:43Z",
   "generated_by": "Codex tech-debt-checker",
   "project": "opendog",
   "rust_check_errors": 0,
@@ -20,7 +20,7 @@
   "ignored_test_count": 0,
   "should_panic_test_count": 0,
   "test_placeholder_assert_count": 0,
-  "test_sleep_call_count": 8,
+  "test_sleep_call_count": 7,
   "backend_todo_count": 0,
   "backend_placeholder_count": 0,
   "large_file_count_python": 0,
@@ -116,7 +116,7 @@
       },
       {
         "file": "tests/integration_test/daemon_process_cli.rs",
-        "count": 2
+        "count": 1
       },
       {
         "file": "tests/integration_test/mcp_session_reuse.rs",

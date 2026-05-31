@@ -29,21 +29,20 @@ fn wait_for_daemon_ready(home: &Path) {
     panic!("daemon socket did not become ready: {}", socket.display());
 }
 
-fn terminate_daemon(child: &mut Child) {
+fn terminate_daemon(mut child: Child) {
     let pid = child.id().to_string();
     let _ = Command::new("kill").args(["-TERM", &pid]).status();
-    let deadline = Instant::now() + Duration::from_secs(5);
-    loop {
-        if let Ok(Some(_)) = child.try_wait() {
-            return;
-        }
-        if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return;
-        }
-        sleep(Duration::from_millis(100));
+
+    let (done_tx, done_rx) = std::sync::mpsc::channel();
+    let waiter = std::thread::spawn(move || {
+        let result = child.wait();
+        let _ = done_tx.send(result);
+    });
+
+    if done_rx.recv_timeout(Duration::from_secs(5)).is_err() {
+        let _ = Command::new("kill").args(["-KILL", &pid]).status();
     }
+    let _ = waiter.join();
 }
 
 #[test]
@@ -54,7 +53,7 @@ fn test_daemon_process_cli_smoke() {
     fs::create_dir_all(&project_dir).unwrap();
     fs::write(project_dir.join("main.rs"), "fn main() {}").unwrap();
 
-    let mut daemon = Command::new(env!("CARGO_BIN_EXE_opendog"))
+    let daemon = Command::new(env!("CARGO_BIN_EXE_opendog"))
         .env("HOME", home)
         .args(["daemon"])
         .stdin(Stdio::null())
@@ -133,5 +132,5 @@ fn test_daemon_process_cli_smoke() {
     let delete = run_cli(home, &["delete", "--id", "demo"]);
     assert!(delete.status.success(), "{:?}", delete);
 
-    terminate_daemon(&mut daemon);
+    terminate_daemon(daemon);
 }
