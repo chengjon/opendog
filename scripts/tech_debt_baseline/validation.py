@@ -19,10 +19,18 @@ def is_metric_regression(current: Any, baseline: Any) -> bool:
     return current != baseline
 
 
-def compare_to_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> ValidationResult:
+def compare_to_baseline(
+    baseline: dict[str, Any],
+    current: dict[str, Any],
+    *,
+    excluded_metrics: set[str] | None = None,
+) -> ValidationResult:
     errors: list[str] = []
     warnings: list[str] = []
+    excluded = excluded_metrics or set()
     for metric in baseline.get("gated_metrics", []):
+        if metric in excluded:
+            continue
         if metric not in current:
             errors.append(f"{metric} unavailable in current measurement")
             continue
@@ -32,6 +40,8 @@ def compare_to_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> Va
         if is_metric_regression(current[metric], baseline[metric]):
             errors.append(f"{metric} regressed: {current[metric]} > {baseline[metric]}")
     for metric in baseline.get("observed_metrics", []):
+        if metric in excluded:
+            continue
         if metric not in current or metric not in baseline:
             warnings.append(f"{metric} unavailable for comparison")
             continue

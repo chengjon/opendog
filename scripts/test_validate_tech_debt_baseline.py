@@ -76,6 +76,16 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
         self.assertTrue(result.passed)
         self.assertIn("duplicate_dependency_crate_count regressed: 5 > 4", result.warnings)
 
+    def test_excluded_gated_metric_is_not_required(self) -> None:
+        result = tech_debt.compare_to_baseline(
+            self.baseline(gated_metrics=["rust_check_errors", "production_unwrap_count"]),
+            {"production_unwrap_count": 0},
+            excluded_metrics={"rust_check_errors"},
+        )
+
+        self.assertTrue(result.passed)
+        self.assertEqual([], result.errors)
+
     def test_cfg_test_unwrap_is_not_counted_as_production_debt(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

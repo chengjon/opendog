@@ -32,9 +32,9 @@
   "dependency_audit_available": false,
   "secret_scan_available": false,
   "backend_static_code_analysis": {
-    "files_analyzed": 496,
+    "files_analyzed": 497,
     "rust_files_analyzed": 477,
-    "python_files_analyzed": 19,
+    "python_files_analyzed": 20,
     "total_issues": 10,
     "critical_issues": 0,
     "warning_issues": 10,
