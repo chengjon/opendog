@@ -6,7 +6,7 @@ use crate::core::stats;
 use crate::error::{OpenDogError, Result};
 use crate::guidance::{
     build_agent_guidance_for_projects, build_decision_brief_for_projects,
-    load_project_guidance_data,
+    load_project_guidance_data, DecisionBriefProjectsInput,
 };
 use serde_json::Value;
 
@@ -90,16 +90,18 @@ impl Guidance for CliProjectLifecycle<'_> {
     ) -> Result<Value> {
         let projects = self.guidance_projects(project)?;
         Ok(build_decision_brief_for_projects(
-            self.pm,
-            schema_version,
-            if project.is_some() {
-                "project"
-            } else {
-                "workspace"
+            DecisionBriefProjectsInput {
+                pm: self.pm,
+                schema_version,
+                scope: if project.is_some() {
+                    "project"
+                } else {
+                    "workspace"
+                },
+                selected_project_id: project,
+                projects: &projects,
+                top: top.max(1),
             },
-            project,
-            &projects,
-            top.max(1),
             |p| load_project_guidance_data(self.pm, p),
             |p| {
                 self.pm

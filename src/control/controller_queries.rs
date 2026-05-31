@@ -17,7 +17,7 @@ use crate::core::verification::{
 use crate::error::{OpenDogError, Result};
 use crate::guidance::{
     build_agent_guidance_for_projects, build_decision_brief_for_projects,
-    load_project_guidance_data,
+    load_project_guidance_data, DecisionBriefProjectsInput,
 };
 use crate::mcp::{
     normalize_candidate_type, normalize_min_review_priority, project_data_risk_payload,

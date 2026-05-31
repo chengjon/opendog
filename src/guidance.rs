@@ -109,14 +109,17 @@ where
     payload
 }
 
-#[allow(clippy::too_many_arguments)]
+pub(crate) struct DecisionBriefProjectsInput<'a> {
+    pub(crate) pm: &'a ProjectManager,
+    pub(crate) schema_version: &'a str,
+    pub(crate) scope: &'a str,
+    pub(crate) selected_project_id: Option<&'a str>,
+    pub(crate) projects: &'a [ProjectInfo],
+    pub(crate) top: usize,
+}
+
 pub(crate) fn build_decision_brief_for_projects<F, G>(
-    pm: &ProjectManager,
-    schema_version: &str,
-    scope: &str,
-    selected_project_id: Option<&str>,
-    projects: &[ProjectInfo],
-    top: usize,
+    input: DecisionBriefProjectsInput<'_>,
     load_project_state: F,
     load_workspace_entries: G,
 ) -> Value
@@ -124,6 +127,15 @@ where
     F: FnMut(&ProjectInfo) -> ProjectGuidanceData,
     G: FnMut(&ProjectInfo) -> Vec<StatsEntry>,
 {
+    let DecisionBriefProjectsInput {
+        pm,
+        schema_version,
+        scope,
+        selected_project_id,
+        projects,
+        top,
+    } = input;
+
     let agent_guidance = build_agent_guidance_for_projects(pm, projects, top, load_project_state);
     let pm_ref = pm;
     let mut summaries = collect_workspace_data_risk_summaries(

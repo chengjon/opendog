@@ -19,16 +19,18 @@ impl MonitorController {
     ) -> Result<Value> {
         let projects = self.guidance_projects(project)?;
         Ok(build_decision_brief_for_projects(
-            &self.pm,
-            schema_version,
-            if project.is_some() {
-                "project"
-            } else {
-                "workspace"
+            DecisionBriefProjectsInput {
+                pm: &self.pm,
+                schema_version,
+                scope: if project.is_some() {
+                    "project"
+                } else {
+                    "workspace"
+                },
+                selected_project_id: project,
+                projects: &projects,
+                top: top.max(1),
             },
-            project,
-            &projects,
-            top.max(1),
             |item| self.guidance_project_state(item),
             |item| {
                 self.pm
