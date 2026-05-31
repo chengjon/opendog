@@ -17,6 +17,7 @@ Scope constraints honored:
 Baseline written to: `reports/analysis/tech-debt-baseline.json`.
 
 Executable drift gate: `python3 scripts/validate_tech_debt_baseline.py`.
+Machine-readable drift report: `python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json`.
 
 ## D1: Code Quality
 
@@ -166,6 +167,7 @@ python3 -m unittest scripts.test_validate_tech_debt_baseline
 python3 scripts/validate_planning_governance.py
 python3 scripts/validate_structural_hygiene.py
 python3 scripts/validate_tech_debt_baseline.py
+python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 git diff --check
 ```
 

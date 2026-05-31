@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .collector import measure_current_metrics
 from .metrics import load_baseline
+from .report import build_drift_report, write_drift_report
 from .validation import ValidationResult, compare_to_baseline
 
 DEFAULT_BASELINE_PATH = Path("reports/analysis/tech-debt-baseline.json")
@@ -30,6 +31,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_BASELINE_PATH,
         help="Baseline JSON path, relative to --root when not absolute.",
     )
+    parser.add_argument(
+        "--drift-report",
+        type=Path,
+        help="Optional JSON drift report path, relative to --root when not absolute.",
+    )
     return parser.parse_args()
 
 
@@ -40,5 +46,8 @@ def main() -> int:
     baseline = load_baseline(baseline_path)
     current = measure_current_metrics(root, baseline=baseline)
     result = compare_to_baseline(baseline, current)
+    if args.drift_report:
+        report_path = args.drift_report if args.drift_report.is_absolute() else root / args.drift_report
+        write_drift_report(report_path, build_drift_report(baseline, current, result))
     print_result(result)
     return 0 if result.passed else 1

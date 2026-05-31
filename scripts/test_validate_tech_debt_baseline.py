@@ -76,6 +76,35 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
         self.assertTrue(result.passed)
         self.assertIn("duplicate_dependency_crate_count regressed: 5 > 4", result.warnings)
 
+    def test_drift_report_classifies_gated_and_observed_regressions(self) -> None:
+        baseline = self.baseline(duplicate_dependency_crate_count=4)
+        current = {
+            "production_unwrap_count": 1,
+            "should_panic_test_count": 0,
+            "policy_document_over_1000_count": 0,
+            "duplicate_dependency_crate_count": 5,
+        }
+        result = tech_debt.compare_to_baseline(baseline, current)
+
+        report = tech_debt.build_drift_report(baseline, current, result)
+
+        self.assertEqual("FAIL", report["status"])
+        metrics = {metric["name"]: metric for metric in report["metrics"]}
+        self.assertEqual("fail", metrics["production_unwrap_count"]["status"])
+        self.assertEqual("warn", metrics["duplicate_dependency_crate_count"]["status"])
+
+    def test_write_drift_report_creates_parent_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            path = root / "reports" / "analysis" / "drift.json"
+
+            tech_debt.write_drift_report(path, {"status": "PASS", "metrics": []})
+
+            self.assertEqual(
+                {"status": "PASS", "metrics": []},
+                json.loads(path.read_text(encoding="utf-8")),
+            )
+
     def test_excluded_gated_metric_is_not_required(self) -> None:
         result = tech_debt.compare_to_baseline(
             self.baseline(gated_metrics=["rust_check_errors", "production_unwrap_count"]),

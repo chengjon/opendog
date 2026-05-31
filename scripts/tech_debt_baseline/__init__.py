@@ -3,12 +3,15 @@ from __future__ import annotations
 from .cli import main
 from .collector import measure_current_metrics
 from .metrics import load_baseline
+from .report import build_drift_report, write_drift_report
 from .validation import ValidationResult, compare_to_baseline
 
 __all__ = [
     "ValidationResult",
+    "build_drift_report",
     "compare_to_baseline",
     "load_baseline",
     "main",
     "measure_current_metrics",
+    "write_drift_report",
 ]

@@ -10,6 +10,7 @@
 `cargo clippy --all-targets --all-features -- -D warnings` is the lint gate used throughout the repo.
 `cargo fmt --check` enforces standard Rust formatting.
 `python3 scripts/validate_tech_debt_baseline.py` validates the full technical-debt baseline, including Rust check/clippy and dependency observations.
+`python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json` also writes a machine-readable baseline drift report.
 `python3 scripts/validate_planning_governance.py` validates task cards, FT mappings, roadmap counts, structural hygiene, and the lightweight technical-debt baseline gate.
 
 ## Coding Style & Naming Conventions
@@ -24,7 +25,7 @@ Recent history uses conventional prefixes such as `feat:`, `fix:`, `docs:`, `ref
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **opendog** (8508 symbols, 18778 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **opendog** (8524 symbols, 18808 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
