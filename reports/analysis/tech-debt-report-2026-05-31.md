@@ -59,7 +59,7 @@ Rating: B.
 
 Measured state:
 
-- Full suite: 1821 unit/module tests and 31 integration tests passed in the latest full gate before this report line.
+- Full suite: 1821 unit/module tests and 32 integration tests passed in the latest full gate before this report line.
 - Targeted `truncate_str` boundary tests: 11 passed after removing `should_panic`.
 - Ignored tests: 0.
 - `should_panic` tests: 0.
@@ -75,7 +75,7 @@ Observed sleep call locations:
 
 Notes:
 
-- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, MCP session daemon teardown pid-file polling waits, and daemon-process CLI readiness sleep polling. Those tests now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, a process wait channel with timeout for daemon termination, file-system event watchers for pid-file removal and socket creation, and command success checks for readiness. The remaining test-bearing-file sleep calls are observed rather than gated because all are polling or timing-bound daemon/control/monitor production paths. One additional foreground CLI monitor loop sleep remains in `src/cli/project_commands/lifecycle.rs` outside the test-bearing metric and should be revisited only with a deterministic stop/wakeup primitive.
+- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, MCP session daemon teardown pid-file polling waits, daemon-process CLI readiness sleep polling, and foreground CLI monitor loop sleep polling. Those paths now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, process or file-system event watchers where appropriate, command success checks for readiness, and a Ctrl+C channel wait for the foreground monitor. The remaining test-bearing-file sleep calls are observed rather than gated because all are polling or timing-bound daemon/control/monitor production paths.
 
 ## D4: Documentation
 

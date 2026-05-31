@@ -2,6 +2,7 @@ use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use opendog::contracts::CLI_DECISION_BRIEF_V1;
 use serde_json::Value;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -75,6 +76,73 @@ fn terminate_daemon(mut child: Child) {
         let _ = Command::new("kill").args(["-KILL", &pid]).status();
     }
     let _ = waiter.join();
+}
+
+fn wait_for_path_exists(path: &Path, timeout: Duration) {
+    if path.exists() {
+        return;
+    }
+
+    let parent = path.parent().expect("watched path should have a parent");
+    fs::create_dir_all(parent).expect("watched path parent should be creatable");
+    let (tx, rx) = mpsc::channel::<()>();
+    let mut watcher = RecommendedWatcher::new(
+        move |res: std::result::Result<notify::Event, notify::Error>| {
+            if res.is_ok() {
+                let _ = tx.send(());
+            }
+        },
+        Config::default(),
+    )
+    .expect("path watcher should start");
+    watcher
+        .watch(parent, RecursiveMode::NonRecursive)
+        .expect("path parent should be watchable");
+
+    let deadline = Instant::now() + timeout;
+    while !path.exists() {
+        let now = Instant::now();
+        if now >= deadline {
+            break;
+        }
+        let _ = rx.recv_timeout(deadline.saturating_duration_since(now));
+    }
+    assert!(
+        path.exists(),
+        "path did not become ready: {}",
+        path.display()
+    );
+}
+
+fn wait_for_foreground_monitor_ready(child: &mut Child) -> std::thread::JoinHandle<String> {
+    let mut stdout = child
+        .stdout
+        .take()
+        .expect("foreground monitor stdout should be piped");
+    let (ready_tx, ready_rx) = mpsc::channel::<()>();
+    let reader = std::thread::spawn(move || {
+        let mut output = String::new();
+        let mut ready_sent = false;
+        let mut buf = [0_u8; 1024];
+        loop {
+            match stdout.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    output.push_str(&String::from_utf8_lossy(&buf[..n]));
+                    if !ready_sent && output.contains("Monitor running. Press Ctrl+C to stop.") {
+                        let _ = ready_tx.send(());
+                        ready_sent = true;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        output
+    });
+    ready_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("foreground monitor should report readiness");
+    reader
 }
 
 #[test]
@@ -165,4 +233,62 @@ fn test_daemon_process_cli_smoke() {
     assert!(delete.status.success(), "{:?}", delete);
 
     terminate_daemon(daemon);
+}
+
+#[test]
+fn test_foreground_monitor_stops_on_sigint() {
+    let dir = TempDir::new().unwrap();
+    let home = dir.path();
+    let project_dir = dir.path().join("foreground-project");
+    fs::create_dir_all(&project_dir).unwrap();
+    fs::write(project_dir.join("main.rs"), "fn main() {}").unwrap();
+
+    let create = run_cli(
+        home,
+        &[
+            "register",
+            "--id",
+            "foreground",
+            "--path",
+            project_dir.to_str().unwrap(),
+        ],
+    );
+    assert!(create.status.success(), "{:?}", create);
+
+    let mut monitor = Command::new(env!("CARGO_BIN_EXE_opendog"))
+        .env("HOME", home)
+        .args(["start", "--id", "foreground"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+
+    let lock_path = home
+        .join(".opendog/data/projects/foreground.db")
+        .with_extension("monitor.lock");
+    wait_for_path_exists(&lock_path, Duration::from_secs(5));
+    let reader = wait_for_foreground_monitor_ready(&mut monitor);
+
+    let pid = monitor.id().to_string();
+    let signal = Command::new("kill").args(["-INT", &pid]).status().unwrap();
+    assert!(signal.success(), "failed to send SIGINT to monitor");
+
+    let (done_tx, done_rx) = mpsc::channel();
+    let waiter = std::thread::spawn(move || {
+        let result = monitor.wait();
+        let _ = done_tx.send(result);
+    });
+    let status = done_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("foreground monitor should stop after SIGINT")
+        .expect("foreground monitor wait should succeed");
+    let output = reader.join().expect("stdout reader should join");
+    let _ = waiter.join();
+
+    assert!(
+        status.success(),
+        "foreground monitor exited with {status:?}"
+    );
+    assert!(output.contains("Monitor stopped."));
 }

@@ -56,16 +56,22 @@ pub(in crate::cli) fn cmd_start(pm: &ProjectManager, id: &str) -> Result<(), Ope
 
     println!("Starting monitor for project '{}'...", id);
     let handle = monitor::start_monitor(&info.db_path, info.root_path.clone(), effective_config)?;
-    let stop_requested = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let stop_requested_handler = stop_requested.clone();
+    let (stop_tx, stop_rx) = std::sync::mpsc::channel::<()>();
     ctrlc::set_handler(move || {
-        stop_requested_handler.store(true, std::sync::atomic::Ordering::Relaxed);
+        let _ = stop_tx.send(());
     })
     .map_err(|e| OpenDogError::Io(std::io::Error::other(e.to_string())))?;
 
     println!("Monitor running. Press Ctrl+C to stop.");
-    while handle.is_running() && !stop_requested.load(std::sync::atomic::Ordering::Relaxed) {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+    {
+        use std::io::Write as _;
+        let _ = std::io::stdout().flush();
+    }
+    while handle.is_running() {
+        match stop_rx.recv_timeout(std::time::Duration::from_secs(1)) {
+            Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+        }
     }
     handle.stop();
     println!("Monitor stopped.");
