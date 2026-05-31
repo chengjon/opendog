@@ -1,12 +1,12 @@
 # Technical Debt Report - opendog
 
-Generated: 2026-05-31T02:27:49Z
+Generated: 2026-05-31T11:38:48Z
 
 ## Executive Summary
 
 Overall status: WARN.
 
-The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix. External `cargo-audit` and `gitleaks` scans are now available through the independent `External Security Audit` workflow.
+The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix. External `cargo-audit` and `gitleaks` scans are now available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
 
 Scope constraints honored:
 
@@ -45,7 +45,7 @@ Measured state:
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
 - `python3 scripts/validate_tech_debt_baseline.py`: passed.
-- Structural hygiene scan: 499 files within configured size budgets.
+- Structural hygiene scan: 501 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -121,7 +121,7 @@ Dependency interpretation:
 
 Recommended next step:
 
-- Run the `External Security Audit` workflow manually or on its weekly schedule for CVE-backed `cargo-audit` coverage; the built-in gate covers inventory/lockfile presence in the standard repository gate.
+- Run the `External Security Audit` workflow manually or on its weekly schedule for CVE-backed `cargo-audit` coverage; the built-in gate covers inventory/lockfile presence in the standard repository gate, and `scripts/check_release_readiness.py` enforces a current-HEAD external audit for release checks.
 
 ## D6: Process And Security
 
@@ -134,6 +134,7 @@ Measured state:
 - Internal high-confidence secret scan: available.
 - High-confidence secret findings: 0.
 - External secret scan workflow: available via `.github/workflows/external-security-audit.yml`.
+- Release readiness gate: available via `scripts/check_release_readiness.py`.
 - `gitleaks`: unavailable.
 - `trufflehog`: unavailable.
 
@@ -154,7 +155,7 @@ P1 - Current iteration:
 
 P2 - Next iteration:
 
-- Keep `External Security Audit` independent from the standard repository gate unless release policy later requires external security scans on every release branch.
+- Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
 - Decide whether to add `cargo-deny` policy checks later for license/source policy, separate from `cargo-audit` CVE checks.
 - Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
 
@@ -172,6 +173,7 @@ cargo fmt --check
 cargo test --quiet
 cargo clippy --all-targets --all-features -- -D warnings
 python3 -m unittest scripts.test_validate_structural_hygiene scripts.test_structural_contract_guards scripts.test_structural_rust_guards
+python3 -m unittest scripts.test_check_release_readiness scripts.test_check_external_security_audit_status scripts.test_validate_repository_gate
 python3 -m unittest scripts.test_validate_tech_debt_baseline
 python3 scripts/validate_planning_governance.py
 python3 scripts/validate_structural_hygiene.py
@@ -179,6 +181,7 @@ python3 scripts/validate_tech_debt_baseline.py
 python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 python3 scripts/validate_repository_gate.py
 python3 scripts/check_external_security_audit_status.py --repo chengjon/opendog --branch master --max-age-hours 168
+python3 scripts/check_release_readiness.py --repo chengjon/opendog --branch master --max-age-hours 168
 git diff --check
 ```
 
@@ -201,4 +204,5 @@ External workflow:
 ```bash
 gh workflow run "External Security Audit"
 python3 scripts/check_external_security_audit_status.py --repo chengjon/opendog --branch master --max-age-hours 168
+python3 scripts/check_external_security_audit_status.py --repo chengjon/opendog --branch master --max-age-hours 168 --require-head
 ```

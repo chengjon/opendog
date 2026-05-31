@@ -35,6 +35,7 @@ class RepositoryGateTests(unittest.TestCase):
         )
         python_tests = next(command.argv for command in repository_gate.gate_commands() if command.name == "python-unit-tests")
         self.assertIn("scripts.test_check_external_security_audit_status", python_tests)
+        self.assertIn("scripts.test_check_release_readiness", python_tests)
         self.assertIn("scripts.test_external_security_audit_workflow", python_tests)
         self.assertIn("scripts.test_tech_debt_dependency_security", python_tests)
 

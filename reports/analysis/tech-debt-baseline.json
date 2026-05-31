@@ -1,6 +1,6 @@
 {
   "metric_version": "v1.0",
-  "generated_at": "2026-05-31T02:27:49Z",
+  "generated_at": "2026-05-31T11:38:48Z",
   "generated_by": "Codex tech-debt-checker",
   "project": "opendog",
   "rust_check_errors": 0,
@@ -56,9 +56,9 @@
     "findings": []
   },
   "backend_static_code_analysis": {
-    "files_analyzed": 505,
+    "files_analyzed": 507,
     "rust_files_analyzed": 478,
-    "python_files_analyzed": 27,
+    "python_files_analyzed": 29,
     "total_issues": 10,
     "critical_issues": 0,
     "warning_issues": 10,

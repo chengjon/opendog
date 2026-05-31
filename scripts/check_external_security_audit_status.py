@@ -60,6 +60,20 @@ def discover_repo(root: Path) -> str:
     return parse_github_repo(completed.stdout)
 
 
+def current_head_sha(root: Path) -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr.strip() or "unable to read current git HEAD")
+    return completed.stdout.strip()
+
+
 def parse_timestamp(value: str) -> datetime:
     normalized = value.replace("Z", "+00:00")
     return datetime.fromisoformat(normalized).astimezone(timezone.utc)
@@ -89,6 +103,7 @@ def evaluate_workflow_runs(
     *,
     now: datetime,
     max_age_hours: int,
+    expected_head_sha: str | None = None,
 ) -> AuditStatus:
     latest = latest_completed_run(payload)
     if latest is None:
@@ -107,6 +122,15 @@ def evaluate_workflow_runs(
             (
                 "external security audit: FAIL - latest successful run is stale "
                 f"({age_hours:.1f}h old, max {max_age_hours}h) for {short_sha}"
+            ),
+            latest.html_url,
+        )
+    if expected_head_sha and latest.head_sha != expected_head_sha:
+        return AuditStatus(
+            False,
+            (
+                "external security audit: FAIL - latest successful run "
+                f"{short_sha} does not match required HEAD {expected_head_sha[:7]}"
             ),
             latest.html_url,
         )
@@ -158,6 +182,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_MAX_AGE_HOURS,
         help="Maximum acceptable age for the latest successful run.",
     )
+    parser.add_argument(
+        "--require-head",
+        action="store_true",
+        help="Require the latest successful workflow run to match the current git HEAD.",
+    )
     return parser.parse_args(argv)
 
 
@@ -166,11 +195,13 @@ def main(argv: list[str] | None = None) -> int:
     root = args.root.resolve()
     try:
         repo = args.repo or discover_repo(root)
+        expected_head_sha = current_head_sha(root) if args.require_head else None
         payload = fetch_workflow_runs(repo, args.workflow, args.branch)
         status = evaluate_workflow_runs(
             payload,
             now=datetime.now(timezone.utc),
             max_age_hours=args.max_age_hours,
+            expected_head_sha=expected_head_sha,
         )
     except (RuntimeError, ValueError, json.JSONDecodeError) as error:
         print(f"external security audit: FAIL - {error}")

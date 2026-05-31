@@ -82,12 +82,20 @@ impl OpenDogServer {
 #[cfg(test)]
 mod tests {
     use super::OpenDogServer;
+    use crate::control::MonitorController;
+    use crate::core::project::ProjectManager;
     use crate::error::OpenDogError;
     use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::sync::Mutex;
 
     #[test]
     fn poisoned_controller_lock_returns_structured_error() {
-        let server = OpenDogServer::new().expect("server should initialize");
+        let dir = tempfile::tempdir().expect("tempdir should initialize");
+        let pm =
+            ProjectManager::with_data_dir(dir.path()).expect("project manager should initialize");
+        let server = OpenDogServer {
+            inner: Mutex::new(MonitorController::with_project_manager(pm)),
+        };
 
         let panic_result = catch_unwind(AssertUnwindSafe(|| {
             let _guard = server.inner.lock().expect("initial lock should succeed");

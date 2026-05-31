@@ -48,6 +48,27 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
         self.assertFalse(result.passed)
         self.assertIn("failure", result.summary)
 
+    def test_required_head_sha_must_match_latest_successful_run(self) -> None:
+        result = audit_status.evaluate_workflow_runs(
+            self.run_payload(),
+            now=datetime(2026, 5, 31, 12, 0, tzinfo=timezone.utc),
+            max_age_hours=24,
+            expected_head_sha="abc123def456",
+        )
+
+        self.assertTrue(result.passed)
+
+    def test_required_head_sha_mismatch_does_not_pass(self) -> None:
+        result = audit_status.evaluate_workflow_runs(
+            self.run_payload(),
+            now=datetime(2026, 5, 31, 12, 0, tzinfo=timezone.utc),
+            max_age_hours=24,
+            expected_head_sha="fffffff00000",
+        )
+
+        self.assertFalse(result.passed)
+        self.assertIn("does not match required HEAD", result.summary)
+
     def test_stale_successful_run_does_not_pass(self) -> None:
         result = audit_status.evaluate_workflow_runs(
             self.run_payload(updated_at="2026-05-29T10:00:00Z"),
@@ -78,6 +99,11 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
         self.assertEqual("gh", command[0])
         self.assertIn("repos/chengjon/opendog/actions/workflows/external-security-audit.yml/runs", command)
         self.assertIn("branch=master", command)
+
+    def test_parse_args_supports_require_head(self) -> None:
+        args = audit_status.parse_args(["--require-head"])
+
+        self.assertTrue(args.require_head)
 
 
 if __name__ == "__main__":
