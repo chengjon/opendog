@@ -35,6 +35,7 @@ python3 scripts/validate_tech_debt_baseline.py
 python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 python3 scripts/validate_planning_governance.py
 python3 scripts/validate_structural_hygiene.py
+python3 scripts/validate_repository_gate.py
 ```
 
 ## Tech Stack
@@ -308,7 +309,7 @@ Current next step: continue Phase 6 refinement and documentation alignment
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **opendog** (8524 symbols, 18808 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **opendog** (8549 symbols, 18858 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

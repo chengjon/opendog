@@ -45,7 +45,7 @@ Measured state:
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
 - `python3 scripts/validate_tech_debt_baseline.py`: passed.
-- Structural hygiene scan: 493 files within configured size budgets.
+- Structural hygiene scan: 495 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -168,6 +168,7 @@ python3 scripts/validate_planning_governance.py
 python3 scripts/validate_structural_hygiene.py
 python3 scripts/validate_tech_debt_baseline.py
 python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
+python3 scripts/validate_repository_gate.py
 git diff --check
 ```
 
