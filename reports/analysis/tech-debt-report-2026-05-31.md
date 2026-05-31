@@ -1,12 +1,12 @@
 # Technical Debt Report - opendog
 
-Generated: 2026-05-31T11:38:48Z
+Generated: 2026-05-31T15:08:03Z
 
 ## Executive Summary
 
 Overall status: WARN.
 
-The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix. External `cargo-audit` and `gitleaks` scans are now available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
+The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed by default and because dependency duplicate checks still report transitive duplicate crates that do not have a low-risk local fix. External `cargo-audit`, `cargo-deny`, and `gitleaks` scans are now available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
 
 Scope constraints honored:
 
@@ -110,8 +110,9 @@ Measured state:
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
 - External dependency audit workflow: available via `.github/workflows/external-security-audit.yml`.
+- `cargo-deny` policy: available via `deny.toml` for advisories, bans, licenses, and sources.
 - `cargo-audit`: unavailable.
-- `cargo-deny`: unavailable.
+- `cargo-deny`: unavailable by default on developer machines; pinned workflow install uses `cargo-deny 0.19.8`.
 
 Dependency interpretation:
 
@@ -121,7 +122,7 @@ Dependency interpretation:
 
 Recommended next step:
 
-- Run the `External Security Audit` workflow manually or on its weekly schedule for CVE-backed `cargo-audit` coverage; the built-in gate covers inventory/lockfile presence in the standard repository gate, and `scripts/check_release_readiness.py` enforces a current-HEAD external audit for release checks.
+- Run the `External Security Audit` workflow manually or on its weekly schedule for CVE-backed `cargo-audit`, `cargo-deny` license/source policy, and pinned `gitleaks` coverage; the built-in gate covers inventory/lockfile presence in the standard repository gate, and `scripts/check_release_readiness.py` enforces a current-HEAD external audit for release checks.
 
 ## D6: Process And Security
 
@@ -156,7 +157,7 @@ P1 - Current iteration:
 P2 - Next iteration:
 
 - Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
-- Decide whether to add `cargo-deny` policy checks later for license/source policy, separate from `cargo-audit` CVE checks.
+- Keep `cargo-deny` duplicate dependency findings at `warn` until a low-risk transitive dependency convergence path exists.
 - Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
 
 P3 - Backlog:
@@ -189,13 +190,13 @@ Debt measurements:
 
 ```bash
 cargo tree -d --depth 3
+cargo deny check advisories bans licenses sources
 python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 ```
 
 Optional external measurements not available in this environment:
 
 ```bash
-cargo deny check
 trufflehog filesystem .
 ```
 

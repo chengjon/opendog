@@ -3,6 +3,7 @@ name = "opendog"
 version = "0.1.0"
 edition = "2021"
 authors = ["JohnC <ninjas@sina.com>", "Claude (GLM-5.1)", "CodeX (GPT-5.4)"]
+publish = false
 
 [dependencies]
 rusqlite = { version = "0.39", features = ["bundled"] }
