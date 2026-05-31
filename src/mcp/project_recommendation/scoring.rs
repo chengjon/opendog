@@ -49,7 +49,7 @@ pub(crate) fn score_review_actions(
         });
     }
 
-    scores.sort_by(|a, b| b.total.cmp(&a.total));
+    scores.sort_by_key(|score| std::cmp::Reverse(score.total));
     scores
 }
 
