@@ -11,24 +11,8 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
-fn daemon_socket_path(root: &Path) -> PathBuf {
-    root.join("data/daemon.sock")
-}
-
 fn daemon_pid_path(root: &Path) -> PathBuf {
     root.join("data/daemon.pid")
-}
-
-fn wait_for_daemon_ready(root: &Path) {
-    let socket = daemon_socket_path(root);
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while Instant::now() < deadline {
-        if socket.exists() {
-            return;
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    panic!("daemon socket did not become ready: {}", socket.display());
 }
 
 fn terminate_background_daemon(root: &Path) {
@@ -118,8 +102,6 @@ async fn mcp_sessions_reuse_daemon_backed_monitor_state_without_manual_daemon_st
     assert_eq!(start_payload["status"], "monitoring");
     first_client.cancel().await?;
 
-    wait_for_daemon_ready(&opendog_home);
-
     let second_client = spawn_mcp_client(home, None).await?;
     let list_payload = structured_payload(
         second_client
@@ -185,8 +167,6 @@ async fn mcp_sessions_reuse_shared_state_when_opendog_home_is_explicit(
     );
     assert_eq!(start_payload["status"], "monitoring");
     first_client.cancel().await?;
-
-    wait_for_daemon_ready(&opendog_home);
 
     let second_client = spawn_mcp_client(&second_home, Some(&opendog_home)).await?;
     let list_payload = structured_payload(
