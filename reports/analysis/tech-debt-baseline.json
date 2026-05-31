@@ -115,11 +115,11 @@
         "count": 1
       },
       {
-        "file": "tests/integration_test/daemon_process_cli.rs",
+        "file": "src/cli/project_commands/lifecycle.rs",
         "count": 1
       },
       {
-        "file": "tests/integration_test/mcp_session_reuse.rs",
+        "file": "tests/integration_test/daemon_process_cli.rs",
         "count": 1
       }
     ]

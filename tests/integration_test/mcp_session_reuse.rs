@@ -1,3 +1,4 @@
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use rmcp::{
     model::CallToolRequestParams,
     service::RunningService,
@@ -8,6 +9,7 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
@@ -25,13 +27,39 @@ fn terminate_background_daemon(root: &Path) {
         return;
     }
 
+    let (tx, rx) = mpsc::channel::<()>();
+    let watched_pid_path = pid_path.clone();
+    let mut watcher = RecommendedWatcher::new(
+        move |res: std::result::Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                if event.paths.iter().any(|path| path == &watched_pid_path) {
+                    let _ = tx.send(());
+                }
+            }
+        },
+        Config::default(),
+    )
+    .expect("pid watcher should start");
+    watcher
+        .watch(
+            pid_path.parent().unwrap_or_else(|| Path::new(".")),
+            RecursiveMode::NonRecursive,
+        )
+        .expect("pid directory should be watchable");
+
     let _ = Command::new("kill").args(["-TERM", pid]).status();
     let deadline = Instant::now() + Duration::from_secs(5);
-    while Instant::now() < deadline {
-        if !pid_path.exists() {
+    while pid_path.exists() {
+        let now = Instant::now();
+        if now >= deadline {
             return;
         }
-        std::thread::sleep(Duration::from_millis(100));
+        if rx
+            .recv_timeout(deadline.saturating_duration_since(now))
+            .is_err()
+        {
+            return;
+        }
     }
 }
 

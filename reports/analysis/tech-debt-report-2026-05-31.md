@@ -72,12 +72,12 @@ Observed sleep call locations:
 - `src/daemon.rs`: 2.
 - `src/control/transport.rs`: 2.
 - `src/core/monitor.rs`: 1.
+- `src/cli/project_commands/lifecycle.rs`: 1.
 - `tests/integration_test/daemon_process_cli.rs`: 1.
-- `tests/integration_test/mcp_session_reuse.rs`: 1.
 
 Notes:
 
-- Removed redundant MCP session reuse socket polling, daemon-control startup polling, and daemon process termination polling waits. Those tests now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, and a process wait channel with timeout for daemon termination. The remaining sleep calls are observed rather than gated because several are polling or timing-bound daemon/control paths. They should be revisited only when a deterministic readiness/event primitive is available.
+- Removed redundant MCP session reuse socket polling, daemon-control startup polling, daemon process termination polling, and MCP session daemon teardown pid-file polling waits. Those tests now rely on the normal daemon readiness path, the fact that the control listener is bound before `spawn_control_server_at` returns, a process wait channel with timeout for daemon termination, and a file-system event watcher for pid-file removal. The remaining sleep calls are observed rather than gated because several are polling or timing-bound daemon/control paths. They should be revisited only when a deterministic readiness/event primitive is available.
 
 ## D4: Documentation
 
