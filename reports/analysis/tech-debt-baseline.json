@@ -29,12 +29,36 @@
   "policy_document_over_1000_count": 0,
   "debt_exception_count": 0,
   "duplicate_dependency_crate_count": 4,
-  "dependency_audit_available": false,
-  "secret_scan_available": false,
+  "dependency_audit_available": true,
+  "secret_scan_available": true,
+  "external_dependency_audit_available": false,
+  "external_secret_scan_available": false,
+  "dependency_audit_issue_count": 0,
+  "dependency_lockfile_missing_count": 0,
+  "manifest_dependency_count": 17,
+  "locked_dependency_package_count": 193,
+  "high_confidence_secret_count": 0,
+  "dependency_audit": {
+    "scanner": "internal-cargo-inventory",
+    "external_tool": null,
+    "external_tool_available": false,
+    "vulnerability_scan_available": false,
+    "lockfile_present": true,
+    "duplicate_crate_count": 4,
+    "manifest_dependency_count": 17,
+    "locked_package_count": 193
+  },
+  "secret_scan": {
+    "scanner": "internal-high-confidence-patterns",
+    "external_tool": null,
+    "external_tool_available": false,
+    "finding_count": 0,
+    "findings": []
+  },
   "backend_static_code_analysis": {
-    "files_analyzed": 500,
-    "rust_files_analyzed": 477,
-    "python_files_analyzed": 23,
+    "files_analyzed": 502,
+    "rust_files_analyzed": 478,
+    "python_files_analyzed": 24,
     "total_issues": 10,
     "critical_issues": 0,
     "warning_issues": 10,
@@ -126,12 +150,18 @@
     "should_panic_test_count",
     "test_placeholder_assert_count",
     "large_file_count_code",
-    "policy_document_over_1000_count"
+    "policy_document_over_1000_count",
+    "dependency_audit_available",
+    "secret_scan_available",
+    "dependency_audit_issue_count",
+    "high_confidence_secret_count"
   ],
   "observed_metrics": [
     "test_sleep_call_count",
     "duplicate_dependency_crate_count",
-    "dependency_audit_available",
-    "secret_scan_available"
+    "external_dependency_audit_available",
+    "external_secret_scan_available",
+    "manifest_dependency_count",
+    "locked_dependency_package_count"
   ]
 }

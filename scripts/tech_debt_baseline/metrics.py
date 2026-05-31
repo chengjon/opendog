@@ -4,11 +4,14 @@ import json
 import re
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 from typing import Any
 
 CODE_FILE_LINE_LIMIT = 500
 EXCLUDED_DIRS = {".git", ".zread", "node_modules", "reports", "target"}
+SECRET_SCAN_SUFFIXES = {".env", ".json", ".md", ".py", ".rs", ".toml", ".yaml", ".yml"}
+MAX_REPORTED_SECRET_FINDINGS = 25
 
 PRODUCTION_RUST_PATTERNS: dict[str, re.Pattern[str]] = {
     "production_panic_count": re.compile(r"\bpanic!\s*\("),
@@ -19,6 +22,15 @@ PRODUCTION_RUST_PATTERNS: dict[str, re.Pattern[str]] = {
     "production_unimplemented_count": re.compile(r"\bunimplemented!\s*\("),
     "production_dbg_count": re.compile(r"\bdbg!\s*\("),
     "production_todo_comment_count": re.compile(r"TODO|FIXME|HACK|XXX"),
+}
+
+SECRET_PATTERNS: dict[str, re.Pattern[str]] = {
+    "aws_access_key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    "github_token": re.compile(r"\bghp_[A-Za-z0-9_]{36}\b"),
+    "google_api_key": re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
+    "openai_api_key": re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
+    "private_key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    "slack_token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
 }
 
 
@@ -198,7 +210,47 @@ def measure_command_metrics(root: Path) -> dict[str, int]:
     }
 
 
-def measure_dependency_metrics(root: Path) -> dict[str, int]:
+def load_toml_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError, UnicodeDecodeError):
+        return {}
+
+
+def count_manifest_dependencies(manifest: dict[str, Any]) -> int:
+    sections = ("dependencies", "dev-dependencies", "build-dependencies")
+    total = sum(len(manifest.get(section, {})) for section in sections if isinstance(manifest.get(section), dict))
+    targets = manifest.get("target", {})
+    if isinstance(targets, dict):
+        for target in targets.values():
+            if not isinstance(target, dict):
+                continue
+            total += sum(len(target.get(section, {})) for section in sections if isinstance(target.get(section), dict))
+    return total
+
+
+def count_locked_packages(lockfile: dict[str, Any]) -> int:
+    packages = lockfile.get("package", [])
+    return len(packages) if isinstance(packages, list) else 0
+
+
+def dependency_audit_tool() -> str | None:
+    for tool in ("cargo-audit", "cargo-deny"):
+        if shutil.which(tool):
+            return tool
+    return None
+
+
+def secret_scan_tool() -> str | None:
+    for tool in ("gitleaks", "trufflehog"):
+        if shutil.which(tool):
+            return tool
+    return None
+
+
+def measure_dependency_metrics(root: Path) -> dict[str, Any]:
     result = subprocess.run(
         ["cargo", "tree", "-d", "--depth", "3"],
         cwd=root,
@@ -212,13 +264,90 @@ def measure_dependency_metrics(root: Path) -> dict[str, int]:
         for line in result.stdout.splitlines()
         if (match := re.match(r"^\s*([A-Za-z0-9_-]+) v\d+\.\d+\.\d+", line))
     }
-    return {"duplicate_dependency_crate_count": len(crates)}
+    manifest = load_toml_file(root / "Cargo.toml")
+    lockfile_path = root / "Cargo.lock"
+    locked_packages = count_locked_packages(load_toml_file(lockfile_path))
+    lockfile_missing_count = 0 if lockfile_path.exists() else 1
+    external_tool = dependency_audit_tool()
+    dependency_audit = {
+        "scanner": "internal-cargo-inventory",
+        "external_tool": external_tool,
+        "external_tool_available": external_tool is not None,
+        "vulnerability_scan_available": external_tool is not None,
+        "lockfile_present": lockfile_missing_count == 0,
+        "duplicate_crate_count": len(crates),
+        "manifest_dependency_count": count_manifest_dependencies(manifest),
+        "locked_package_count": locked_packages,
+    }
+    return {
+        "duplicate_dependency_crate_count": len(crates),
+        "dependency_audit_issue_count": lockfile_missing_count,
+        "dependency_lockfile_missing_count": lockfile_missing_count,
+        "manifest_dependency_count": dependency_audit["manifest_dependency_count"],
+        "locked_dependency_package_count": locked_packages,
+        "dependency_audit": dependency_audit,
+    }
+
+
+def is_secret_scan_file(path: Path, root: Path) -> bool:
+    rel = path.relative_to(root)
+    if any(part in EXCLUDED_DIRS for part in rel.parts):
+        return False
+    return path.suffix in SECRET_SCAN_SUFFIXES or path.name.startswith(".env")
+
+
+def secret_fingerprint(pattern_name: str, relative_path: str, line_number: int, value: str) -> str:
+    return f"{pattern_name}:{relative_path}:{line_number}:len{len(value)}"
+
+
+def measure_secret_scan_metrics(root: Path, files: list[Path]) -> dict[str, Any]:
+    findings: list[dict[str, Any]] = []
+    finding_count = 0
+    for path in files:
+        if not is_secret_scan_file(path, root):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        relative_path = path.relative_to(root).as_posix()
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for pattern_name, pattern in SECRET_PATTERNS.items():
+                for match in pattern.finditer(line):
+                    finding_count += 1
+                    if len(findings) < MAX_REPORTED_SECRET_FINDINGS:
+                        findings.append(
+                            {
+                                "file": relative_path,
+                                "line": line_number,
+                                "pattern": pattern_name,
+                                "fingerprint": secret_fingerprint(
+                                    pattern_name,
+                                    relative_path,
+                                    line_number,
+                                    match.group(0),
+                                ),
+                            }
+                        )
+    external_tool = secret_scan_tool()
+    return {
+        "high_confidence_secret_count": finding_count,
+        "secret_scan": {
+            "scanner": "internal-high-confidence-patterns",
+            "external_tool": external_tool,
+            "external_tool_available": external_tool is not None,
+            "finding_count": finding_count,
+            "findings": findings,
+        },
+    }
 
 
 def measure_tool_availability() -> dict[str, bool]:
-    dependency_tool_available = bool(shutil.which("cargo-audit") or shutil.which("cargo-deny"))
-    secret_tool_available = bool(shutil.which("gitleaks") or shutil.which("trufflehog"))
+    dependency_tool_available = dependency_audit_tool() is not None
+    secret_tool_available = secret_scan_tool() is not None
     return {
-        "dependency_audit_available": dependency_tool_available,
-        "secret_scan_available": secret_tool_available,
+        "dependency_audit_available": True,
+        "secret_scan_available": True,
+        "external_dependency_audit_available": dependency_tool_available,
+        "external_secret_scan_available": secret_tool_available,
     }

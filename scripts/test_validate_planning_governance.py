@@ -33,6 +33,51 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
             "documentation_policy": {"documents": []},
         }
 
+    def dependency_baseline(self) -> dict[str, object]:
+        baseline = self.baseline()
+        baseline.update(
+            {
+                "dependency_audit_issue_count": 0,
+                "gated_metrics": [
+                    "rust_check_errors",
+                    "production_unwrap_count",
+                    "dependency_audit_issue_count",
+                ],
+            }
+        )
+        return baseline
+
+    def write_cargo_inventory(self, root: Path, *, with_lockfile: bool = True) -> None:
+        self.write_file(
+            root,
+            "Cargo.toml",
+            "\n".join(
+                [
+                    "[package]",
+                    'name = "demo"',
+                    'version = "0.1.0"',
+                    'edition = "2021"',
+                    "",
+                    "[dependencies]",
+                    'serde = "1"',
+                ]
+            ),
+        )
+        if with_lockfile:
+            self.write_file(
+                root,
+                "Cargo.lock",
+                "\n".join(
+                    [
+                        "version = 3",
+                        "",
+                        "[[package]]",
+                        'name = "demo"',
+                        'version = "0.1.0"',
+                    ]
+                ),
+            )
+
     def test_lightweight_tech_debt_gate_skips_command_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -70,6 +115,24 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
                 "technical debt baseline: production_unwrap_count regressed: 1 > 0",
                 errors,
             )
+
+    def test_lightweight_tech_debt_gate_includes_dependency_audit_metrics(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            baseline_path = self.write_file(
+                root,
+                "reports/analysis/tech-debt-baseline.json",
+                json.dumps(self.dependency_baseline()),
+            )
+            self.write_cargo_inventory(root)
+
+            errors, warnings = planning_governance.validate_tech_debt_baseline(
+                root,
+                baseline_path,
+            )
+
+            self.assertEqual([], errors)
+            self.assertEqual([], warnings)
 
 
 if __name__ == "__main__":

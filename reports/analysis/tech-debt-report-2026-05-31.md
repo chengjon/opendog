@@ -6,7 +6,7 @@ Generated: 2026-05-31T02:27:49Z
 
 Overall status: WARN.
 
-The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, and configured size budgets. The warning status is retained because dependency/security audit tools are not installed in the local environment and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix.
+The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because external vulnerability/security audit tools are not installed in the local environment and because `cargo tree -d` still reports duplicate transitive crates that do not have a low-risk local fix.
 
 Scope constraints honored:
 
@@ -45,7 +45,7 @@ Measured state:
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
 - `python3 scripts/validate_tech_debt_baseline.py`: passed.
-- Structural hygiene scan: 495 files within configured size budgets.
+- Structural hygiene scan: 496 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -103,7 +103,12 @@ Measured state:
 
 - Direct dependencies: 15.
 - Dev dependencies: 2.
+- Manifest dependency entries: 17.
+- Locked dependency packages: 193.
 - `cargo tree -d --depth 3` duplicate crate groups: `hashbrown`, `memchr`, `serde_core`, `serde_json`.
+- Internal dependency audit: available via `internal-cargo-inventory`.
+- Dependency audit issue count: 0.
+- Cargo lockfile missing count: 0.
 - `cargo-audit`: unavailable.
 - `cargo-deny`: unavailable.
 
@@ -115,7 +120,7 @@ Dependency interpretation:
 
 Recommended next step:
 
-- Add an optional dependency audit tool in a separate environment/tooling task if vulnerability gating is required.
+- Add `cargo-audit` or `cargo-deny` later if vulnerability database gating is required; the current built-in gate covers inventory/lockfile presence but does not claim CVE coverage.
 
 ## D6: Process And Security
 
@@ -125,12 +130,14 @@ Measured state:
 
 - Debt exception annotations: 0.
 - Production TODO/FIXME/HACK/XXX comments: 0.
+- Internal high-confidence secret scan: available.
+- High-confidence secret findings: 0.
 - `gitleaks`: unavailable.
 - `trufflehog`: unavailable.
 
 Notes:
 
-- No secrets claim is made from this report because the local secret-scanning tools are not installed.
+- The built-in secret scan covers high-confidence token/private-key patterns without storing matched secret values; external scanners remain optional future hardening.
 - Governance and structural validators are passing and should remain part of the standard gate.
 
 ## Priority Plan
@@ -145,8 +152,8 @@ P1 - Current iteration:
 
 P2 - Next iteration:
 
-- Decide whether to install and gate `cargo-audit` or `cargo-deny`.
-- Decide whether to install and gate `gitleaks` or another secret scanner.
+- Decide whether to add external CVE-backed dependency scanning through `cargo-audit` or `cargo-deny`.
+- Decide whether to add external historical/entropy-based secret scanning through `gitleaks` or another scanner.
 - Revisit test sleep calls only where a deterministic readiness/event primitive can replace timing waits without increasing flakiness.
 
 P3 - Backlog:
@@ -176,9 +183,10 @@ Debt measurements:
 
 ```bash
 cargo tree -d --depth 3
+python3 scripts/validate_tech_debt_baseline.py --drift-report reports/analysis/tech-debt-baseline-drift-report.json
 ```
 
-Optional measurements not available in this environment:
+Optional external measurements not available in this environment:
 
 ```bash
 cargo audit

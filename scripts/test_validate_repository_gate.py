@@ -33,6 +33,8 @@ class RepositoryGateTests(unittest.TestCase):
             ],
             command_names,
         )
+        python_tests = next(command.argv for command in repository_gate.gate_commands() if command.name == "python-unit-tests")
+        self.assertIn("scripts.test_tech_debt_dependency_security", python_tests)
 
     def test_github_workflow_delegates_to_repository_gate(self) -> None:
         workflow = REPO_ROOT / ".github" / "workflows" / "repository-gate.yml"

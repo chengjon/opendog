@@ -76,7 +76,7 @@ def validate_tech_debt_baseline(
         root,
         baseline=baseline,
         include_command_metrics=False,
-        include_dependency_metrics=False,
+        include_dependency_metrics=True,
     )
     result = tech_debt_baseline.compare_to_baseline(
         baseline,

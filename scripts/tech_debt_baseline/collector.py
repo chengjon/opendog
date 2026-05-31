@@ -10,6 +10,7 @@ from .metrics import (
     measure_dependency_metrics,
     measure_document_policy_metrics,
     measure_production_rust_metrics,
+    measure_secret_scan_metrics,
     measure_size_metrics,
     measure_test_metrics,
     measure_tool_availability,
@@ -30,6 +31,7 @@ def measure_current_metrics(
     metrics.update(measure_size_metrics(root, files))
     metrics.update(measure_document_policy_metrics(root, baseline))
     metrics.update(measure_tool_availability())
+    metrics.update(measure_secret_scan_metrics(root, files))
     metrics["debt_exception_count"] = sum(
         count_debt_exception_annotations(path)
         for path in files
