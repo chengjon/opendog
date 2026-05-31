@@ -16,6 +16,8 @@ Scope constraints honored:
 
 Baseline written to: `reports/analysis/tech-debt-baseline.json`.
 
+Executable drift gate: `python3 scripts/validate_tech_debt_baseline.py`.
+
 ## D1: Code Quality
 
 Rating: A.
@@ -41,7 +43,8 @@ Measured state:
 
 - `python3 scripts/validate_structural_hygiene.py`: passed.
 - `python3 scripts/validate_planning_governance.py`: passed.
-- Structural hygiene scan: 490 files within configured size budgets.
+- `python3 scripts/validate_tech_debt_baseline.py`: passed.
+- Structural hygiene scan: 492 files within configured size budgets.
 - No code file currently exceeds the agreed 500-line split threshold.
 
 Notes:
@@ -159,8 +162,10 @@ cargo fmt --check
 cargo test --quiet
 cargo clippy --all-targets --all-features -- -D warnings
 python3 -m unittest scripts.test_validate_structural_hygiene scripts.test_structural_contract_guards scripts.test_structural_rust_guards
+python3 -m unittest scripts.test_validate_tech_debt_baseline
 python3 scripts/validate_planning_governance.py
 python3 scripts/validate_structural_hygiene.py
+python3 scripts/validate_tech_debt_baseline.py
 git diff --check
 ```
 
