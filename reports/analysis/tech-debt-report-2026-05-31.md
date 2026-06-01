@@ -4,7 +4,9 @@ Generated: 2026-05-31T16:08:43Z
 
 ## Executive Summary
 
-Overall status: WARN.
+Overall gate status: PASS.
+
+Observation status: WARN.
 
 The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, true multi-version dependency splits, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed by default and because dependency duplicate checks still report same-version graph-context duplicates. External `cargo-audit`, `cargo-deny`, and `gitleaks` scans are available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
 
