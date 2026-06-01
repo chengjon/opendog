@@ -113,7 +113,7 @@
     "D2_architecture": "A",
     "D3_testing": "B",
     "D4_documentation": "A",
-    "D5_dependencies": "C",
+    "D5_dependencies": "B",
     "D6_process_security": "B"
   },
   "gated_metrics": [

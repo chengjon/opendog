@@ -90,7 +90,7 @@ Notes:
 
 ## D5: Dependencies
 
-Rating: C.
+Rating: B.
 
 Measured state:
 
