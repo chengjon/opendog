@@ -101,6 +101,19 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
         self.assertIn("repos/chengjon/opendog/actions/workflows/external-security-audit.yml/runs", command)
         self.assertIn("branch=master", command)
 
+    def test_fetch_workflow_runs_reports_missing_gh_executable(self) -> None:
+        with patch.object(audit_status.shutil, "which", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "gh CLI is required to check external security audit status"):
+                audit_status.fetch_workflow_runs("chengjon/opendog", "external-security-audit.yml", "master")
+
+    def test_fetch_workflow_runs_reports_gh_disappearing_after_lookup(self) -> None:
+        with (
+            patch.object(audit_status.shutil, "which", return_value="/usr/bin/gh"),
+            patch.object(audit_status.subprocess, "run", side_effect=FileNotFoundError()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "gh CLI is required to check external security audit status"):
+                audit_status.fetch_workflow_runs("chengjon/opendog", "external-security-audit.yml", "master")
+
     def test_parse_args_supports_require_head(self) -> None:
         args = audit_status.parse_args(["--require-head"])
 

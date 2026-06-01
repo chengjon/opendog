@@ -164,13 +164,16 @@ def build_workflow_runs_command(repo: str, workflow: str, branch: str) -> list[s
 def fetch_workflow_runs(repo: str, workflow: str, branch: str) -> dict[str, Any]:
     if shutil.which("gh") is None:
         raise RuntimeError("gh CLI is required to check external security audit status")
-    completed = subprocess.run(
-        build_workflow_runs_command(repo, workflow, branch),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            build_workflow_runs_command(repo, workflow, branch),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("gh CLI is required to check external security audit status") from error
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or "gh api workflow runs query failed")
     return json.loads(completed.stdout)
