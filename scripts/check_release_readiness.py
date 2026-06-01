@@ -8,9 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import check_external_security_audit_status as external_audit
+import repo_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = repo_paths.ROOT
 
 
 @dataclass(frozen=True)

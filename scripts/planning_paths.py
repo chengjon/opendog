@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
+import repo_paths
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = repo_paths.ROOT
 PLANNING_DIR = ROOT / ".planning"
 FUNCTION_TREE_FILE = ROOT / "FUNCTION_TREE.md"
 REQUIREMENTS_FILE = PLANNING_DIR / "REQUIREMENTS.md"

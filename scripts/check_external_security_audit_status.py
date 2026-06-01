@@ -10,10 +10,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import repo_paths
+
 DEFAULT_BRANCH = "master"
 DEFAULT_MAX_AGE_HOURS = 168
 DEFAULT_WORKFLOW = "external-security-audit.yml"
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = repo_paths.ROOT
 
 
 @dataclass(frozen=True)

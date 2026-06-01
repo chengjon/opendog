@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import repo_paths
 
-ROOT = Path(__file__).resolve().parents[1]
+
+ROOT = repo_paths.ROOT
 MCP_TOOL_INVENTORY_FILE = ROOT / "src" / "mcp" / "tool_inventory.rs"
 MCP_RESOURCE_HANDLERS_FILE = ROOT / "src" / "mcp" / "resource_handlers.rs"
 MCP_FULL_REFERENCE_DOCS = [

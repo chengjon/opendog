@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import repo_paths
 from structural_contract_guards import (
     validate_mcp_surface_docs,
     validate_openspec_purpose_placeholders,
@@ -11,7 +12,7 @@ from structural_contract_guards import (
 from structural_rust_guards import validate_production_rust_panic_like_calls
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = repo_paths.ROOT
 POLICY_FILE = ROOT / ".planning" / "structural_hygiene_rules.json"
 
 

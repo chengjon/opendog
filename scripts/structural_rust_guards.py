@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+import repo_paths
+
+ROOT = repo_paths.ROOT
 PANIC_LIKE_PATTERN = re.compile(
     r"(\.unwrap\s*\(|\.expect\s*\(|\bpanic!\s*\(|\bunreachable!\s*\(|\btodo!\s*\(|\bunimplemented!\s*\()"
 )
