@@ -236,6 +236,18 @@ def count_locked_packages(lockfile: dict[str, Any]) -> int:
     return len(packages) if isinstance(packages, list) else 0
 
 
+def parse_duplicate_crate_versions(cargo_tree_output: str) -> dict[str, list[str]]:
+    versions_by_crate: dict[str, set[str]] = {}
+    for line in cargo_tree_output.splitlines():
+        match = re.match(r"^\s*([A-Za-z0-9_-]+) v(\d+\.\d+\.\d+)", line)
+        if not match:
+            continue
+        crate_name = match.group(1)
+        crate_version = match.group(2)
+        versions_by_crate.setdefault(crate_name, set()).add(crate_version)
+    return {crate_name: sorted(versions) for crate_name, versions in sorted(versions_by_crate.items())}
+
+
 def dependency_audit_tool() -> str | None:
     for tool in ("cargo-audit", "cargo-deny"):
         if shutil.which(tool):
@@ -259,12 +271,9 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         text=True,
         check=False,
     )
-    crates = {
-        match.group(1)
-        for line in result.stdout.splitlines()
-        if (match := re.match(r"^\s*([A-Za-z0-9_-]+) v\d+\.\d+\.\d+", line))
-    }
-    duplicate_crates = sorted(crates)
+    duplicate_versions = parse_duplicate_crate_versions(result.stdout)
+    duplicate_crates = sorted(duplicate_versions)
+    version_splits = sorted(crate for crate, versions in duplicate_versions.items() if len(versions) > 1)
     manifest = load_toml_file(root / "Cargo.toml")
     lockfile_path = root / "Cargo.lock"
     locked_packages = count_locked_packages(load_toml_file(lockfile_path))
@@ -279,12 +288,16 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         "vulnerability_scan_available": external_tool is not None or workflow_availability["dependency"],
         "lockfile_present": lockfile_missing_count == 0,
         "duplicate_crate_count": len(duplicate_crates),
+        "version_split_count": len(version_splits),
         "manifest_dependency_count": count_manifest_dependencies(manifest),
         "locked_package_count": locked_packages,
     }
     return {
         "duplicate_dependency_crate_count": len(duplicate_crates),
         "duplicate_dependency_crates": duplicate_crates,
+        "duplicate_dependency_crate_versions": duplicate_versions,
+        "duplicate_dependency_version_split_count": len(version_splits),
+        "duplicate_dependency_version_splits": version_splits,
         "dependency_audit_issue_count": lockfile_missing_count,
         "dependency_lockfile_missing_count": lockfile_missing_count,
         "manifest_dependency_count": dependency_audit["manifest_dependency_count"],

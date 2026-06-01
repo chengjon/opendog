@@ -20,6 +20,30 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
+    def test_duplicate_dependency_parser_distinguishes_version_splits(self) -> None:
+        duplicate_tree = "\n".join(
+            [
+                "hashbrown v0.16.1",
+                "└── hashlink v0.11.0",
+                "hashbrown v0.17.0",
+                "└── indexmap v2.14.0",
+                "",
+                "serde_json v1.0.149 (*)",
+                "",
+                "serde_json v1.0.149 (*)",
+            ]
+        )
+
+        versions = debt_metrics.parse_duplicate_crate_versions(duplicate_tree)
+
+        self.assertEqual(
+            {
+                "hashbrown": ["0.16.1", "0.17.0"],
+                "serde_json": ["1.0.149"],
+            },
+            versions,
+        )
+
     def test_dependency_audit_reports_internal_cargo_inventory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -67,6 +91,10 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
             self.assertEqual(2, metrics["manifest_dependency_count"])
             self.assertEqual(2, metrics["locked_dependency_package_count"])
             self.assertEqual([], metrics["duplicate_dependency_crates"])
+            self.assertEqual({}, metrics["duplicate_dependency_crate_versions"])
+            self.assertEqual(0, metrics["duplicate_dependency_version_split_count"])
+            self.assertEqual([], metrics["duplicate_dependency_version_splits"])
+            self.assertEqual(0, metrics["dependency_audit"]["version_split_count"])
             self.assertEqual("internal-cargo-inventory", metrics["dependency_audit"]["scanner"])
 
     def test_tool_availability_marks_internal_audits_available(self) -> None:
