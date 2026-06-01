@@ -52,7 +52,10 @@ class RepositoryGateTests(unittest.TestCase):
             {"OPENSPEC_TELEMETRY": "0"},
         )
 
-        with patch.object(repository_gate.subprocess, "run", return_value=result) as run:
+        with (
+            patch.object(repository_gate.subprocess, "run", return_value=result) as run,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
             status = repository_gate.run_command(command, REPO_ROOT)
 
         self.assertEqual(0, status)
