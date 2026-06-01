@@ -185,13 +185,16 @@ def measure_document_policy_metrics(root: Path, baseline: dict[str, Any] | None)
 
 
 def run_command(root: Path, command: list[str]) -> int:
-    completed = subprocess.run(
-        command,
-        cwd=root,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except FileNotFoundError:
+        return 127
     return completed.returncode
 
 
