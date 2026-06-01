@@ -7,10 +7,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import check_external_security_audit_status as external_audit
+
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_BRANCH = "master"
-DEFAULT_MAX_AGE_HOURS = 168
 
 
 @dataclass(frozen=True)
@@ -51,11 +51,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run release readiness checks for this repository.")
     parser.add_argument("--root", type=Path, default=ROOT, help="Repository root path.")
     parser.add_argument("--repo", help="GitHub repository in owner/name form. Defaults to origin remote.")
-    parser.add_argument("--branch", default=DEFAULT_BRANCH, help="Branch to check.")
+    parser.add_argument("--branch", default=external_audit.DEFAULT_BRANCH, help="Branch to check.")
     parser.add_argument(
         "--max-age-hours",
         type=int,
-        default=DEFAULT_MAX_AGE_HOURS,
+        default=external_audit.DEFAULT_MAX_AGE_HOURS,
         help="Maximum acceptable age for the latest successful External Security Audit run.",
     )
     return parser.parse_args(argv)

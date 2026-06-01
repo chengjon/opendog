@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib
 import io
 import sys
 import unittest
@@ -12,9 +13,27 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import check_release_readiness as release_readiness
+import check_external_security_audit_status as external_audit
 
 
 class ReleaseReadinessTests(unittest.TestCase):
+    def test_defaults_follow_external_security_audit_defaults(self) -> None:
+        original_branch = external_audit.DEFAULT_BRANCH
+        original_max_age_hours = external_audit.DEFAULT_MAX_AGE_HOURS
+        try:
+            external_audit.DEFAULT_BRANCH = "release/audit-default"
+            external_audit.DEFAULT_MAX_AGE_HOURS = 24
+            importlib.reload(release_readiness)
+
+            args = release_readiness.parse_args([])
+
+            self.assertEqual("release/audit-default", args.branch)
+            self.assertEqual(24, args.max_age_hours)
+        finally:
+            external_audit.DEFAULT_BRANCH = original_branch
+            external_audit.DEFAULT_MAX_AGE_HOURS = original_max_age_hours
+            importlib.reload(release_readiness)
+
     def test_commands_include_repository_gate_and_head_matched_security_audit(self) -> None:
         args = release_readiness.parse_args(
             [
