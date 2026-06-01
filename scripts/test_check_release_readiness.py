@@ -54,6 +54,23 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertNotIn("--repo", commands[1].argv)
         self.assertIn("--require-head", commands[1].argv)
 
+    def test_run_command_reports_missing_executable(self) -> None:
+        command = release_readiness.ReleaseCommand(
+            "repository-gate",
+            ["python3", "scripts/validate_repository_gate.py"],
+        )
+        stderr = io.StringIO()
+
+        with (
+            patch.object(release_readiness.subprocess, "run", side_effect=FileNotFoundError()),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
+        ):
+            status = release_readiness.run_command(command, SCRIPT_DIR.parent)
+
+        self.assertEqual(127, status)
+        self.assertIn("missing executable for repository-gate: python3", stderr.getvalue())
+
     def test_main_stops_at_first_failure(self) -> None:
         calls: list[str] = []
 
@@ -89,4 +106,3 @@ class ReleaseReadinessTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,7 +40,11 @@ def release_readiness_commands(args: argparse.Namespace) -> list[ReleaseCommand]
 
 def run_command(command: ReleaseCommand, root: Path) -> int:
     print(f"==> {command.name}: {' '.join(command.argv)}")
-    return subprocess.run(command.argv, cwd=root, check=False).returncode
+    try:
+        return subprocess.run(command.argv, cwd=root, check=False).returncode
+    except FileNotFoundError:
+        print(f"ERROR: missing executable for {command.name}: {command.argv[0]}", file=sys.stderr)
+        return 127
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -70,4 +75,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
