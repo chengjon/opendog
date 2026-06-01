@@ -66,6 +66,7 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
             self.assertEqual(0, metrics["dependency_lockfile_missing_count"])
             self.assertEqual(2, metrics["manifest_dependency_count"])
             self.assertEqual(2, metrics["locked_dependency_package_count"])
+            self.assertEqual([], metrics["duplicate_dependency_crates"])
             self.assertEqual("internal-cargo-inventory", metrics["dependency_audit"]["scanner"])
 
     def test_tool_availability_marks_internal_audits_available(self) -> None:

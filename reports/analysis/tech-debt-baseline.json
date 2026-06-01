@@ -29,6 +29,12 @@
   "policy_document_over_1000_count": 0,
   "debt_exception_count": 0,
   "duplicate_dependency_crate_count": 4,
+  "duplicate_dependency_crates": [
+    "hashbrown",
+    "memchr",
+    "serde_core",
+    "serde_json"
+  ],
   "dependency_audit_available": true,
   "secret_scan_available": true,
   "external_dependency_audit_available": true,
@@ -119,6 +125,7 @@
   "observed_metrics": [
     "test_sleep_call_count",
     "duplicate_dependency_crate_count",
+    "duplicate_dependency_crates",
     "external_dependency_audit_available",
     "external_secret_scan_available",
     "manifest_dependency_count",

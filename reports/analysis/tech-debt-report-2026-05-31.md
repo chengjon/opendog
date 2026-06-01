@@ -99,6 +99,7 @@ Measured state:
 - Manifest dependency entries: 17.
 - Locked dependency packages: 193.
 - `cargo tree -d --depth 3` duplicate crate groups: `hashbrown`, `memchr`, `serde_core`, `serde_json`.
+- Duplicate dependency drift guard: tracks the duplicate crate group names as well as the count.
 - Internal dependency audit: available via `internal-cargo-inventory`.
 - Baseline external dependency audit availability: available through the external security workflow.
 - Dependency audit issue count: 0.
@@ -155,7 +156,7 @@ P1 - Current iteration:
 P2 - Next iteration:
 
 - Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
-- Keep `cargo-deny` duplicate dependency findings at `warn` until a low-risk transitive dependency convergence path exists.
+- Keep `cargo-deny` duplicate dependency findings at `warn`, with crate-name drift tracked in the baseline, until a low-risk transitive dependency convergence path exists.
 - Keep sleep-call regressions at zero unless a deterministic readiness/event primitive is not available.
 
 P3 - Backlog:

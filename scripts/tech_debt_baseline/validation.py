@@ -19,6 +19,12 @@ def is_metric_regression(current: Any, baseline: Any) -> bool:
     return current != baseline
 
 
+def metric_regression_message(metric: str, current: Any, baseline: Any) -> str:
+    if isinstance(current, list) or isinstance(baseline, list):
+        return f"{metric} changed: {current} != {baseline}"
+    return f"{metric} regressed: {current} > {baseline}"
+
+
 def compare_to_baseline(
     baseline: dict[str, Any],
     current: dict[str, Any],
@@ -38,7 +44,7 @@ def compare_to_baseline(
             errors.append(f"{metric} unavailable in baseline")
             continue
         if is_metric_regression(current[metric], baseline[metric]):
-            errors.append(f"{metric} regressed: {current[metric]} > {baseline[metric]}")
+            errors.append(metric_regression_message(metric, current[metric], baseline[metric]))
     for metric in baseline.get("observed_metrics", []):
         if metric in excluded:
             continue
@@ -46,5 +52,5 @@ def compare_to_baseline(
             warnings.append(f"{metric} unavailable for comparison")
             continue
         if is_metric_regression(current[metric], baseline[metric]):
-            warnings.append(f"{metric} regressed: {current[metric]} > {baseline[metric]}")
+            warnings.append(metric_regression_message(metric, current[metric], baseline[metric]))
     return ValidationResult(passed=not errors, errors=errors, warnings=warnings)

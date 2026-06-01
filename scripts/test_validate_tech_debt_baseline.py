@@ -76,6 +76,39 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
         self.assertTrue(result.passed)
         self.assertIn("duplicate_dependency_crate_count regressed: 5 > 4", result.warnings)
 
+    def test_observed_duplicate_crate_inventory_change_warns_without_failing(self) -> None:
+        result = tech_debt.compare_to_baseline(
+            self.baseline(
+                observed_metrics=["duplicate_dependency_crate_count", "duplicate_dependency_crates"],
+                duplicate_dependency_crate_count=4,
+                duplicate_dependency_crates=[
+                    "hashbrown",
+                    "memchr",
+                    "serde_core",
+                    "serde_json",
+                ],
+            ),
+            {
+                "production_unwrap_count": 0,
+                "should_panic_test_count": 0,
+                "policy_document_over_1000_count": 0,
+                "duplicate_dependency_crate_count": 4,
+                "duplicate_dependency_crates": [
+                    "hashbrown",
+                    "memchr",
+                    "serde_json",
+                    "tokio",
+                ],
+            },
+        )
+
+        self.assertTrue(result.passed)
+        self.assertIn(
+            "duplicate_dependency_crates changed: ['hashbrown', 'memchr', 'serde_json', 'tokio'] != "
+            "['hashbrown', 'memchr', 'serde_core', 'serde_json']",
+            result.warnings,
+        )
+
     def test_drift_report_classifies_gated_and_observed_regressions(self) -> None:
         baseline = self.baseline(duplicate_dependency_crate_count=4)
         current = {

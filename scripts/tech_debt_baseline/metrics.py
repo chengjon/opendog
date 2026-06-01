@@ -264,6 +264,7 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         for line in result.stdout.splitlines()
         if (match := re.match(r"^\s*([A-Za-z0-9_-]+) v\d+\.\d+\.\d+", line))
     }
+    duplicate_crates = sorted(crates)
     manifest = load_toml_file(root / "Cargo.toml")
     lockfile_path = root / "Cargo.lock"
     locked_packages = count_locked_packages(load_toml_file(lockfile_path))
@@ -275,12 +276,13 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         "external_tool_available": external_tool is not None,
         "vulnerability_scan_available": external_tool is not None,
         "lockfile_present": lockfile_missing_count == 0,
-        "duplicate_crate_count": len(crates),
+        "duplicate_crate_count": len(duplicate_crates),
         "manifest_dependency_count": count_manifest_dependencies(manifest),
         "locked_package_count": locked_packages,
     }
     return {
-        "duplicate_dependency_crate_count": len(crates),
+        "duplicate_dependency_crate_count": len(duplicate_crates),
+        "duplicate_dependency_crates": duplicate_crates,
         "dependency_audit_issue_count": lockfile_missing_count,
         "dependency_lockfile_missing_count": lockfile_missing_count,
         "manifest_dependency_count": dependency_audit["manifest_dependency_count"],
