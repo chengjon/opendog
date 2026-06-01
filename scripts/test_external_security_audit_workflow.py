@@ -36,6 +36,13 @@ class ExternalSecurityAuditWorkflowTests(unittest.TestCase):
         self.assertIn('unknown-registry = "deny"', content)
         self.assertIn('unknown-git = "deny"', content)
 
+    def test_cargo_deny_graph_matches_ci_target_scope(self) -> None:
+        policy = REPO_ROOT / "deny.toml"
+        content = policy.read_text(encoding="utf-8")
+
+        self.assertIn("[graph]", content)
+        self.assertIn('targets = ["x86_64-unknown-linux-gnu"]', content)
+
     def test_package_manifest_is_marked_unpublished_for_license_checks(self) -> None:
         manifest = REPO_ROOT / "Cargo.toml"
         content = manifest.read_text(encoding="utf-8")

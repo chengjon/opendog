@@ -109,7 +109,8 @@ Measured state:
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
 - External dependency audit workflow: available via `.github/workflows/external-security-audit.yml`.
-- `cargo-deny` policy: available via `deny.toml` for advisories, bans, licenses, and sources.
+- `cargo-deny` policy: available via `deny.toml` for advisories, bans, licenses, and sources, scoped to the CI Linux target graph.
+- `cargo-deny` bans check: `bans ok` for `x86_64-unknown-linux-gnu`.
 - `cargo-audit`: unavailable.
 - `cargo-deny`: unavailable by default on developer machines; pinned workflow install uses `cargo-deny 0.19.8`.
 
@@ -161,7 +162,7 @@ P1 - Current iteration:
 P2 - Next iteration:
 
 - Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
-- Keep `cargo-deny` duplicate dependency findings at `warn` for same-version graph contexts, while the baseline hard-gates true multi-version split regressions at zero.
+- Keep `cargo-deny` graph scope aligned with the repository's Ubuntu CI target; the baseline hard-gates true multi-version split regressions at zero.
 - Keep sleep-call regressions at zero unless a deterministic readiness/event primitive is not available.
 
 P3 - Backlog:
