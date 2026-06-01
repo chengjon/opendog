@@ -48,7 +48,7 @@
     "scanner": "internal-cargo-inventory",
     "external_tool": null,
     "external_tool_available": false,
-    "vulnerability_scan_available": false,
+    "vulnerability_scan_available": true,
     "lockfile_present": true,
     "duplicate_crate_count": 4,
     "manifest_dependency_count": 17,

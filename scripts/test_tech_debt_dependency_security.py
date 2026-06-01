@@ -103,6 +103,60 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
         self.assertTrue(availability["external_dependency_audit_available"])
         self.assertTrue(availability["external_secret_scan_available"])
 
+    def test_dependency_audit_marks_external_workflow_vulnerability_scan_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                "Cargo.toml",
+                "\n".join(
+                    [
+                        "[package]",
+                        'name = "demo"',
+                        'version = "0.1.0"',
+                        'edition = "2021"',
+                        "",
+                        "[dependencies]",
+                        'serde = "1"',
+                    ]
+                ),
+            )
+            self.write_file(
+                root,
+                "Cargo.lock",
+                "\n".join(
+                    [
+                        "version = 3",
+                        "",
+                        "[[package]]",
+                        'name = "demo"',
+                        'version = "0.1.0"',
+                        "",
+                        "[[package]]",
+                        'name = "serde"',
+                        'version = "1.0.0"',
+                    ]
+                ),
+            )
+            self.write_file(
+                root,
+                ".github/workflows/external-security-audit.yml",
+                "\n".join(
+                    [
+                        "name: External Security Audit",
+                        "jobs:",
+                        "  cargo-audit:",
+                        "    steps:",
+                        "      - run: cargo audit --color never",
+                    ]
+                ),
+            )
+
+            metrics = debt_metrics.measure_dependency_metrics(root)
+
+        self.assertFalse(metrics["dependency_audit"]["external_tool_available"])
+        self.assertTrue(metrics["dependency_audit"]["vulnerability_scan_available"])
+
     def test_secret_scan_counts_high_confidence_tokens_without_storing_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

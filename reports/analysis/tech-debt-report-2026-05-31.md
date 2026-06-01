@@ -101,6 +101,7 @@ Measured state:
 - `cargo tree -d --depth 3` duplicate crate groups: `hashbrown`, `memchr`, `serde_core`, `serde_json`.
 - Duplicate dependency drift guard: tracks the duplicate crate group names as well as the count.
 - Internal dependency audit: available via `internal-cargo-inventory`.
+- Vulnerability scan availability: available through the external security workflow.
 - Baseline external dependency audit availability: available through the external security workflow.
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
