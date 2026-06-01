@@ -47,28 +47,34 @@ def parse_github_repo(remote_url: str) -> str:
 
 
 def discover_repo(root: Path) -> str:
-    completed = subprocess.run(
-        ["git", "remote", "get-url", "origin"],
-        cwd=root,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("git CLI is required to discover repository origin") from error
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or "unable to read git origin remote")
     return parse_github_repo(completed.stdout)
 
 
 def current_head_sha(root: Path) -> str:
-    completed = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=root,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("git CLI is required to read current HEAD") from error
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or "unable to read current git HEAD")
     return completed.stdout.strip()

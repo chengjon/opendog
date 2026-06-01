@@ -4,6 +4,7 @@ import sys
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -104,6 +105,16 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
         args = audit_status.parse_args(["--require-head"])
 
         self.assertTrue(args.require_head)
+
+    def test_discover_repo_reports_missing_git_executable(self) -> None:
+        with patch.object(audit_status.subprocess, "run", side_effect=FileNotFoundError()):
+            with self.assertRaisesRegex(RuntimeError, "git CLI is required to discover repository origin"):
+                audit_status.discover_repo(Path.cwd())
+
+    def test_current_head_sha_reports_missing_git_executable(self) -> None:
+        with patch.object(audit_status.subprocess, "run", side_effect=FileNotFoundError()):
+            with self.assertRaisesRegex(RuntimeError, "git CLI is required to read current HEAD"):
+                audit_status.current_head_sha(Path.cwd())
 
 
 if __name__ == "__main__":
