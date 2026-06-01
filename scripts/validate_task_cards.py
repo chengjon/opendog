@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from pathlib import Path
-
+import planning_paths
 from task_card_rules import collect_status_counts, validate_card
 import validate_requirement_mappings as requirement_mappings
 
 
-ROOT = Path(__file__).resolve().parents[1]
-TASK_DIR = ROOT / ".planning" / "task-cards"
-TREE_FILE = ROOT / "FUNCTION_TREE.md"
-REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
+TASK_DIR = planning_paths.TASK_CARD_DIR
+TREE_FILE = planning_paths.FUNCTION_TREE_FILE
+REQUIREMENTS_FILE = planning_paths.REQUIREMENTS_FILE
 
 
 def main() -> int:

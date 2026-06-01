@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 import sys
 import tempfile
 import unittest
@@ -11,6 +12,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_planning_governance as planning_governance
+import validate_requirement_mappings as requirement_mappings
 import validate_task_cards as task_cards
 
 
@@ -88,6 +90,18 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
         self.assertNotIn('ROOT / "FUNCTION_TREE.md"', source)
         self.assertNotIn('ROOT / ".planning" / "REQUIREMENTS.md"', source)
         self.assertNotIn('ROOT / ".planning" / "task-cards"', source)
+
+    def test_planning_modules_share_planning_path_constants(self) -> None:
+        planning_paths = importlib.import_module("planning_paths")
+
+        self.assertIs(planning_paths.FUNCTION_TREE_FILE, task_cards.TREE_FILE)
+        self.assertIs(planning_paths.REQUIREMENTS_FILE, task_cards.REQUIREMENTS_FILE)
+        self.assertIs(planning_paths.TASK_CARD_DIR, task_cards.TASK_DIR)
+        self.assertIs(planning_paths.FUNCTION_TREE_FILE, requirement_mappings.TREE_FILE)
+        self.assertIs(planning_paths.REQUIREMENTS_FILE, requirement_mappings.REQUIREMENTS_FILE)
+        self.assertIs(planning_paths.FUNCTION_TREE_FILE, planning_governance.FUNCTION_TREE_FILE)
+        self.assertIs(planning_paths.REQUIREMENTS_FILE, planning_governance.REQUIREMENTS_FILE)
+        self.assertIs(planning_paths.TASK_CARD_DIR, planning_governance.TASK_CARD_DIR)
 
     def test_lightweight_tech_debt_gate_skips_command_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

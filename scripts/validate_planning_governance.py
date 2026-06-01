@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import planning_paths
 import planning_governance_rules as governance_rules
 import tech_debt_baseline
 import validate_requirement_mappings as requirement_mappings
@@ -11,11 +12,11 @@ import validate_structural_hygiene as structural_hygiene
 import validate_task_cards as task_cards
 
 
-ROOT = Path(__file__).resolve().parents[1]
-FUNCTION_TREE_FILE = task_cards.TREE_FILE
-REQUIREMENTS_FILE = task_cards.REQUIREMENTS_FILE
-ROADMAP_FILE = ROOT / ".planning" / "ROADMAP.md"
-TASK_CARD_DIR = task_cards.TASK_DIR
+ROOT = planning_paths.ROOT
+FUNCTION_TREE_FILE = planning_paths.FUNCTION_TREE_FILE
+REQUIREMENTS_FILE = planning_paths.REQUIREMENTS_FILE
+ROADMAP_FILE = planning_paths.ROADMAP_FILE
+TASK_CARD_DIR = planning_paths.TASK_CARD_DIR
 TECH_DEBT_BASELINE_FILE = ROOT / "reports" / "analysis" / "tech-debt-baseline.json"
 TECH_DEBT_LIGHTWEIGHT_EXCLUDED_METRICS = {
     "duplicate_dependency_crate_count",

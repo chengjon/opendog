@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
+import planning_paths
 
-ROOT = Path(__file__).resolve().parents[1]
-TREE_FILE = ROOT / "FUNCTION_TREE.md"
-REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
+TREE_FILE = planning_paths.FUNCTION_TREE_FILE
+REQUIREMENTS_FILE = planning_paths.REQUIREMENTS_FILE
 
 
 def parse_function_tree_levels(text: str) -> dict[str, str]:
