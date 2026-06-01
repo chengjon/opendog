@@ -38,6 +38,7 @@ class TechDebtBaselineReportTests(unittest.TestCase):
         report = tech_debt.build_drift_report(baseline, current, result)
 
         self.assertEqual("PASS", report["status"])
+        self.assertEqual("PASS", report["gate_status"])
         self.assertEqual("WARN", report["observation_status"])
         self.assertEqual(["duplicate_dependency_crate_count regressed: 5 > 4"], report["warnings"])
 
