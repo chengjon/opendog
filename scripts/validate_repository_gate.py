@@ -31,6 +31,7 @@ def gate_commands() -> list[GateCommand]:
             "cargo-clippy",
             ["cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"],
         ),
+        GateCommand("python-ruff", ["ruff", "check", "scripts"]),
         GateCommand(
             "python-unit-tests",
             [

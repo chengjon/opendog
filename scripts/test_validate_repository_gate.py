@@ -25,6 +25,7 @@ class RepositoryGateTests(unittest.TestCase):
                 "cargo-fmt",
                 "cargo-test",
                 "cargo-clippy",
+                "python-ruff",
                 "python-unit-tests",
                 "tech-debt-baseline",
                 "planning-governance",
