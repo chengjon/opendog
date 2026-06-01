@@ -39,6 +39,25 @@ class RepositoryGateTests(unittest.TestCase):
         self.assertIn("scripts.test_external_security_audit_workflow", python_tests)
         self.assertIn("scripts.test_tech_debt_dependency_security", python_tests)
 
+    def test_openspec_command_disables_telemetry(self) -> None:
+        openspec = next(command for command in repository_gate.gate_commands() if command.name == "openspec")
+
+        self.assertEqual({"OPENSPEC_TELEMETRY": "0"}, openspec.env)
+
+    def test_run_command_passes_command_environment(self) -> None:
+        result = type("CompletedProcess", (), {"returncode": 0})()
+        command = repository_gate.GateCommand(
+            "openspec",
+            ["openspec", "validate", "--specs", "--strict"],
+            {"OPENSPEC_TELEMETRY": "0"},
+        )
+
+        with patch.object(repository_gate.subprocess, "run", return_value=result) as run:
+            status = repository_gate.run_command(command, REPO_ROOT)
+
+        self.assertEqual(0, status)
+        self.assertEqual("0", run.call_args.kwargs["env"]["OPENSPEC_TELEMETRY"])
+
     def test_github_workflow_delegates_to_repository_gate(self) -> None:
         workflow = REPO_ROOT / ".github" / "workflows" / "repository-gate.yml"
         content = workflow.read_text()

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,11 +15,16 @@ ROOT = Path(__file__).resolve().parents[1]
 class GateCommand:
     name: str
     argv: list[str]
+    env: dict[str, str] | None = None
 
 
 def gate_commands() -> list[GateCommand]:
     return [
-        GateCommand("openspec", ["openspec", "validate", "--specs", "--strict"]),
+        GateCommand(
+            "openspec",
+            ["openspec", "validate", "--specs", "--strict"],
+            {"OPENSPEC_TELEMETRY": "0"},
+        ),
         GateCommand("cargo-fmt", ["cargo", "fmt", "--check"]),
         GateCommand("cargo-test", ["cargo", "test", "--quiet"]),
         GateCommand(
@@ -52,7 +58,10 @@ def gate_commands() -> list[GateCommand]:
 
 def run_command(command: GateCommand, root: Path) -> int:
     print(f"==> {command.name}: {' '.join(command.argv)}")
-    return subprocess.run(command.argv, cwd=root, check=False).returncode
+    env = os.environ.copy()
+    if command.env:
+        env.update(command.env)
+    return subprocess.run(command.argv, cwd=root, check=False, env=env).returncode
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
