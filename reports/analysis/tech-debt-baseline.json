@@ -28,18 +28,13 @@
   "large_file_count_code": 0,
   "policy_document_over_1000_count": 0,
   "debt_exception_count": 0,
-  "duplicate_dependency_crate_count": 4,
+  "duplicate_dependency_crate_count": 3,
   "duplicate_dependency_crates": [
-    "hashbrown",
     "memchr",
     "serde_core",
     "serde_json"
   ],
   "duplicate_dependency_crate_versions": {
-    "hashbrown": [
-      "0.16.1",
-      "0.17.0"
-    ],
     "memchr": [
       "2.8.0"
     ],
@@ -50,10 +45,8 @@
       "1.0.149"
     ]
   },
-  "duplicate_dependency_version_split_count": 1,
-  "duplicate_dependency_version_splits": [
-    "hashbrown"
-  ],
+  "duplicate_dependency_version_split_count": 0,
+  "duplicate_dependency_version_splits": [],
   "dependency_audit_available": true,
   "secret_scan_available": true,
   "external_dependency_audit_available": true,
@@ -61,7 +54,7 @@
   "dependency_audit_issue_count": 0,
   "dependency_lockfile_missing_count": 0,
   "manifest_dependency_count": 17,
-  "locked_dependency_package_count": 193,
+  "locked_dependency_package_count": 192,
   "high_confidence_secret_count": 0,
   "dependency_audit": {
     "scanner": "internal-cargo-inventory",
@@ -70,10 +63,10 @@
     "external_workflow_available": true,
     "vulnerability_scan_available": true,
     "lockfile_present": true,
-    "duplicate_crate_count": 4,
-    "version_split_count": 1,
+    "duplicate_crate_count": 3,
+    "version_split_count": 0,
     "manifest_dependency_count": 17,
-    "locked_package_count": 193
+    "locked_package_count": 192
   },
   "secret_scan": {
     "scanner": "internal-high-confidence-patterns",
@@ -105,13 +98,12 @@
     "direct_dependencies": 15,
     "dev_dependencies": 2,
     "duplicate_crates": [
-      "hashbrown",
       "memchr",
       "serde_core",
       "serde_json"
     ],
     "local_low_risk_fix_available": false,
-    "notes": "hashbrown duplication is transitive via rusqlite/hashlink and process-wrap/indexmap; serde-related duplicates are same-version normal/proc-macro graph contexts."
+    "notes": "hashbrown version split was removed by disabling rusqlite's default cache feature. Remaining serde-related duplicates are same-version normal/proc-macro graph contexts."
   },
   "test_observations": {
     "sleep_call_files": []
@@ -142,13 +134,13 @@
     "dependency_audit_available",
     "secret_scan_available",
     "dependency_audit_issue_count",
-    "high_confidence_secret_count"
+    "high_confidence_secret_count",
+    "duplicate_dependency_version_split_count"
   ],
   "observed_metrics": [
     "test_sleep_call_count",
     "duplicate_dependency_crate_count",
     "duplicate_dependency_crates",
-    "duplicate_dependency_version_split_count",
     "duplicate_dependency_version_splits",
     "external_dependency_audit_available",
     "external_secret_scan_available",

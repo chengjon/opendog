@@ -97,10 +97,10 @@ Measured state:
 - Direct dependencies: 15.
 - Dev dependencies: 2.
 - Manifest dependency entries: 17.
-- Locked dependency packages: 193.
-- `cargo tree -d --depth 3` duplicate crate groups: `hashbrown`, `memchr`, `serde_core`, `serde_json`.
+- Locked dependency packages: 192.
+- `cargo tree -d --depth 3` duplicate crate groups: `memchr`, `serde_core`, `serde_json`.
 - Duplicate dependency drift guard: tracks the duplicate crate group names as well as the count.
-- True multi-version duplicate splits: 1 group, `hashbrown`.
+- True multi-version duplicate splits: 0 groups.
 - Same-version duplicate contexts: `memchr`, `serde_core`, `serde_json`.
 - Internal dependency audit: available via `internal-cargo-inventory`.
 - Vulnerability scan availability: available through the external security workflow.
@@ -115,7 +115,7 @@ Measured state:
 
 Dependency interpretation:
 
-- `hashbrown` duplication is transitive through `rusqlite/hashlink` and `process-wrap/indexmap`.
+- The prior `hashbrown` version split was removed by disabling `rusqlite`'s default `cache` feature; the project does not use `prepare_cached` or related rusqlite cache APIs.
 - `serde_json`, `serde_core`, and `memchr` appear as same-version graph duplication across normal and proc-macro/build contexts.
 - No direct dependency deletion or version pin was identified as a low-risk local fix.
 
@@ -161,12 +161,12 @@ P1 - Current iteration:
 P2 - Next iteration:
 
 - Keep `External Security Audit` independent from the standard repository gate; use the release readiness wrapper when a release branch must prove the latest successful external scan matches current HEAD.
-- Keep `cargo-deny` duplicate dependency findings at `warn`, with crate-name and true multi-version split drift tracked in the baseline, until a low-risk transitive dependency convergence path exists.
+- Keep `cargo-deny` duplicate dependency findings at `warn` for same-version graph contexts, while the baseline hard-gates true multi-version split regressions at zero.
 - Keep sleep-call regressions at zero unless a deterministic readiness/event primitive is not available.
 
 P3 - Backlog:
 
-- Monitor upstream dependency graph for a future opportunity to collapse the transitive `hashbrown` split.
+- Monitor upstream dependency graph for future opportunities to collapse same-version duplicate contexts that are currently tied to normal/proc-macro/build graph separation.
 
 ## Reproducible Commands
 
