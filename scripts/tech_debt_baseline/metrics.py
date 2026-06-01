@@ -275,6 +275,7 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         "scanner": "internal-cargo-inventory",
         "external_tool": external_tool,
         "external_tool_available": external_tool is not None,
+        "external_workflow_available": workflow_availability["dependency"],
         "vulnerability_scan_available": external_tool is not None or workflow_availability["dependency"],
         "lockfile_present": lockfile_missing_count == 0,
         "duplicate_crate_count": len(duplicate_crates),
@@ -333,12 +334,14 @@ def measure_secret_scan_metrics(root: Path, files: list[Path]) -> dict[str, Any]
                             }
                         )
     external_tool = secret_scan_tool()
+    workflow_availability = external_security_audit_workflow(root)
     return {
         "high_confidence_secret_count": finding_count,
         "secret_scan": {
             "scanner": "internal-high-confidence-patterns",
             "external_tool": external_tool,
             "external_tool_available": external_tool is not None,
+            "external_workflow_available": workflow_availability["secret"],
             "finding_count": finding_count,
             "findings": findings,
         },

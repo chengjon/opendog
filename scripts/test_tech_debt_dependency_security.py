@@ -155,7 +155,29 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
             metrics = debt_metrics.measure_dependency_metrics(root)
 
         self.assertFalse(metrics["dependency_audit"]["external_tool_available"])
+        self.assertTrue(metrics["dependency_audit"]["external_workflow_available"])
         self.assertTrue(metrics["dependency_audit"]["vulnerability_scan_available"])
+
+    def test_secret_scan_marks_external_workflow_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self.write_file(
+                root,
+                ".github/workflows/external-security-audit.yml",
+                "\n".join(
+                    [
+                        "name: External Security Audit",
+                        "jobs:",
+                        "  gitleaks:",
+                        "    steps:",
+                        "      - run: gitleaks detect --source=.",
+                    ]
+                ),
+            )
+            metrics = debt_metrics.measure_secret_scan_metrics(root, [])
+
+        self.assertFalse(metrics["secret_scan"]["external_tool_available"])
+        self.assertTrue(metrics["secret_scan"]["external_workflow_available"])
 
     def test_secret_scan_counts_high_confidence_tokens_without_storing_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

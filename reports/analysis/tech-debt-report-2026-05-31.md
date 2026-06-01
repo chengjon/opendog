@@ -102,6 +102,7 @@ Measured state:
 - Duplicate dependency drift guard: tracks the duplicate crate group names as well as the count.
 - Internal dependency audit: available via `internal-cargo-inventory`.
 - Vulnerability scan availability: available through the external security workflow.
+- Dependency audit nested workflow flag: records `.github/workflows/external-security-audit.yml` availability separately from local tool installation.
 - Baseline external dependency audit availability: available through the external security workflow.
 - Dependency audit issue count: 0.
 - Cargo lockfile missing count: 0.
@@ -130,6 +131,7 @@ Measured state:
 - Production TODO/FIXME/HACK/XXX comments: 0.
 - Internal high-confidence secret scan: available.
 - Baseline external secret scan availability: available through the external security workflow.
+- Secret scan nested workflow flag: records `.github/workflows/external-security-audit.yml` availability separately from local tool installation.
 - High-confidence secret findings: 0.
 - External secret scan workflow: available via `.github/workflows/external-security-audit.yml`.
 - Release readiness gate: available via `scripts/check_release_readiness.py`.
