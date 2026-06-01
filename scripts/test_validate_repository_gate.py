@@ -36,13 +36,9 @@ class RepositoryGateTests(unittest.TestCase):
             command_names,
         )
         python_tests = next(command.argv for command in repository_gate.gate_commands() if command.name == "python-unit-tests")
-        self.assertIn("scripts.test_check_external_security_audit_status", python_tests)
-        self.assertIn("scripts.test_check_release_readiness", python_tests)
-        self.assertIn("scripts.test_external_security_audit_workflow", python_tests)
-        self.assertIn("scripts.test_tech_debt_dependency_security", python_tests)
-        self.assertIn("scripts.test_tech_debt_missing_tools", python_tests)
-        self.assertIn("scripts.test_validate_tech_debt_baseline_cli", python_tests)
-        self.assertIn("scripts.test_validate_tech_debt_baseline_report", python_tests)
+        expected_modules = [f"scripts.{path.stem}" for path in sorted(SCRIPT_DIR.glob("test_*.py"))]
+
+        self.assertEqual(["python3", "-m", "unittest", *expected_modules], python_tests)
 
     def test_python_unit_tests_are_discovered_from_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
