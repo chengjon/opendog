@@ -45,6 +45,7 @@ def gate_commands() -> list[GateCommand]:
                 "scripts.test_structural_rust_guards",
                 "scripts.test_tech_debt_dependency_security",
                 "scripts.test_validate_tech_debt_baseline",
+                "scripts.test_validate_tech_debt_baseline_report",
                 "scripts.test_validate_planning_governance",
                 "scripts.test_validate_repository_gate",
             ],

@@ -21,6 +21,7 @@ def build_drift_report(
         "project": baseline.get("project"),
         "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if result.passed else "FAIL",
+        "observation_status": "WARN" if result.warnings else "PASS",
         "errors": result.errors,
         "warnings": result.warnings,
         "metrics": [
