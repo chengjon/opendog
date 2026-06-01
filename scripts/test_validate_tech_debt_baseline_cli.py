@@ -44,6 +44,23 @@ class TechDebtBaselineCliTests(unittest.TestCase):
         self.assertIn("observed tech debt drift: WARN", lines)
         self.assertIn("WARN: duplicate_dependency_crate_count regressed: 5 > 4", lines)
 
+    def test_print_result_shows_gate_failure_without_observed_warning(self) -> None:
+        stream = io.StringIO()
+        result = ValidationResult(
+            passed=False,
+            errors=["production_unwrap_count regressed: 1 > 0"],
+            warnings=[],
+        )
+
+        with contextlib.redirect_stdout(stream):
+            print_result(result)
+
+        lines = stream.getvalue().splitlines()
+        self.assertIn("validated tech debt baseline: FAIL", lines)
+        self.assertIn("tech debt gate drift: FAIL", lines)
+        self.assertIn("observed tech debt drift: PASS", lines)
+        self.assertIn("ERROR: production_unwrap_count regressed: 1 > 0", lines)
+
 
 if __name__ == "__main__":
     unittest.main()
