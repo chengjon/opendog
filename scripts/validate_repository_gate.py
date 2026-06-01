@@ -19,7 +19,12 @@ class GateCommand:
     env: dict[str, str] | None = None
 
 
-def gate_commands() -> list[GateCommand]:
+def python_test_modules(root: Path) -> list[str]:
+    scripts_dir = root / "scripts"
+    return [f"scripts.{path.stem}" for path in sorted(scripts_dir.glob("test_*.py"))]
+
+
+def gate_commands(root: Path = ROOT) -> list[GateCommand]:
     return [
         GateCommand(
             "openspec",
@@ -39,19 +44,7 @@ def gate_commands() -> list[GateCommand]:
                 "python3",
                 "-m",
                 "unittest",
-                "scripts.test_check_external_security_audit_status",
-                "scripts.test_check_release_readiness",
-                "scripts.test_external_security_audit_workflow",
-                "scripts.test_validate_structural_hygiene",
-                "scripts.test_structural_contract_guards",
-                "scripts.test_structural_rust_guards",
-                "scripts.test_tech_debt_dependency_security",
-                "scripts.test_tech_debt_missing_tools",
-                "scripts.test_validate_tech_debt_baseline_cli",
-                "scripts.test_validate_tech_debt_baseline",
-                "scripts.test_validate_tech_debt_baseline_report",
-                "scripts.test_validate_planning_governance",
-                "scripts.test_validate_repository_gate",
+                *python_test_modules(root),
             ],
         ),
         GateCommand("tech-debt-baseline", ["python3", "scripts/validate_tech_debt_baseline.py"]),
@@ -82,7 +75,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = args.root.resolve()
-    for command in gate_commands():
+    for command in gate_commands(root):
         status = run_command(command, root)
         if status != 0:
             print(f"repository validation gate failed at {command.name}")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -42,6 +43,21 @@ class RepositoryGateTests(unittest.TestCase):
         self.assertIn("scripts.test_tech_debt_missing_tools", python_tests)
         self.assertIn("scripts.test_validate_tech_debt_baseline_cli", python_tests)
         self.assertIn("scripts.test_validate_tech_debt_baseline_report", python_tests)
+
+    def test_python_unit_tests_are_discovered_from_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            scripts_dir = root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "test_beta.py").write_text("", encoding="utf-8")
+            (scripts_dir / "test_alpha.py").write_text("", encoding="utf-8")
+            (scripts_dir / "helper.py").write_text("", encoding="utf-8")
+
+            python_tests = next(
+                command.argv for command in repository_gate.gate_commands(root) if command.name == "python-unit-tests"
+            )
+
+        self.assertEqual(["python3", "-m", "unittest", "scripts.test_alpha", "scripts.test_beta"], python_tests)
 
     def test_openspec_command_disables_telemetry(self) -> None:
         openspec = next(command for command in repository_gate.gate_commands() if command.name == "openspec")
