@@ -266,15 +266,23 @@ def secret_scan_tool() -> str | None:
 
 
 def measure_dependency_metrics(root: Path) -> dict[str, Any]:
-    result = subprocess.run(
-        ["cargo", "tree", "-d", "--depth", "3"],
-        cwd=root,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        check=False,
-    )
-    duplicate_versions = parse_duplicate_crate_versions(result.stdout)
+    try:
+        result = subprocess.run(
+            ["cargo", "tree", "-d", "--depth", "3"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=False,
+        )
+        cargo_tree_output = result.stdout
+        cargo_tree_available = True
+        cargo_tree_status = result.returncode
+    except FileNotFoundError:
+        cargo_tree_output = ""
+        cargo_tree_available = False
+        cargo_tree_status = 127
+    duplicate_versions = parse_duplicate_crate_versions(cargo_tree_output)
     duplicate_crates = sorted(duplicate_versions)
     version_splits = sorted(crate for crate, versions in duplicate_versions.items() if len(versions) > 1)
     manifest = load_toml_file(root / "Cargo.toml")
@@ -294,6 +302,8 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
         "version_split_count": len(version_splits),
         "manifest_dependency_count": count_manifest_dependencies(manifest),
         "locked_package_count": locked_packages,
+        "cargo_tree_available": cargo_tree_available,
+        "cargo_tree_status": cargo_tree_status,
     }
     return {
         "duplicate_dependency_crate_count": len(duplicate_crates),

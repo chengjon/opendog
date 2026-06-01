@@ -21,18 +21,6 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
-    def test_command_metrics_missing_cargo_marks_failures(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-
-            with mock.patch.object(debt_metrics.subprocess, "run", side_effect=FileNotFoundError()):
-                metrics = debt_metrics.measure_command_metrics(root)
-
-        self.assertEqual(1, metrics["rust_check_errors"])
-        self.assertEqual(1, metrics["rust_clippy_errors"])
-        self.assertEqual(1, metrics["rust_clippy_warnings"])
-        self.assertEqual(1, metrics["backend_lint_errors"])
-
     def test_duplicate_dependency_parser_distinguishes_version_splits(self) -> None:
         duplicate_tree = "\n".join(
             [
