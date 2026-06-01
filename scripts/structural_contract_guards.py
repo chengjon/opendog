@@ -14,11 +14,9 @@ MCP_FULL_REFERENCE_DOCS = [
     "FUNCTION_TREE.md",
     "CLAUDE.md",
 ]
+MCP_TOOL_COUNT_DOC_EXCLUSIONS = {"README.md"}
 MCP_TOOL_COUNT_DOCS = [
-    "docs/mcp-tool-reference.md",
-    "QUICKSTART.md",
-    "FUNCTION_TREE.md",
-    "CLAUDE.md",
+    relative_path for relative_path in MCP_FULL_REFERENCE_DOCS if relative_path not in MCP_TOOL_COUNT_DOC_EXCLUSIONS
 ]
 MCP_CURRENT_GUIDANCE_DOCS = [
     "docs/opendog-feature-introduction.md",
