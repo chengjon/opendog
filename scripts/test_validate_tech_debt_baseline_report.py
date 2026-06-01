@@ -9,18 +9,12 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_tech_debt_baseline as tech_debt
+import tech_debt_test_support as debt_support
 
 
 class TechDebtBaselineReportTests(unittest.TestCase):
     def test_drift_report_marks_gate_failure_without_observation_warning(self) -> None:
-        baseline = {
-            "metric_version": "v1.0",
-            "project": "opendog-test",
-            "gated_metrics": ["production_unwrap_count"],
-            "observed_metrics": ["duplicate_dependency_crate_count"],
-            "production_unwrap_count": 0,
-            "duplicate_dependency_crate_count": 4,
-        }
+        baseline = debt_support.baseline_payload(gated_metrics=["production_unwrap_count"])
         current = {
             "production_unwrap_count": 1,
             "duplicate_dependency_crate_count": 4,
@@ -35,20 +29,7 @@ class TechDebtBaselineReportTests(unittest.TestCase):
         self.assertEqual(["production_unwrap_count regressed: 1 > 0"], report["errors"])
 
     def test_drift_report_separates_observation_status_from_gate_status(self) -> None:
-        baseline = {
-            "metric_version": "v1.0",
-            "project": "opendog-test",
-            "gated_metrics": [
-                "production_unwrap_count",
-                "should_panic_test_count",
-                "policy_document_over_1000_count",
-            ],
-            "observed_metrics": ["duplicate_dependency_crate_count"],
-            "production_unwrap_count": 0,
-            "should_panic_test_count": 0,
-            "policy_document_over_1000_count": 0,
-            "duplicate_dependency_crate_count": 4,
-        }
+        baseline = debt_support.baseline_payload()
         current = {
             "production_unwrap_count": 0,
             "should_panic_test_count": 0,

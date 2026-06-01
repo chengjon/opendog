@@ -11,6 +11,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_tech_debt_baseline as tech_debt
+import tech_debt_test_support as debt_support
 
 
 class TechDebtBaselineValidationTests(unittest.TestCase):
@@ -21,31 +22,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
         return path
 
     def baseline(self, **overrides: object) -> dict[str, object]:
-        data: dict[str, object] = {
-            "metric_version": "v1.0",
-            "generated_at": "2026-05-31T02:27:49Z",
-            "project": "opendog-test",
-            "gated_metrics": [
-                "production_unwrap_count",
-                "should_panic_test_count",
-                "policy_document_over_1000_count",
-            ],
-            "observed_metrics": ["duplicate_dependency_crate_count"],
-            "production_unwrap_count": 0,
-            "should_panic_test_count": 0,
-            "policy_document_over_1000_count": 0,
-            "duplicate_dependency_crate_count": 4,
-            "documentation_policy": {
-                "documents": [
-                    {
-                        "file": "docs/mcp-tool-reference.md",
-                        "line_limit": 1000,
-                    }
-                ]
-            },
-        }
-        data.update(overrides)
-        return data
+        return debt_support.baseline_payload(**overrides)
 
     def test_gated_metric_regression_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

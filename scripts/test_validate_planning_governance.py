@@ -14,6 +14,7 @@ if str(SCRIPT_DIR) not in sys.path:
 import validate_planning_governance as planning_governance
 import validate_requirement_mappings as requirement_mappings
 import validate_task_cards as task_cards
+import tech_debt_test_support as debt_support
 
 
 class PlanningGovernanceTechDebtTests(unittest.TestCase):
@@ -24,17 +25,11 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
         return path
 
     def baseline(self) -> dict[str, object]:
-        return {
-            "metric_version": "v1.0",
-            "generated_at": "2026-05-31T02:27:49Z",
-            "project": "opendog-test",
-            "rust_check_errors": 0,
-            "production_unwrap_count": 0,
-            "gated_metrics": ["rust_check_errors", "production_unwrap_count"],
-            "observed_metrics": ["duplicate_dependency_crate_count"],
-            "duplicate_dependency_crate_count": 4,
-            "documentation_policy": {"documents": []},
-        }
+        return debt_support.baseline_payload(
+            gated_metrics=["rust_check_errors", "production_unwrap_count"],
+            documentation_documents=[],
+            rust_check_errors=0,
+        )
 
     def dependency_baseline(self) -> dict[str, object]:
         baseline = self.baseline()
