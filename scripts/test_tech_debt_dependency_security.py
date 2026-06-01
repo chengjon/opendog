@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -83,7 +84,8 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
                 ),
             )
 
-            metrics = debt_metrics.measure_dependency_metrics(root)
+            with mock.patch.object(debt_metrics, "dependency_audit_tool", return_value=None):
+                metrics = debt_metrics.measure_dependency_metrics(root)
 
             self.assertIn("dependency_audit_issue_count", metrics)
             self.assertEqual(0, metrics["dependency_audit_issue_count"])
@@ -202,7 +204,8 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
                     ]
                 ),
             )
-            metrics = debt_metrics.measure_secret_scan_metrics(root, [])
+            with mock.patch.object(debt_metrics, "secret_scan_tool", return_value=None):
+                metrics = debt_metrics.measure_secret_scan_metrics(root, [])
 
         self.assertFalse(metrics["secret_scan"]["external_tool_available"])
         self.assertTrue(metrics["secret_scan"]["external_workflow_available"])
