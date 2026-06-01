@@ -11,6 +11,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_structural_hygiene as structural_hygiene
+import structural_contract_guards as contract_guards
 
 
 class StructuralContractGuardTests(unittest.TestCase):
@@ -99,7 +100,7 @@ const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
 """,
             )
             complete_doc = "Current surface: 1 MCP tools.\n\n- get_guidance\n"
-            for relative_path in ["README.md", "QUICKSTART.md", "FUNCTION_TREE.md", "CLAUDE.md", "docs/mcp-tool-reference.md"]:
+            for relative_path in contract_guards.MCP_FULL_REFERENCE_DOCS:
                 self.write_file(root, relative_path, complete_doc + "\n- opendog://projects\n")
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
@@ -139,7 +140,9 @@ Current surface: 2 MCP tools.
 """
             complete_doc = "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
             self.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
-            for relative_path in ["README.md", "QUICKSTART.md", "FUNCTION_TREE.md", "CLAUDE.md"]:
+            for relative_path in contract_guards.MCP_FULL_REFERENCE_DOCS:
+                if relative_path == "docs/mcp-tool-reference.md":
+                    continue
                 self.write_file(root, relative_path, complete_doc)
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
