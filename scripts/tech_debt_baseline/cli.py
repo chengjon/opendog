@@ -16,6 +16,8 @@ def print_result(result: ValidationResult) -> None:
         print("validated tech debt baseline: PASS")
     else:
         print("validated tech debt baseline: FAIL")
+    if result.warnings:
+        print("observed tech debt drift: WARN")
     for error in result.errors:
         print(f"ERROR: {error}")
     for warning in result.warnings:

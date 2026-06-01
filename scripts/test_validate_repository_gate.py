@@ -38,6 +38,7 @@ class RepositoryGateTests(unittest.TestCase):
         self.assertIn("scripts.test_check_release_readiness", python_tests)
         self.assertIn("scripts.test_external_security_audit_workflow", python_tests)
         self.assertIn("scripts.test_tech_debt_dependency_security", python_tests)
+        self.assertIn("scripts.test_validate_tech_debt_baseline_cli", python_tests)
         self.assertIn("scripts.test_validate_tech_debt_baseline_report", python_tests)
 
     def test_openspec_command_disables_telemetry(self) -> None:
