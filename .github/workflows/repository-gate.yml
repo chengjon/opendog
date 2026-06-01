@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python tooling
+        run: python3 -m pip install ruff==0.15.15
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:

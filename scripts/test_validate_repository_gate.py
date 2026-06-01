@@ -74,6 +74,7 @@ class RepositoryGateTests(unittest.TestCase):
         self.assertIn("actions/setup-python@v6", content)
         self.assertIn("actions/setup-node@v6", content)
         self.assertIn("@fission-ai/openspec@1.2.0", content)
+        self.assertIn("python3 -m pip install ruff==0.15.15", content)
         self.assertIn("python3 scripts/validate_repository_gate.py", content)
 
     def test_main_stops_at_first_failure(self) -> None:
