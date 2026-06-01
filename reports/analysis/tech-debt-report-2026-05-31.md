@@ -6,7 +6,7 @@ Generated: 2026-05-31T16:08:43Z
 
 Overall status: WARN.
 
-The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed by default and because dependency duplicate checks still report transitive duplicate crates that do not have a low-risk local fix. External `cargo-audit`, `cargo-deny`, and `gitleaks` scans are now available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
+The current codebase is clean on the hard gates measured in this line: Rust check, clippy with denied warnings, production panic/unwrap/expect/suppression markers, ignored tests, `should_panic` tests, placeholder assertions, configured size budgets, internal dependency audit availability, true multi-version dependency splits, and high-confidence secret findings. The warning status is retained because local external vulnerability/security audit tools are not installed by default and because dependency duplicate checks still report same-version graph-context duplicates. External `cargo-audit`, `cargo-deny`, and `gitleaks` scans are available through the independent `External Security Audit` workflow, and release readiness can require the latest successful external audit to match the current git HEAD.
 
 Scope constraints honored:
 
@@ -117,7 +117,7 @@ Dependency interpretation:
 
 - The prior `hashbrown` version split was removed by disabling `rusqlite`'s default `cache` feature; the project does not use `prepare_cached` or related rusqlite cache APIs.
 - `serde_json`, `serde_core`, and `memchr` appear as same-version graph duplication across normal and proc-macro/build contexts.
-- No direct dependency deletion or version pin was identified as a low-risk local fix.
+- No direct dependency deletion or version pin was identified as a low-risk local fix for the remaining same-version duplicate contexts.
 
 Recommended next step:
 

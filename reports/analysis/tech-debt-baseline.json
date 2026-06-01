@@ -103,7 +103,7 @@
       "serde_json"
     ],
     "local_low_risk_fix_available": false,
-    "notes": "hashbrown version split was removed by disabling rusqlite's default cache feature. Remaining serde-related duplicates are same-version normal/proc-macro graph contexts."
+    "notes": "hashbrown version split was removed by disabling rusqlite's default cache feature. Remaining memchr, serde_core, and serde_json duplicates are same-version normal/proc-macro/build graph contexts."
   },
   "test_observations": {
     "sleep_call_files": []
