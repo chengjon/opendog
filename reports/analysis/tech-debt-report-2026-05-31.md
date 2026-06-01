@@ -61,7 +61,7 @@ Rating: B.
 
 Measured state:
 
-- Full suite: 1821 unit/module tests and 32 integration tests passed in the latest full gate before this report line.
+- Full suite: 1822 unit/module tests and 32 integration tests passed in the latest release readiness gate.
 - Targeted `truncate_str` boundary tests: 11 passed after removing `should_panic`.
 - Ignored tests: 0.
 - `should_panic` tests: 0.
