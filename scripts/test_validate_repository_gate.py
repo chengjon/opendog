@@ -64,6 +64,20 @@ class RepositoryGateTests(unittest.TestCase):
         self.assertEqual(0, status)
         self.assertEqual("0", run.call_args.kwargs["env"]["OPENSPEC_TELEMETRY"])
 
+    def test_run_command_reports_missing_executable(self) -> None:
+        command = repository_gate.GateCommand("python-ruff", ["ruff", "check", "scripts"])
+        stderr = io.StringIO()
+
+        with (
+            patch.object(repository_gate.subprocess, "run", side_effect=FileNotFoundError()),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
+        ):
+            status = repository_gate.run_command(command, REPO_ROOT)
+
+        self.assertEqual(127, status)
+        self.assertIn("missing executable for python-ruff: ruff", stderr.getvalue())
+
     def test_github_workflow_delegates_to_repository_gate(self) -> None:
         workflow = REPO_ROOT / ".github" / "workflows" / "repository-gate.yml"
         content = workflow.read_text()

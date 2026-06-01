@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,7 +65,11 @@ def run_command(command: GateCommand, root: Path) -> int:
     env = os.environ.copy()
     if command.env:
         env.update(command.env)
-    return subprocess.run(command.argv, cwd=root, check=False, env=env).returncode
+    try:
+        return subprocess.run(command.argv, cwd=root, check=False, env=env).returncode
+    except FileNotFoundError:
+        print(f"ERROR: missing executable for {command.name}: {command.argv[0]}", file=sys.stderr)
+        return 127
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
