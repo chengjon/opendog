@@ -12,10 +12,10 @@ import validate_task_cards as task_cards
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FUNCTION_TREE_FILE = ROOT / "FUNCTION_TREE.md"
-REQUIREMENTS_FILE = ROOT / ".planning" / "REQUIREMENTS.md"
+FUNCTION_TREE_FILE = task_cards.TREE_FILE
+REQUIREMENTS_FILE = task_cards.REQUIREMENTS_FILE
 ROADMAP_FILE = ROOT / ".planning" / "ROADMAP.md"
-TASK_CARD_DIR = ROOT / ".planning" / "task-cards"
+TASK_CARD_DIR = task_cards.TASK_DIR
 TECH_DEBT_BASELINE_FILE = ROOT / "reports" / "analysis" / "tech-debt-baseline.json"
 TECH_DEBT_LIGHTWEIGHT_EXCLUDED_METRICS = {
     "duplicate_dependency_crate_count",

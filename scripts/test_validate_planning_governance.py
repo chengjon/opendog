@@ -11,6 +11,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_planning_governance as planning_governance
+import validate_task_cards as task_cards
 
 
 class PlanningGovernanceTechDebtTests(unittest.TestCase):
@@ -77,6 +78,16 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
                     ]
                 ),
             )
+
+    def test_planning_paths_reuse_task_card_module_constants(self) -> None:
+        source = Path(planning_governance.__file__).read_text(encoding="utf-8")
+
+        self.assertIs(task_cards.TREE_FILE, planning_governance.FUNCTION_TREE_FILE)
+        self.assertIs(task_cards.REQUIREMENTS_FILE, planning_governance.REQUIREMENTS_FILE)
+        self.assertIs(task_cards.TASK_DIR, planning_governance.TASK_CARD_DIR)
+        self.assertNotIn('ROOT / "FUNCTION_TREE.md"', source)
+        self.assertNotIn('ROOT / ".planning" / "REQUIREMENTS.md"', source)
+        self.assertNotIn('ROOT / ".planning" / "task-cards"', source)
 
     def test_lightweight_tech_debt_gate_skips_command_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
