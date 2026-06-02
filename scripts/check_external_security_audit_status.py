@@ -16,6 +16,7 @@ DEFAULT_BRANCH = "master"
 DEFAULT_MAX_AGE_HOURS = 168
 DEFAULT_WORKFLOW = "external-security-audit.yml"
 ROOT = repo_paths.ROOT
+WORKFLOW_FILE = ROOT / ".github" / "workflows" / DEFAULT_WORKFLOW
 
 
 @dataclass(frozen=True)

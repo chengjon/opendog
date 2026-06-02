@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import check_external_security_audit_status as audit_status
 
 
 class ExternalSecurityAuditWorkflowTests(unittest.TestCase):
     def test_workflow_runs_pinned_external_security_tools(self) -> None:
-        workflow = REPO_ROOT / ".github" / "workflows" / "external-security-audit.yml"
+        workflow = audit_status.WORKFLOW_FILE
+        self.assertEqual(audit_status.DEFAULT_WORKFLOW, workflow.name)
         content = workflow.read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", content)
