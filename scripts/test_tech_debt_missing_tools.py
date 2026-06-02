@@ -11,15 +11,10 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from tech_debt_baseline import metrics as debt_metrics
+import tech_debt_test_support as debt_support
 
 
 class TechDebtMissingToolsTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> Path:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return path
-
     def test_command_metrics_missing_cargo_marks_failures(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -35,34 +30,7 @@ class TechDebtMissingToolsTests(unittest.TestCase):
     def test_dependency_metrics_reports_missing_cargo_tree_as_unavailable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
-                root,
-                "Cargo.toml",
-                "\n".join(
-                    [
-                        "[package]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                        'edition = "2021"',
-                        "",
-                        "[dependencies]",
-                        'serde = "1"',
-                    ]
-                ),
-            )
-            self.write_file(
-                root,
-                "Cargo.lock",
-                "\n".join(
-                    [
-                        "version = 3",
-                        "",
-                        "[[package]]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                    ]
-                ),
-            )
+            debt_support.write_cargo_inventory(root)
 
             with (
                 mock.patch.object(debt_metrics.subprocess, "run", side_effect=FileNotFoundError()),

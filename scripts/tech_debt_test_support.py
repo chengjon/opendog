@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from pathlib import Path
 
 
 DEFAULT_GATED_METRICS = [
@@ -39,3 +40,42 @@ def baseline_payload(
     }
     data.update(overrides)
     return data
+
+
+def write_file(root: Path, relative_path: str, content: str) -> Path:
+    path = root / relative_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def write_cargo_inventory(
+    root: Path,
+    *,
+    dependencies: Iterable[str] | None = None,
+    dev_dependencies: Iterable[str] | None = None,
+    lock_packages: Iterable[tuple[str, str]] | None = None,
+    with_lockfile: bool = True,
+) -> None:
+    manifest_lines = [
+        "[package]",
+        'name = "demo"',
+        'version = "0.1.0"',
+        'edition = "2021"',
+        "",
+        "[dependencies]",
+        *(dependencies or ['serde = "1"']),
+    ]
+    dev_dependency_lines = list(dev_dependencies or [])
+    if dev_dependency_lines:
+        manifest_lines.extend(["", "[dev-dependencies]", *dev_dependency_lines])
+    write_file(root, "Cargo.toml", "\n".join(manifest_lines))
+
+    if not with_lockfile:
+        return
+
+    packages = list(lock_packages or [("demo", "0.1.0")])
+    lock_lines = ["version = 3"]
+    for name, version in packages:
+        lock_lines.extend(["", "[[package]]", f'name = "{name}"', f'version = "{version}"'])
+    write_file(root, "Cargo.lock", "\n".join(lock_lines))

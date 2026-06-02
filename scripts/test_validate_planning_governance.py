@@ -45,37 +45,6 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
         )
         return baseline
 
-    def write_cargo_inventory(self, root: Path, *, with_lockfile: bool = True) -> None:
-        self.write_file(
-            root,
-            "Cargo.toml",
-            "\n".join(
-                [
-                    "[package]",
-                    'name = "demo"',
-                    'version = "0.1.0"',
-                    'edition = "2021"',
-                    "",
-                    "[dependencies]",
-                    'serde = "1"',
-                ]
-            ),
-        )
-        if with_lockfile:
-            self.write_file(
-                root,
-                "Cargo.lock",
-                "\n".join(
-                    [
-                        "version = 3",
-                        "",
-                        "[[package]]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                    ]
-                ),
-            )
-
     def test_planning_paths_reuse_task_card_module_constants(self) -> None:
         source = Path(planning_governance.__file__).read_text(encoding="utf-8")
 
@@ -144,7 +113,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
                 "reports/analysis/tech-debt-baseline.json",
                 json.dumps(self.dependency_baseline()),
             )
-            self.write_cargo_inventory(root)
+            debt_support.write_cargo_inventory(root)
 
             errors, warnings = planning_governance.validate_tech_debt_baseline(
                 root,

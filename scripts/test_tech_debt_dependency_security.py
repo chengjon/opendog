@@ -12,6 +12,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from tech_debt_baseline import metrics as debt_metrics
+import tech_debt_test_support as debt_support
 
 
 class TechDebtDependencySecurityTests(unittest.TestCase):
@@ -48,40 +49,10 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
     def test_dependency_audit_reports_internal_cargo_inventory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_cargo_inventory(
                 root,
-                "Cargo.toml",
-                "\n".join(
-                    [
-                        "[package]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                        'edition = "2021"',
-                        "",
-                        "[dependencies]",
-                        'serde = "1"',
-                        "",
-                        "[dev-dependencies]",
-                        'tempfile = "3"',
-                    ]
-                ),
-            )
-            self.write_file(
-                root,
-                "Cargo.lock",
-                "\n".join(
-                    [
-                        "version = 3",
-                        "",
-                        "[[package]]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                        "",
-                        "[[package]]",
-                        'name = "serde"',
-                        'version = "1.0.0"',
-                    ]
-                ),
+                dev_dependencies=['tempfile = "3"'],
+                lock_packages=[("demo", "0.1.0"), ("serde", "1.0.0")],
             )
 
             with mock.patch.object(debt_metrics, "dependency_audit_tool", return_value=None):
@@ -136,37 +107,9 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
     def test_dependency_audit_marks_external_workflow_vulnerability_scan_available(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_cargo_inventory(
                 root,
-                "Cargo.toml",
-                "\n".join(
-                    [
-                        "[package]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                        'edition = "2021"',
-                        "",
-                        "[dependencies]",
-                        'serde = "1"',
-                    ]
-                ),
-            )
-            self.write_file(
-                root,
-                "Cargo.lock",
-                "\n".join(
-                    [
-                        "version = 3",
-                        "",
-                        "[[package]]",
-                        'name = "demo"',
-                        'version = "0.1.0"',
-                        "",
-                        "[[package]]",
-                        'name = "serde"',
-                        'version = "1.0.0"',
-                    ]
-                ),
+                lock_packages=[("demo", "0.1.0"), ("serde", "1.0.0")],
             )
             self.write_file(
                 root,
