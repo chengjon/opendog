@@ -16,12 +16,6 @@ import tech_debt_test_support as debt_support
 
 
 class TechDebtDependencySecurityTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> Path:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return path
-
     def test_duplicate_dependency_parser_distinguishes_version_splits(self) -> None:
         duplicate_tree = "\n".join(
             [
@@ -79,7 +73,7 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
     def test_tool_availability_detects_external_security_audit_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 ".github/workflows/external-security-audit.yml",
                 "\n".join(
@@ -111,7 +105,7 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
                 root,
                 lock_packages=[("demo", "0.1.0"), ("serde", "1.0.0")],
             )
-            self.write_file(
+            debt_support.write_file(
                 root,
                 ".github/workflows/external-security-audit.yml",
                 "\n".join(
@@ -134,7 +128,7 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
     def test_secret_scan_marks_external_workflow_available(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 ".github/workflows/external-security-audit.yml",
                 "\n".join(
@@ -157,7 +151,7 @@ class TechDebtDependencySecurityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             token = "ghp_" + ("a" * 36)
-            path = self.write_file(root, "src/example.rs", f'const TOKEN: &str = "{token}";\n')
+            path = debt_support.write_file(root, "src/example.rs", f'const TOKEN: &str = "{token}";\n')
 
             self.assertTrue(hasattr(debt_metrics, "measure_secret_scan_metrics"))
             metrics = debt_metrics.measure_secret_scan_metrics(root, [path])

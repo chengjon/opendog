@@ -29,6 +29,15 @@ class TechDebtTestSupportTests(unittest.TestCase):
         self.assertEqual(9, payload["duplicate_dependency_crate_count"])
         self.assertEqual({"documents": []}, payload["documentation_policy"])
 
+    def test_write_file_creates_parent_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            path = support.write_file(root, "nested/demo.txt", "demo")
+
+            self.assertEqual(root / "nested" / "demo.txt", path)
+            self.assertEqual("demo", path.read_text(encoding="utf-8"))
+
     def test_write_cargo_inventory_creates_manifest_and_optional_lockfile(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

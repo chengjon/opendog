@@ -18,12 +18,6 @@ import tech_debt_test_support as debt_support
 
 
 class PlanningGovernanceTechDebtTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> Path:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return path
-
     def baseline(self) -> dict[str, object]:
         return debt_support.baseline_payload(
             gated_metrics=["rust_check_errors", "production_unwrap_count"],
@@ -70,7 +64,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
     def test_lightweight_tech_debt_gate_skips_command_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            baseline_path = self.write_file(
+            baseline_path = debt_support.write_file(
                 root,
                 "reports/analysis/tech-debt-baseline.json",
                 json.dumps(self.baseline()),
@@ -87,12 +81,12 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
     def test_lightweight_tech_debt_gate_reports_static_regression(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            baseline_path = self.write_file(
+            baseline_path = debt_support.write_file(
                 root,
                 "reports/analysis/tech-debt-baseline.json",
                 json.dumps(self.baseline()),
             )
-            self.write_file(root, "src/main.rs", "fn demo(value: Option<u8>) { value.unwrap(); }\n")
+            debt_support.write_file(root, "src/main.rs", "fn demo(value: Option<u8>) { value.unwrap(); }\n")
 
             errors, warnings = planning_governance.validate_tech_debt_baseline(
                 root,
@@ -108,7 +102,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
     def test_lightweight_tech_debt_gate_includes_dependency_audit_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            baseline_path = self.write_file(
+            baseline_path = debt_support.write_file(
                 root,
                 "reports/analysis/tech-debt-baseline.json",
                 json.dumps(self.dependency_baseline()),

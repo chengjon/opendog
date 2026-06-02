@@ -15,19 +15,13 @@ import tech_debt_test_support as debt_support
 
 
 class TechDebtBaselineValidationTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> Path:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return path
-
     def baseline(self, **overrides: object) -> dict[str, object]:
         return debt_support.baseline_payload(**overrides)
 
     def test_gated_metric_regression_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(root, "src/main.rs", "fn demo(value: Option<u8>) { value.unwrap(); }\n")
+            debt_support.write_file(root, "src/main.rs", "fn demo(value: Option<u8>) { value.unwrap(); }\n")
 
             current = tech_debt.measure_current_metrics(
                 root,
@@ -128,7 +122,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_cfg_test_unwrap_is_not_counted_as_production_debt(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 "src/lib.rs",
                 "\n".join(
@@ -154,7 +148,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_nested_tests_directory_is_not_counted_as_production_debt(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 "src/mcp/tests/example.rs",
                 "fn test_helper(value: Option<u8>) { value.unwrap(); }\n",
@@ -171,7 +165,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_scanner_string_literals_do_not_make_python_files_test_bearing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 "scripts/validate_tech_debt_baseline.py",
                 'MARKERS = ["#[ignore]", "#[should_panic", "#[cfg(test)]"]\n',
@@ -189,7 +183,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_debt_exception_string_literal_is_not_counted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            debt_support.write_file(
                 root,
                 "scripts/validate_tech_debt_baseline.py",
                 'TOKEN = "debt-exception"\n',
@@ -206,7 +200,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_policy_document_over_limit_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(root, "docs/mcp-tool-reference.md", "\n".join(["x"] * 1001))
+            debt_support.write_file(root, "docs/mcp-tool-reference.md", "\n".join(["x"] * 1001))
 
             current = tech_debt.measure_current_metrics(
                 root,
@@ -222,7 +216,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_load_baseline_reads_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            path = self.write_file(
+            path = debt_support.write_file(
                 root,
                 "reports/analysis/tech-debt-baseline.json",
                 json.dumps(self.baseline()),
