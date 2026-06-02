@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import sys
 import tempfile
 import unittest
@@ -11,25 +10,14 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_structural_hygiene as structural_hygiene
+import structural_hygiene_test_support as support
 
 
 class StructuralHygieneValidationTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> Path:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return path
-
-    def write_policy(self, root: Path, rules: list[dict[str, object]]) -> Path:
-        path = root / ".planning" / "structural_hygiene_rules.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"rules": rules}, indent=2), encoding="utf-8")
-        return path
-
     def test_validate_limits_reports_line_and_byte_violations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(root, "src/example.rs", "a\nb\nc\nd\n")
+            support.write_file(root, "src/example.rs", "a\nb\nc\nd\n")
 
             rules = [
                 {
@@ -54,7 +42,7 @@ class StructuralHygieneValidationTests(unittest.TestCase):
     def test_validate_limits_honors_exclude_patterns(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(root, "src/generated/big.rs", "a\nb\nc\nd\ne\n")
+            support.write_file(root, "src/generated/big.rs", "a\nb\nc\nd\ne\n")
 
             rules = [
                 {
@@ -72,7 +60,7 @@ class StructuralHygieneValidationTests(unittest.TestCase):
     def test_load_rules_reads_machine_readable_policy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            policy_path = self.write_policy(
+            policy_path = support.write_policy(
                 root,
                 [
                     {

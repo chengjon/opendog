@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import sys
 import tempfile
 import unittest
@@ -12,24 +11,14 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import validate_structural_hygiene as structural_hygiene
 import structural_contract_guards as contract_guards
+import structural_hygiene_test_support as support
 
 
 class StructuralContractGuardTests(unittest.TestCase):
-    def write_file(self, root: Path, relative_path: str, content: str) -> None:
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-
-    def write_policy(self, root: Path) -> Path:
-        path = root / ".planning" / "structural_hygiene_rules.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"rules": []}, indent=2), encoding="utf-8")
-        return path
-
     def test_validate_mcp_surface_docs_reports_drift(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            support.write_file(
                 root,
                 "src/mcp/tool_inventory.rs",
                 """
@@ -43,7 +32,7 @@ pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
 }
 """,
             )
-            self.write_file(
+            support.write_file(
                 root,
                 "docs/mcp-tool-reference.md",
                 """
@@ -56,7 +45,7 @@ Current surface: 1 MCP tools.
 - opendog://projects
 """,
             )
-            self.write_file(
+            support.write_file(
                 root,
                 "src/mcp/resource_handlers.rs",
                 """
@@ -78,7 +67,7 @@ const PROJECT_VERIFICATION_TEMPLATE: &str = "opendog://project/{id}/verification
     def test_validate_mcp_surface_docs_reads_resource_uris_from_handlers(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            support.write_file(
                 root,
                 "src/mcp/tool_inventory.rs",
                 """
@@ -91,7 +80,7 @@ pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
 }
 """,
             )
-            self.write_file(
+            support.write_file(
                 root,
                 "src/mcp/resource_handlers.rs",
                 """
@@ -101,7 +90,7 @@ const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
             )
             complete_doc = "Current surface: 1 MCP tools.\n\n- get_guidance\n"
             for relative_path in contract_guards.MCP_FULL_REFERENCE_DOCS:
-                self.write_file(root, relative_path, complete_doc + "\n- opendog://projects\n")
+                support.write_file(root, relative_path, complete_doc + "\n- opendog://projects\n")
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
 
@@ -113,7 +102,7 @@ const PROJECT_DOCS_TEMPLATE: &str = "opendog://project/{id}/docs";
     def test_validate_mcp_surface_docs_reports_unknown_tool_reference_headings(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            self.write_file(
+            support.write_file(
                 root,
                 "src/mcp/tool_inventory.rs",
                 """
@@ -139,17 +128,17 @@ Current surface: 2 MCP tools.
 ## `legacy_tool`
 """
             complete_doc = "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
-            self.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
+            support.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
             for relative_path in contract_guards.MCP_FULL_REFERENCE_DOCS:
                 if relative_path == "docs/mcp-tool-reference.md":
                     continue
-                self.write_file(root, relative_path, complete_doc)
+                support.write_file(root, relative_path, complete_doc)
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
 
             self.assertIn("docs/mcp-tool-reference.md documents unknown MCP tool heading: legacy_tool", errors)
-            policy_path = self.write_policy(root)
-            self.write_file(root, "openspec/specs/fd-attribution/spec.md", "# fd\n\n## Purpose\nTBD - created by archiving change x. Update Purpose after archive.\n")
+            policy_path = support.write_policy(root)
+            support.write_file(root, "openspec/specs/fd-attribution/spec.md", "# fd\n\n## Purpose\nTBD - created by archiving change x. Update Purpose after archive.\n")
             repo_errors, _, _ = structural_hygiene.validate_repository(root, policy_path)
             self.assertIn("openspec/specs/fd-attribution/spec.md has archived OpenSpec Purpose placeholder", repo_errors)
 
