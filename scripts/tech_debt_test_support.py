@@ -10,9 +10,10 @@ DEFAULT_GATED_METRICS = [
     "policy_document_over_1000_count",
 ]
 DEFAULT_OBSERVED_METRICS = ["duplicate_dependency_crate_count"]
+DEFAULT_DOCUMENTATION_POLICY_FILE = "docs/mcp-tool-reference.md"
 DEFAULT_DOCUMENTATION_DOCUMENTS: list[dict[str, object]] = [
     {
-        "file": "docs/mcp-tool-reference.md",
+        "file": DEFAULT_DOCUMENTATION_POLICY_FILE,
         "line_limit": 1000,
     }
 ]

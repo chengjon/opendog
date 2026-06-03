@@ -9,8 +9,9 @@ import repo_paths
 ROOT = repo_paths.ROOT
 MCP_TOOL_INVENTORY_FILE = ROOT / "src" / "mcp" / "tool_inventory.rs"
 MCP_RESOURCE_HANDLERS_FILE = ROOT / "src" / "mcp" / "resource_handlers.rs"
+MCP_TOOL_REFERENCE_DOC = "docs/mcp-tool-reference.md"
 MCP_FULL_REFERENCE_DOCS = [
-    "docs/mcp-tool-reference.md",
+    MCP_TOOL_REFERENCE_DOC,
     "README.md",
     "QUICKSTART.md",
     "FUNCTION_TREE.md",
@@ -89,12 +90,12 @@ def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
     if reference_headings:
         documented_tool_names = set(reference_headings)
         for tool_name in sorted(expected_tool_names - documented_tool_names):
-            errors.append(f"docs/mcp-tool-reference.md is missing MCP tool heading: {tool_name}")
+            errors.append(f"{MCP_TOOL_REFERENCE_DOC} is missing MCP tool heading: {tool_name}")
         for tool_name in sorted(documented_tool_names - expected_tool_names):
-            errors.append(f"docs/mcp-tool-reference.md documents unknown MCP tool heading: {tool_name}")
+            errors.append(f"{MCP_TOOL_REFERENCE_DOC} documents unknown MCP tool heading: {tool_name}")
         for tool_name in sorted(documented_tool_names):
             if reference_headings.count(tool_name) > 1:
-                errors.append(f"docs/mcp-tool-reference.md documents duplicate MCP tool heading: {tool_name}")
+                errors.append(f"{MCP_TOOL_REFERENCE_DOC} documents duplicate MCP tool heading: {tool_name}")
 
     for relative_path in MCP_CURRENT_GUIDANCE_DOCS:
         path = root / relative_path
@@ -105,12 +106,12 @@ def validate_mcp_surface_docs(root: Path = ROOT) -> list[str]:
             if tool_name in text:
                 errors.append(f"{relative_path} mentions removed MCP tool name: {tool_name}")
 
-    resource_doc = root / "docs" / "mcp-tool-reference.md"
+    resource_doc = root / MCP_TOOL_REFERENCE_DOC
     if resource_doc.exists():
         text = resource_doc.read_text(encoding="utf-8")
         for uri in mcp_resource_uris(root):
             if uri not in text:
-                errors.append(f"docs/mcp-tool-reference.md is missing read-only MCP resource URI: {uri}")
+                errors.append(f"{MCP_TOOL_REFERENCE_DOC} is missing read-only MCP resource URI: {uri}")
     return errors
 
 

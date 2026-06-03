@@ -34,7 +34,7 @@ pub(crate) fn mcp_tool_inventory() -> &'static [McpToolSpec] {
             )
             support.write_file(
                 root,
-                "docs/mcp-tool-reference.md",
+                contract_guards.MCP_TOOL_REFERENCE_DOC,
                 """
 # MCP Tool Reference
 
@@ -128,15 +128,18 @@ Current surface: 2 MCP tools.
 ## `legacy_tool`
 """
             complete_doc = "Current surface: 2 MCP tools.\n\n- get_guidance\n- get_build_info\n"
-            support.write_file(root, "docs/mcp-tool-reference.md", reference_doc)
+            support.write_file(root, contract_guards.MCP_TOOL_REFERENCE_DOC, reference_doc)
             for relative_path in contract_guards.MCP_FULL_REFERENCE_DOCS:
-                if relative_path == "docs/mcp-tool-reference.md":
+                if relative_path == contract_guards.MCP_TOOL_REFERENCE_DOC:
                     continue
                 support.write_file(root, relative_path, complete_doc)
 
             errors = structural_hygiene.validate_mcp_surface_docs(root)
 
-            self.assertIn("docs/mcp-tool-reference.md documents unknown MCP tool heading: legacy_tool", errors)
+            self.assertIn(
+                f"{contract_guards.MCP_TOOL_REFERENCE_DOC} documents unknown MCP tool heading: legacy_tool",
+                errors,
+            )
             policy_path = support.write_policy(root)
             support.write_file(root, "openspec/specs/fd-attribution/spec.md", "# fd\n\n## Purpose\nTBD - created by archiving change x. Update Purpose after archive.\n")
             repo_errors, _, _ = structural_hygiene.validate_repository(root, policy_path)

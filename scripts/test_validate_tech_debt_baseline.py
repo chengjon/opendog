@@ -200,7 +200,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
     def test_policy_document_over_limit_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            debt_support.write_file(root, "docs/mcp-tool-reference.md", "\n".join(["x"] * 1001))
+            debt_support.write_file(root, debt_support.DEFAULT_DOCUMENTATION_POLICY_FILE, "\n".join(["x"] * 1001))
 
             current = tech_debt.measure_current_metrics(
                 root,
