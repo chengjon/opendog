@@ -1,6 +1,6 @@
 ---
 function_tree_version: 1.4
-last_updated: "2026-05-15"
+last_updated: "2026-06-03"
 canonical_role: business_capability_anchor
 level_model:
   L1: domain_capability
@@ -70,10 +70,12 @@ Current design posture:
 - broad but bounded surface: the tree is wider than a simple monitoring backend, but each branch remains constrained by evidence, authority, and non-destructive advisory boundaries
 - current priority is maintenance and quality: all declared capability leaves are shipped; future work should improve reliability, performance, and clarity of existing leaves rather than expand into new capability families
 - current hardening baseline: all FT-01, FT-02, and FT-03 leaf nodes are shipped, covering fd-attribution credibility, soft verification gates, repository-truth boundary projection, bounded MCP observation payloads, read-only MCP Resources, data-risk noise reduction, and machine-readable resume sequencing
+- current technical-debt posture: the latest cleanup line consolidated repeated low-risk constants and test fixtures while preserving behavior; `validate_repository_gate.py`, remote Repository Gate, External Security Audit, and release-readiness checks all pass on the current `master` lineage
 
 Current capability investment priority:
 
 - high: keep validating and hardening attribution, stats, unused-file review, and guidance credibility. These are OpenDog's core evidence foundation; attribution mistakes or misleading observation summaries contaminate every downstream recommendation.
+- high: keep maintenance work evidence-backed and scoped to real drift reduction. Prefer test-only or local helper cleanup for incremental debt work, and treat production contract fields, data-risk rules, and cross-surface payload keys as separately scoped changes with broader verification.
 - high: use `docs/project-exchange/` reports and the shared issue index to collect A/B/C project feedback before opening new task cards. Do not expand the capability surface from speculation.
 - medium: deepen `FT-03.01`, `FT-03.03`, and `FT-03.04` so observation freshness, verification gates, and multi-project prioritization make it easier for AI to answer "which project now?" and "is it safe to change?".
 - medium-low: continue tuning data-risk, toolchain guidance, and boundary messaging, but let real project reports drive the exact work.

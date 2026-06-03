@@ -2,6 +2,18 @@
 
 All notable changes to OPENDOG are documented here.
 
+## 2026-06-03
+
+### Changed
+
+- Low-risk technical-debt cleanup now shares stable path, command, rule, and fixture constants across focused Rust modules and tests without changing runtime behavior.
+- Governance and guidance regression tests now reuse local lane and risk-strategy fixtures where repeated literals previously obscured the tested contract.
+- GitNexus metadata in `AGENTS.md` and `CLAUDE.md` was refreshed as cleanup commits changed the indexed symbol and relationship counts.
+
+### Verified
+
+- `python3 scripts/validate_repository_gate.py`, remote Repository Gate, remote External Security Audit, and `python3 scripts/check_release_readiness.py --branch master` passed on the latest cleanup lineage.
+
 ## 2026-05-29
 
 ### Added

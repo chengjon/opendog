@@ -2,7 +2,7 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 
 > OPENDOG tracks which files AI tools access, identifies unused/stale files vs actively-used core files, and exposes reusable operator/AI entry surfaces through daemon, CLI, and MCP for repo risk, verification evidence, retained-evidence lifecycle, and suspicious mock or hardcoded data review.
 >
-> 当前状态：**全部能力已交付**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 27 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
+> 当前状态：**全部能力已交付，当前主线转入质量硬化与技术债收敛**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 27 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
 
 ## 阅读导航
 
@@ -32,6 +32,7 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 - 源码 / AI 基础设施 / 备份文件软分类，避免 `.claude/`、`.agents/` 等工具目录噪声淹没源文件判断
 - `git`、测试、lint、build 仍然是外部真理源；OPENDOG 输出属于决策辅助证据，遇到需要确认的场景应切换到 shell 或项目原生验证
 - 治理工件（FUNCTION_TREE、task-cards、REQUIREMENTS 映射）已全部落地，主要用于能力演进和变更校验，不影响日常使用
+- 当前技术债主线优先做行为不变、证据充分的局部收敛：共享稳定常量、收敛测试夹具、维持结构卫生门禁；涉及生产契约字段、data-risk 规则、跨接口 payload key 的变更应单独开范围并扩大验证面
 
 ## 当前能力结构
 
