@@ -2,7 +2,7 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 
 > OPENDOG tracks which files AI tools access, identifies unused/stale files vs actively-used core files, and exposes reusable operator/AI entry surfaces through daemon, CLI, and MCP for repo risk, verification evidence, retained-evidence lifecycle, and suspicious mock or hardcoded data review.
 >
-> 当前状态：**全部能力已交付，当前主线转入质量硬化与技术债收敛**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 27 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
+> 当前状态：**v0.1.0 已完成发布收口，全部声明能力已交付，当前主线转入质量硬化与技术债收敛**。FUNCTION_TREE.md 中全部 27 个叶子节点（FT-01 观测内核 8 个、FT-02 服务交付 4 个、FT-03 AI 决策辅助 15 个）均已标记为 `shipped`。通过 MCP 27 个工具、2 个只读 Resource、23 个 CLI 命令、daemon + systemd 持久运行四种入口对外提供能力。
 
 ## 阅读导航
 
@@ -12,6 +12,27 @@ OPENDOG — Multi-Project Observation & AI Decision-Support System
 - AI 行动手册：[docs/ai-playbook.md](/opt/claude/opendog/docs/ai-playbook.md)
 - 能力/入口速查：[docs/capability-index.md](/opt/claude/opendog/docs/capability-index.md)
 - CLI/MCP JSON 契约：[docs/json-contracts.md](/opt/claude/opendog/docs/json-contracts.md)
+
+## v0.1.0 收口基线
+
+- 发布 tag：`v0.1.0`
+- 收口提交：`395f0c0120c81ee903c0b8664ef0f90bced248d8`
+- Cargo 版本：`0.1.0`
+- 当前完成口径：已声明的功能树能力、规划 task card、仓库门禁和技术债门禁均无 release-blocking 缺口
+- 完整评估：[reports/analysis/opendog-completion-tech-debt-assessment-2026-06-03.md](/opt/claude/opendog/reports/analysis/opendog-completion-tech-debt-assessment-2026-06-03.md)
+
+收口验证摘要：
+
+- `python3 scripts/validate_repository_gate.py`：PASS
+- OpenSpec strict validation：7 passed, 0 failed
+- Rust tests：1822 + 32 passed, 0 failed, 0 ignored
+- Python unit tests：77 passed
+- `cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`ruff check scripts`：PASS
+- 技术债 drift：27/27 metrics unchanged，0 errors，0 warnings
+- 规划治理：122/122 requirements phase-mapped，0 backlog，20/20 task cards completed
+- 功能树：46 capability nodes，27 leaf nodes，全部 `shipped`
+
+后续工作边界：继续改进 workspace observation、repository risk、verification evidence、portfolio ranking、data-risk signal quality 等已交付能力的可信度和易用性；不要把这些持续硬化项视为当前 `v0.1.0` 的未完成阻塞。
 
 ## 当前实现概览
 

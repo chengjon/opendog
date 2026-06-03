@@ -72,6 +72,15 @@ Current design posture:
 - current hardening baseline: all FT-01, FT-02, and FT-03 leaf nodes are shipped, covering fd-attribution credibility, soft verification gates, repository-truth boundary projection, bounded MCP observation payloads, read-only MCP Resources, data-risk noise reduction, and machine-readable resume sequencing
 - current technical-debt posture: the latest cleanup line consolidated repeated low-risk constants and test fixtures while preserving behavior; `validate_repository_gate.py`, remote Repository Gate, External Security Audit, and release-readiness checks all pass on the current `master` lineage
 
+v0.1.0 closeout baseline:
+
+- release tag: `v0.1.0`
+- closeout commit: `395f0c0120c81ee903c0b8664ef0f90bced248d8`
+- completion assessment: [reports/analysis/opendog-completion-tech-debt-assessment-2026-06-03.md](/opt/claude/opendog/reports/analysis/opendog-completion-tech-debt-assessment-2026-06-03.md)
+- scope verdict: 46 function-tree nodes, 27 leaf nodes, and all declared leaf capabilities are `shipped`
+- planning verdict: 122/122 requirements are phase-mapped, backlog count is 0, and 20/20 task cards are completed
+- technical-debt verdict: repository gate and technical-debt drift gates pass; remaining work is reliability, evidence quality, and operator clarity hardening around already shipped capabilities
+
 Current capability investment priority:
 
 - high: keep validating and hardening attribution, stats, unused-file review, and guidance credibility. These are OpenDog's core evidence foundation; attribution mistakes or misleading observation summaries contaminate every downstream recommendation.

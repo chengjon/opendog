@@ -4,15 +4,22 @@ All notable changes to OPENDOG are documented here.
 
 ## 2026-06-03
 
+### Added
+
+- Documented the `v0.1.0` project closeout baseline in `README.md` and `FUNCTION_TREE.md`, including the release tag, closeout commit, planning-governance status, technical-debt drift status, and link to the completion assessment report.
+- Added `reports/analysis/opendog-completion-tech-debt-assessment-2026-06-03.md` as the durable closeout record for current product completeness, technical-debt posture, residual risk, and future hardening boundaries.
+
 ### Changed
 
 - Low-risk technical-debt cleanup now shares stable path, command, rule, and fixture constants across focused Rust modules and tests without changing runtime behavior.
 - Governance and guidance regression tests now reuse local lane and risk-strategy fixtures where repeated literals previously obscured the tested contract.
 - GitNexus metadata in `AGENTS.md` and `CLAUDE.md` was refreshed as cleanup commits changed the indexed symbol and relationship counts.
+- Future work is now explicitly classified as quality deepening around already shipped capabilities rather than unfinished `v0.1.0` scope.
 
 ### Verified
 
 - `python3 scripts/validate_repository_gate.py`, remote Repository Gate, remote External Security Audit, and `python3 scripts/check_release_readiness.py --branch master` passed on the latest cleanup lineage.
+- Closeout assessment re-confirmed 46 function-tree nodes, 27 shipped leaf capabilities, 122/122 phase-mapped requirements, 0 backlog items, 20/20 completed task cards, and 27/27 unchanged technical-debt drift metrics.
 
 ## 2026-05-29
 
