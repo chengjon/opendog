@@ -12,6 +12,7 @@ import repo_paths
 
 
 ROOT = repo_paths.ROOT
+OPENSPEC_TELEMETRY_ENV = {"OPENSPEC_TELEMETRY": "0"}
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,7 @@ def gate_commands(root: Path = ROOT) -> list[GateCommand]:
         GateCommand(
             "openspec",
             ["openspec", "validate", "--specs", "--strict"],
-            {"OPENSPEC_TELEMETRY": "0"},
+            OPENSPEC_TELEMETRY_ENV,
         ),
         GateCommand("cargo-fmt", ["cargo", "fmt", "--check"]),
         GateCommand("cargo-test", ["cargo", "test", "--quiet"]),

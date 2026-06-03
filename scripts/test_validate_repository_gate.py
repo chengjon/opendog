@@ -58,14 +58,14 @@ class RepositoryGateTests(unittest.TestCase):
     def test_openspec_command_disables_telemetry(self) -> None:
         openspec = next(command for command in repository_gate.gate_commands() if command.name == "openspec")
 
-        self.assertEqual({"OPENSPEC_TELEMETRY": "0"}, openspec.env)
+        self.assertEqual(repository_gate.OPENSPEC_TELEMETRY_ENV, openspec.env)
 
     def test_run_command_passes_command_environment(self) -> None:
         result = type("CompletedProcess", (), {"returncode": 0})()
         command = repository_gate.GateCommand(
             "openspec",
             ["openspec", "validate", "--specs", "--strict"],
-            {"OPENSPEC_TELEMETRY": "0"},
+            repository_gate.OPENSPEC_TELEMETRY_ENV,
         )
 
         with (
@@ -75,7 +75,8 @@ class RepositoryGateTests(unittest.TestCase):
             status = repository_gate.run_command(command, REPO_ROOT)
 
         self.assertEqual(0, status)
-        self.assertEqual("0", run.call_args.kwargs["env"]["OPENSPEC_TELEMETRY"])
+        for name, value in repository_gate.OPENSPEC_TELEMETRY_ENV.items():
+            self.assertEqual(value, run.call_args.kwargs["env"][name])
 
     def test_run_command_reports_missing_executable(self) -> None:
         command = repository_gate.GateCommand("python-ruff", ["ruff", "check", "scripts"])
