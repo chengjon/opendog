@@ -139,32 +139,24 @@ fn agent_guidance_includes_shell_and_tool_advice() {
         value["guidance"]["layers"]["execution_strategy"]["mandatory_shell_check_examples"],
         json!(["git status", "git diff"])
     );
+    let risk_strategy_coupling =
+        &value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"];
+    assert_eq!(risk_strategy_coupling["status"], json!("coupled"));
     assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]["status"],
-        json!("coupled")
-    );
-    assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]["source"],
+        risk_strategy_coupling["source"],
         json!("primary_repo_risk_finding")
     );
+    assert_eq!(risk_strategy_coupling["source_project_id"], json!("demo"));
     assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]
-            ["source_project_id"],
-        json!("demo")
-    );
-    assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]
-            ["strategy_mode"],
+        risk_strategy_coupling["strategy_mode"],
         json!("verify_before_modify")
     );
     assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]
-            ["preferred_primary_tool"],
+        risk_strategy_coupling["preferred_primary_tool"],
         json!("shell")
     );
     assert_eq!(
-        value["guidance"]["layers"]["execution_strategy"]["risk_strategy_coupling"]
-            ["primary_repo_risk_finding"]["kind"],
+        risk_strategy_coupling["primary_repo_risk_finding"]["kind"],
         json!("working_tree_conflicted")
     );
     assert!(value["guidance"]["recommended_flow"][0]
