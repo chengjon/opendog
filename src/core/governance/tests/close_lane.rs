@@ -52,12 +52,14 @@ fn close_lane_complete_marks_completed() {
 
 #[test]
 fn close_lane_delete_removes_everything() {
+    const LANE_ID: &str = "lane-delete";
+
     let db = test_db();
 
     create_lane(
         &db,
         CreateLaneInput {
-            lane_id: "lane-delete".to_string(),
+            lane_id: LANE_ID.to_string(),
             title: "To delete".to_string(),
             description: None,
         },
@@ -70,7 +72,7 @@ fn close_lane_delete_removes_everything() {
             &db,
             UpsertNodeInput {
                 node_id: format!("node-d{}", i),
-                lane_id: "lane-delete".to_string(),
+                lane_id: LANE_ID.to_string(),
                 state: Some("open".to_string()),
                 summary: None,
                 evidence_refs: None,
@@ -87,7 +89,7 @@ fn close_lane_delete_removes_everything() {
     let (status, count) = close_lane(
         &db,
         CloseLaneInput {
-            lane_id: "lane-delete".to_string(),
+            lane_id: LANE_ID.to_string(),
             action: "delete".to_string(),
         },
     )
@@ -97,13 +99,13 @@ fn close_lane_delete_removes_everything() {
     assert_eq!(count, 2);
 
     // Lane is gone
-    assert!(queries::get_governance_lane_by_id(&db, "lane-delete")
+    assert!(queries::get_governance_lane_by_id(&db, LANE_ID)
         .unwrap()
         .is_none());
 
     // Nodes are gone
     assert_eq!(
-        queries::get_governance_nodes(&db, Some("lane-delete"), None)
+        queries::get_governance_nodes(&db, Some(LANE_ID), None)
             .unwrap()
             .len(),
         0

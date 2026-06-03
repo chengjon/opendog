@@ -285,10 +285,12 @@ fn update_lane_status_nonexistent_affects_zero() {
 
 #[test]
 fn count_active_nodes_excludes_closed_state() {
+    const LANE_ID: &str = "lane-active";
+
     let db = test_db();
     let now = "2026-05-24T12:00:00Z";
     let lane = NewGovernanceLane {
-        lane_id: "lane-active".to_string(),
+        lane_id: LANE_ID.to_string(),
         title: "Active Test".to_string(),
         description: None,
     };
@@ -299,7 +301,7 @@ fn count_active_nodes_excludes_closed_state() {
         &db,
         &UpsertGovernanceNode {
             node_id: "node-open".to_string(),
-            lane_id: "lane-active".to_string(),
+            lane_id: LANE_ID.to_string(),
             state: Some("open".to_string()),
             summary: None,
             evidence_refs: None,
@@ -318,7 +320,7 @@ fn count_active_nodes_excludes_closed_state() {
         &db,
         &UpsertGovernanceNode {
             node_id: "node-closed".to_string(),
-            lane_id: "lane-active".to_string(),
+            lane_id: LANE_ID.to_string(),
             state: Some("closed".to_string()),
             summary: None,
             evidence_refs: None,
@@ -332,8 +334,8 @@ fn count_active_nodes_excludes_closed_state() {
     )
     .unwrap();
 
-    assert_eq!(count_active_nodes_for_lane(&db, "lane-active").unwrap(), 1);
-    assert_eq!(count_nodes_for_lane(&db, "lane-active").unwrap(), 2);
+    assert_eq!(count_active_nodes_for_lane(&db, LANE_ID).unwrap(), 1);
+    assert_eq!(count_nodes_for_lane(&db, LANE_ID).unwrap(), 2);
     assert_eq!(count_all_active_nodes(&db).unwrap(), 1);
 }
 
