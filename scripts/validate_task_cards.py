@@ -7,6 +7,7 @@ import validate_requirement_mappings as requirement_mappings
 
 
 TASK_DIR = planning_paths.TASK_CARD_DIR
+TASK_CARD_GLOB = planning_paths.TASK_CARD_GLOB
 TREE_FILE = planning_paths.FUNCTION_TREE_FILE
 REQUIREMENTS_FILE = planning_paths.REQUIREMENTS_FILE
 
@@ -27,7 +28,7 @@ def main() -> int:
         for section in requirement_sections
         for req_id in section["requirement_ids"]
     }
-    task_files = sorted(TASK_DIR.glob("TASK-*.md"))
+    task_files = sorted(TASK_DIR.glob(TASK_CARD_GLOB))
 
     if not task_files:
         print("no task cards found")

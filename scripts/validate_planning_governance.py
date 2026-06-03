@@ -17,6 +17,7 @@ FUNCTION_TREE_FILE = planning_paths.FUNCTION_TREE_FILE
 REQUIREMENTS_FILE = planning_paths.REQUIREMENTS_FILE
 ROADMAP_FILE = planning_paths.ROADMAP_FILE
 TASK_CARD_DIR = planning_paths.TASK_CARD_DIR
+TASK_CARD_GLOB = planning_paths.TASK_CARD_GLOB
 TECH_DEBT_BASELINE_FILE = ROOT / "reports" / "analysis" / "tech-debt-baseline.json"
 TECH_DEBT_LIGHTWEIGHT_EXCLUDED_METRICS = {
     "duplicate_dependency_crate_count",
@@ -38,7 +39,7 @@ def validate_task_cards(ft_levels: dict[str, str]) -> list[str]:
         for req_id in section["requirement_ids"]
     }
     errors: list[str] = []
-    for path in sorted(TASK_CARD_DIR.glob("TASK-*.md")):
+    for path in sorted(TASK_CARD_DIR.glob(TASK_CARD_GLOB)):
         errors.extend(task_cards.validate_card(path, ft_levels, valid_requirement_ids))
     return errors
 
@@ -94,7 +95,7 @@ def main() -> int:
     ft_text = FUNCTION_TREE_FILE.read_text(encoding="utf-8")
     ft_levels = requirement_mappings.parse_function_tree_levels(ft_text)
     ft_nodes = governance_rules.parse_function_tree_nodes(ft_text)
-    task_files = sorted(TASK_CARD_DIR.glob("TASK-*.md"))
+    task_files = sorted(TASK_CARD_DIR.glob(TASK_CARD_GLOB))
 
     errors: list[str] = []
     errors.extend(validate_task_cards(ft_levels))
