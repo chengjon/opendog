@@ -10,6 +10,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import check_external_security_audit_status as audit_status
+from tech_debt_baseline import metrics as tech_debt_metrics
 
 
 class ExternalSecurityAuditWorkflowTests(unittest.TestCase):
@@ -51,7 +52,7 @@ class ExternalSecurityAuditWorkflowTests(unittest.TestCase):
         self.assertIn('targets = ["x86_64-unknown-linux-gnu"]', content)
 
     def test_package_manifest_is_marked_unpublished_for_license_checks(self) -> None:
-        manifest = REPO_ROOT / "Cargo.toml"
+        manifest = REPO_ROOT / tech_debt_metrics.CARGO_MANIFEST_FILE
         content = manifest.read_text(encoding="utf-8")
 
         self.assertIn("publish = false", content)

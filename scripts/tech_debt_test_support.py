@@ -11,6 +11,8 @@ DEFAULT_GATED_METRICS = [
 ]
 DEFAULT_OBSERVED_METRICS = ["duplicate_dependency_crate_count"]
 DEFAULT_DOCUMENTATION_POLICY_FILE = "docs/mcp-tool-reference.md"
+CARGO_MANIFEST_FILE = "Cargo.toml"
+CARGO_LOCKFILE = "Cargo.lock"
 DEFAULT_DOCUMENTATION_DOCUMENTS: list[dict[str, object]] = [
     {
         "file": DEFAULT_DOCUMENTATION_POLICY_FILE,
@@ -70,7 +72,7 @@ def write_cargo_inventory(
     dev_dependency_lines = list(dev_dependencies or [])
     if dev_dependency_lines:
         manifest_lines.extend(["", "[dev-dependencies]", *dev_dependency_lines])
-    write_file(root, "Cargo.toml", "\n".join(manifest_lines))
+    write_file(root, CARGO_MANIFEST_FILE, "\n".join(manifest_lines))
 
     if not with_lockfile:
         return
@@ -79,4 +81,4 @@ def write_cargo_inventory(
     lock_lines = ["version = 3"]
     for name, version in packages:
         lock_lines.extend(["", "[[package]]", f'name = "{name}"', f'version = "{version}"'])
-    write_file(root, "Cargo.lock", "\n".join(lock_lines))
+    write_file(root, CARGO_LOCKFILE, "\n".join(lock_lines))

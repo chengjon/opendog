@@ -47,8 +47,8 @@ class TechDebtTestSupportTests(unittest.TestCase):
                 dev_dependencies=['tempfile = "3"'],
             )
 
-            manifest = (root / "Cargo.toml").read_text(encoding="utf-8")
-            lockfile = (root / "Cargo.lock").read_text(encoding="utf-8")
+            manifest = (root / support.CARGO_MANIFEST_FILE).read_text(encoding="utf-8")
+            lockfile = (root / support.CARGO_LOCKFILE).read_text(encoding="utf-8")
 
         self.assertIn('[package]', manifest)
         self.assertIn('serde = "1"', manifest)
@@ -63,8 +63,8 @@ class TechDebtTestSupportTests(unittest.TestCase):
 
             support.write_cargo_inventory(root, with_lockfile=False)
 
-            self.assertTrue((root / "Cargo.toml").exists())
-            self.assertFalse((root / "Cargo.lock").exists())
+            self.assertTrue((root / support.CARGO_MANIFEST_FILE).exists())
+            self.assertFalse((root / support.CARGO_LOCKFILE).exists())
 
 
 if __name__ == "__main__":

@@ -12,6 +12,8 @@ CODE_FILE_LINE_LIMIT = 500
 EXCLUDED_DIRS = {".git", ".zread", "node_modules", "reports", "target"}
 SECRET_SCAN_SUFFIXES = {".env", ".json", ".md", ".py", ".rs", ".toml", ".yaml", ".yml"}
 MAX_REPORTED_SECRET_FINDINGS = 25
+CARGO_MANIFEST_FILE = "Cargo.toml"
+CARGO_LOCKFILE = "Cargo.lock"
 
 PRODUCTION_RUST_PATTERNS: dict[str, re.Pattern[str]] = {
     "production_panic_count": re.compile(r"\bpanic!\s*\("),
@@ -285,8 +287,8 @@ def measure_dependency_metrics(root: Path) -> dict[str, Any]:
     duplicate_versions = parse_duplicate_crate_versions(cargo_tree_output)
     duplicate_crates = sorted(duplicate_versions)
     version_splits = sorted(crate for crate, versions in duplicate_versions.items() if len(versions) > 1)
-    manifest = load_toml_file(root / "Cargo.toml")
-    lockfile_path = root / "Cargo.lock"
+    manifest = load_toml_file(root / CARGO_MANIFEST_FILE)
+    lockfile_path = root / CARGO_LOCKFILE
     locked_packages = count_locked_packages(load_toml_file(lockfile_path))
     lockfile_missing_count = 0 if lockfile_path.exists() else 1
     external_tool = dependency_audit_tool()
