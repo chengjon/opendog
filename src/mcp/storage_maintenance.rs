@@ -10,6 +10,8 @@ pub(super) use execution_templates::augment_entrypoints_for_storage_maintenance;
 use execution_templates::storage_maintenance_execution_templates;
 #[cfg(test)]
 use model::storage_reclaim_ratio;
+#[cfg(test)]
+use model::CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP;
 use model::{StorageMaintenanceAssessment, StorageMaintenanceWorkspaceSummary};
 
 fn evidence_counts_json(counts: Option<&StorageEvidenceCounts>) -> Value {

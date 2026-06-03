@@ -139,8 +139,8 @@ fn execution_templates_keep_stable_catalog_order_and_priorities() {
         ],
         "cleanup_plan": {
             "steps": [
-                {"phase": "execute_cleanup", "scope": "activity", "older_than_days": 30},
-                {"phase": "execute_cleanup", "scope": "snapshots", "keep_snapshot_runs": 20}
+                {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "activity", "older_than_days": 30},
+                {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "snapshots", "keep_snapshot_runs": 20}
             ]
         }
     });

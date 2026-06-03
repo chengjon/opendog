@@ -83,7 +83,10 @@ fn project_storage_maintenance_builds_policy_cleanup_plan() {
         "activity_daily_rollups"
     );
     assert_eq!(plan["steps"][2]["phase"], "review");
-    assert_eq!(plan["steps"][3]["phase"], "execute_cleanup");
+    assert_eq!(
+        plan["steps"][3]["phase"],
+        CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP
+    );
     assert_eq!(plan["steps"][3]["requires_human_confirmation"], true);
     assert_eq!(plan["steps"][3]["rollup_granularity"], "daily");
 }
@@ -97,8 +100,8 @@ fn execution_templates_include_confirmed_execute_steps_from_cleanup_plan() {
         "cleanup_plan": {
             "status": "actionable",
             "steps": [
-                {"phase": "execute_cleanup", "scope": "activity", "older_than_days": 30},
-                {"phase": "execute_cleanup", "scope": "snapshots", "keep_snapshot_runs": 20}
+                {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "activity", "older_than_days": 30},
+                {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "snapshots", "keep_snapshot_runs": 20}
             ]
         }
     });

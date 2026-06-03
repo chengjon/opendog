@@ -1,6 +1,9 @@
 use crate::config::RetentionPolicy;
 use serde_json::{json, Value};
 
+pub(in crate::mcp::storage_maintenance) const CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP: &str =
+    "execute_cleanup";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::mcp::storage_maintenance) enum StorageCleanupScope {
     Activity,
@@ -87,7 +90,7 @@ pub(in crate::mcp::storage_maintenance) struct StorageCleanupPlanStep {
 
 impl StorageCleanupPlanStep {
     fn from_value(plan_step: &Value) -> Option<Self> {
-        if plan_step["phase"].as_str() != Some("execute_cleanup") {
+        if plan_step["phase"].as_str() != Some(CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP) {
             return None;
         }
 

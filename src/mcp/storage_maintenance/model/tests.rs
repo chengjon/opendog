@@ -4,7 +4,7 @@ use serde_json::json;
 
 use super::{
     StorageCleanupScope, StorageMaintenanceAssessment, StorageMaintenanceTemplateContext,
-    StorageMaintenanceWorkspaceSummary,
+    StorageMaintenanceWorkspaceSummary, CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP,
 };
 
 fn policy() -> RetentionPolicy {
@@ -48,9 +48,9 @@ fn template_context_parses_recommendations_and_cleanup_plan_steps() {
             "cleanup_plan": {
                 "steps": [
                     {"phase": "prepare_cleanup", "scope": "all"},
-                    {"phase": "execute_cleanup", "scope": "verification", "retention_parameters": {"older_than_days": 21}},
-                    {"phase": "execute_cleanup", "scope": "snapshots", "retention_parameters": {"keep_snapshot_runs": 7}},
-                    {"phase": "execute_cleanup", "scope": "unknown"}
+                    {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "verification", "retention_parameters": {"older_than_days": 21}},
+                    {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "snapshots", "retention_parameters": {"keep_snapshot_runs": 7}},
+                    {"phase": CLEANUP_PLAN_PHASE_EXECUTE_CLEANUP, "scope": "unknown"}
                 ]
             }
         }),
