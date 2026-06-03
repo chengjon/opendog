@@ -6,6 +6,8 @@ from pathlib import Path
 import planning_paths
 
 POLICY_RELATIVE_PATH = planning_paths.STRUCTURAL_HYGIENE_POLICY_FILE.relative_to(planning_paths.ROOT)
+RUST_EXAMPLE_FILE = "src/example.rs"
+RUST_INCLUDE_GLOB = "src/**/*.rs"
 
 
 def write_file(root: Path, relative_path: str, content: str) -> Path:

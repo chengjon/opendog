@@ -18,19 +18,19 @@ class StructuralHygieneTestSupportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
 
-            path = support.write_file(root, "src/example.rs", "fn main() {}\n")
+            path = support.write_file(root, support.RUST_EXAMPLE_FILE, "fn main() {}\n")
 
-            self.assertEqual(root / "src" / "example.rs", path)
+            self.assertEqual(root / support.RUST_EXAMPLE_FILE, path)
             self.assertEqual("fn main() {}\n", path.read_text(encoding="utf-8"))
 
     def test_write_policy_uses_structural_hygiene_policy_path(self) -> None:
-        rules = [{"name": "rust", "include": ["src/**/*.rs"], "max_lines": 100}]
+        rules = [{"name": "rust", "include": [support.RUST_INCLUDE_GLOB], "max_lines": 100}]
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
 
             path = support.write_policy(root, rules)
 
-            self.assertEqual(root / ".planning" / "structural_hygiene_rules.json", path)
+            self.assertEqual(root / support.POLICY_RELATIVE_PATH, path)
             self.assertEqual({"rules": rules}, json.loads(path.read_text(encoding="utf-8")))
 
 

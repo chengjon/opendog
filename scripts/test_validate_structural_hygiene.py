@@ -17,12 +17,12 @@ class StructuralHygieneValidationTests(unittest.TestCase):
     def test_validate_limits_reports_line_and_byte_violations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            support.write_file(root, "src/example.rs", "a\nb\nc\nd\n")
+            support.write_file(root, support.RUST_EXAMPLE_FILE, "a\nb\nc\nd\n")
 
             rules = [
                 {
                     "name": "rust",
-                    "include": ["src/**/*.rs"],
+                    "include": [support.RUST_INCLUDE_GLOB],
                     "max_lines": 3,
                     "max_bytes": 6,
                 }
@@ -47,7 +47,7 @@ class StructuralHygieneValidationTests(unittest.TestCase):
             rules = [
                 {
                     "name": "rust",
-                    "include": ["src/**/*.rs"],
+                    "include": [support.RUST_INCLUDE_GLOB],
                     "exclude": ["src/generated/**/*.rs"],
                     "max_lines": 3,
                 }
