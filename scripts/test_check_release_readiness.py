@@ -48,12 +48,21 @@ class ReleaseReadinessTests(unittest.TestCase):
 
         commands = release_readiness.release_readiness_commands(args)
 
-        self.assertEqual(["repository-gate", "external-security-audit"], [command.name for command in commands])
-        self.assertEqual(["python3", "scripts/validate_repository_gate.py"], commands[0].argv)
         self.assertEqual(
             [
-                "python3",
-                "scripts/check_external_security_audit_status.py",
+                release_readiness.REPOSITORY_GATE_COMMAND_NAME,
+                release_readiness.EXTERNAL_SECURITY_AUDIT_COMMAND_NAME,
+            ],
+            [command.name for command in commands],
+        )
+        self.assertEqual(
+            [release_readiness.PYTHON_EXECUTABLE, release_readiness.REPOSITORY_GATE_SCRIPT],
+            commands[0].argv,
+        )
+        self.assertEqual(
+            [
+                release_readiness.PYTHON_EXECUTABLE,
+                release_readiness.EXTERNAL_SECURITY_AUDIT_SCRIPT,
                 "--branch",
                 "master",
                 "--max-age-hours",
@@ -75,8 +84,8 @@ class ReleaseReadinessTests(unittest.TestCase):
 
     def test_run_command_reports_missing_executable(self) -> None:
         command = release_readiness.ReleaseCommand(
-            "repository-gate",
-            ["python3", "scripts/validate_repository_gate.py"],
+            release_readiness.REPOSITORY_GATE_COMMAND_NAME,
+            [release_readiness.PYTHON_EXECUTABLE, release_readiness.REPOSITORY_GATE_SCRIPT],
         )
         stderr = io.StringIO()
 
@@ -88,14 +97,17 @@ class ReleaseReadinessTests(unittest.TestCase):
             status = release_readiness.run_command(command, SCRIPT_DIR.parent)
 
         self.assertEqual(127, status)
-        self.assertIn("missing executable for repository-gate: python3", stderr.getvalue())
+        self.assertIn(
+            f"missing executable for {release_readiness.REPOSITORY_GATE_COMMAND_NAME}: {release_readiness.PYTHON_EXECUTABLE}",
+            stderr.getvalue(),
+        )
 
     def test_main_stops_at_first_failure(self) -> None:
         calls: list[str] = []
 
         def fake_run(command: release_readiness.ReleaseCommand, root: Path) -> int:
             calls.append(command.name)
-            return 1 if command.name == "repository-gate" else 0
+            return 1 if command.name == release_readiness.REPOSITORY_GATE_COMMAND_NAME else 0
 
         with (
             patch.object(release_readiness, "run_command", side_effect=fake_run),
@@ -104,7 +116,7 @@ class ReleaseReadinessTests(unittest.TestCase):
             status = release_readiness.main([])
 
         self.assertEqual(1, status)
-        self.assertEqual(["repository-gate"], calls)
+        self.assertEqual([release_readiness.REPOSITORY_GATE_COMMAND_NAME], calls)
 
     def test_main_runs_all_commands_when_successful(self) -> None:
         calls: list[str] = []
@@ -120,7 +132,13 @@ class ReleaseReadinessTests(unittest.TestCase):
             status = release_readiness.main([])
 
         self.assertEqual(0, status)
-        self.assertEqual(["repository-gate", "external-security-audit"], calls)
+        self.assertEqual(
+            [
+                release_readiness.REPOSITORY_GATE_COMMAND_NAME,
+                release_readiness.EXTERNAL_SECURITY_AUDIT_COMMAND_NAME,
+            ],
+            calls,
+        )
 
 
 if __name__ == "__main__":

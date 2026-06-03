@@ -12,6 +12,11 @@ import repo_paths
 
 
 ROOT = repo_paths.ROOT
+PYTHON_EXECUTABLE = "python3"
+REPOSITORY_GATE_COMMAND_NAME = "repository-gate"
+EXTERNAL_SECURITY_AUDIT_COMMAND_NAME = "external-security-audit"
+REPOSITORY_GATE_SCRIPT = "scripts/validate_repository_gate.py"
+EXTERNAL_SECURITY_AUDIT_SCRIPT = "scripts/check_external_security_audit_status.py"
 
 
 @dataclass(frozen=True)
@@ -22,8 +27,8 @@ class ReleaseCommand:
 
 def release_readiness_commands(args: argparse.Namespace) -> list[ReleaseCommand]:
     security_audit = [
-        "python3",
-        "scripts/check_external_security_audit_status.py",
+        PYTHON_EXECUTABLE,
+        EXTERNAL_SECURITY_AUDIT_SCRIPT,
         "--branch",
         args.branch,
         "--max-age-hours",
@@ -34,8 +39,8 @@ def release_readiness_commands(args: argparse.Namespace) -> list[ReleaseCommand]
         security_audit.extend(["--repo", args.repo])
 
     return [
-        ReleaseCommand("repository-gate", ["python3", "scripts/validate_repository_gate.py"]),
-        ReleaseCommand("external-security-audit", security_audit),
+        ReleaseCommand(REPOSITORY_GATE_COMMAND_NAME, [PYTHON_EXECUTABLE, REPOSITORY_GATE_SCRIPT]),
+        ReleaseCommand(EXTERNAL_SECURITY_AUDIT_COMMAND_NAME, security_audit),
     ]
 
 
