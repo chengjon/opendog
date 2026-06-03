@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import planning_paths
 
-POLICY_RELATIVE_PATH = Path(".planning") / "structural_hygiene_rules.json"
+POLICY_RELATIVE_PATH = planning_paths.STRUCTURAL_HYGIENE_POLICY_FILE.relative_to(planning_paths.ROOT)
 
 
 def write_file(root: Path, relative_path: str, content: str) -> Path:

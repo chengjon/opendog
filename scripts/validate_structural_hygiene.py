@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import planning_paths
 import repo_paths
 from structural_contract_guards import (
     validate_mcp_surface_docs,
@@ -13,7 +14,7 @@ from structural_rust_guards import validate_production_rust_panic_like_calls
 
 
 ROOT = repo_paths.ROOT
-POLICY_FILE = ROOT / ".planning" / "structural_hygiene_rules.json"
+POLICY_FILE = planning_paths.STRUCTURAL_HYGIENE_POLICY_FILE
 
 
 def load_rules(policy_path: Path = POLICY_FILE) -> list[dict[str, object]]:
