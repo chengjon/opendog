@@ -2,20 +2,22 @@ use super::*;
 
 #[test]
 fn get_governance_nodes_returns_latest_updated_first() {
+    const LANE_ID: &str = "lane-order";
+
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("test.db");
     let db = Database::open_project(&db_path).unwrap();
 
     let now = "2026-01-01T00:00:00Z";
     let lane = NewGovernanceLane {
-        lane_id: "lane-order".to_string(),
+        lane_id: LANE_ID.to_string(),
         title: "Order test".to_string(),
         description: None,
     };
     queries::insert_governance_lane(&db, &lane, now).unwrap();
 
     let node_a = UpsertNodeInput {
-        lane_id: "lane-order".to_string(),
+        lane_id: LANE_ID.to_string(),
         node_id: "node-a".to_string(),
         state: Some("planning".to_string()),
         summary: Some("First node".to_string()),
@@ -29,7 +31,7 @@ fn get_governance_nodes_returns_latest_updated_first() {
     upsert_node(&db, node_a).unwrap();
 
     let node_b = UpsertNodeInput {
-        lane_id: "lane-order".to_string(),
+        lane_id: LANE_ID.to_string(),
         node_id: "node-b".to_string(),
         state: Some("executing".to_string()),
         summary: Some("Second node".to_string()),
@@ -44,7 +46,7 @@ fn get_governance_nodes_returns_latest_updated_first() {
 
     // Update node-a so it has a later updated_at than node-b
     let node_a_update = UpsertNodeInput {
-        lane_id: "lane-order".to_string(),
+        lane_id: LANE_ID.to_string(),
         node_id: "node-a".to_string(),
         state: Some("reviewing".to_string()),
         summary: Some("Updated first node".to_string()),
@@ -57,7 +59,7 @@ fn get_governance_nodes_returns_latest_updated_first() {
     };
     upsert_node(&db, node_a_update).unwrap();
 
-    let nodes = queries::get_governance_nodes(&db, Some("lane-order"), None).unwrap();
+    let nodes = queries::get_governance_nodes(&db, Some(LANE_ID), None).unwrap();
     assert_eq!(nodes.len(), 2);
     assert_eq!(
         nodes[0].node_id, "node-a",
