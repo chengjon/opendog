@@ -15,6 +15,10 @@ if str(SCRIPT_DIR) not in sys.path:
 import check_release_readiness as release_readiness
 import check_external_security_audit_status as external_audit
 
+TEST_REPOSITORY = "chengjon/opendog"
+TEST_BRANCH = "master"
+TEST_MAX_AGE_HOURS = "72"
+
 
 class ReleaseReadinessTests(unittest.TestCase):
     def test_defaults_follow_external_security_audit_defaults(self) -> None:
@@ -38,11 +42,11 @@ class ReleaseReadinessTests(unittest.TestCase):
         args = release_readiness.parse_args(
             [
                 "--repo",
-                "chengjon/opendog",
+                TEST_REPOSITORY,
                 "--branch",
-                "master",
+                TEST_BRANCH,
                 "--max-age-hours",
-                "72",
+                TEST_MAX_AGE_HOURS,
             ]
         )
 
@@ -64,12 +68,12 @@ class ReleaseReadinessTests(unittest.TestCase):
                 release_readiness.PYTHON_EXECUTABLE,
                 release_readiness.EXTERNAL_SECURITY_AUDIT_SCRIPT,
                 "--branch",
-                "master",
+                TEST_BRANCH,
                 "--max-age-hours",
-                "72",
+                TEST_MAX_AGE_HOURS,
                 "--require-head",
                 "--repo",
-                "chengjon/opendog",
+                TEST_REPOSITORY,
             ],
             commands[1].argv,
         )

@@ -12,6 +12,11 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import check_external_security_audit_status as audit_status
 
+TEST_REPOSITORY = "chengjon/opendog"
+TEST_WORKFLOW = audit_status.DEFAULT_WORKFLOW
+TEST_BRANCH = "master"
+TEST_RUN_URL = f"https://github.com/{TEST_REPOSITORY}/actions/runs/123"
+
 
 class ExternalSecurityAuditStatusTests(unittest.TestCase):
     def run_payload(self, *, conclusion: str = "success", updated_at: str = "2026-05-31T10:00:00Z") -> dict:
@@ -22,7 +27,7 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
                     "status": "completed",
                     "conclusion": conclusion,
                     "head_sha": "abc123def456",
-                    "html_url": "https://github.com/chengjon/opendog/actions/runs/123",
+                    "html_url": TEST_RUN_URL,
                     "updated_at": updated_at,
                 }
             ]
@@ -82,29 +87,29 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
 
     def test_parses_github_remote_urls(self) -> None:
         self.assertEqual(
-            "chengjon/opendog",
-            audit_status.parse_github_repo("git@github.com:chengjon/opendog.git"),
+            TEST_REPOSITORY,
+            audit_status.parse_github_repo(f"git@github.com:{TEST_REPOSITORY}.git"),
         )
         self.assertEqual(
-            "chengjon/opendog",
-            audit_status.parse_github_repo("https://github.com/chengjon/opendog.git"),
+            TEST_REPOSITORY,
+            audit_status.parse_github_repo(f"https://github.com/{TEST_REPOSITORY}.git"),
         )
 
     def test_builds_gh_api_command_for_workflow_runs(self) -> None:
         command = audit_status.build_workflow_runs_command(
-            "chengjon/opendog",
-            "external-security-audit.yml",
-            "master",
+            TEST_REPOSITORY,
+            TEST_WORKFLOW,
+            TEST_BRANCH,
         )
 
         self.assertEqual("gh", command[0])
-        self.assertIn("repos/chengjon/opendog/actions/workflows/external-security-audit.yml/runs", command)
-        self.assertIn("branch=master", command)
+        self.assertIn(f"repos/{TEST_REPOSITORY}/actions/workflows/{TEST_WORKFLOW}/runs", command)
+        self.assertIn(f"branch={TEST_BRANCH}", command)
 
     def test_fetch_workflow_runs_reports_missing_gh_executable(self) -> None:
         with patch.object(audit_status.shutil, "which", return_value=None):
             with self.assertRaisesRegex(RuntimeError, "gh CLI is required to check external security audit status"):
-                audit_status.fetch_workflow_runs("chengjon/opendog", "external-security-audit.yml", "master")
+                audit_status.fetch_workflow_runs(TEST_REPOSITORY, TEST_WORKFLOW, TEST_BRANCH)
 
     def test_fetch_workflow_runs_reports_gh_disappearing_after_lookup(self) -> None:
         with (
@@ -113,9 +118,9 @@ class ExternalSecurityAuditStatusTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "gh CLI is required to check external security audit status"):
                 audit_status.fetch_workflow_runs(
-                    "chengjon/opendog",
-                    audit_status.DEFAULT_WORKFLOW,
-                    "master",
+                    TEST_REPOSITORY,
+                    TEST_WORKFLOW,
+                    TEST_BRANCH,
                 )
 
     def test_parse_args_supports_require_head(self) -> None:
