@@ -12,6 +12,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import validate_tech_debt_baseline as tech_debt
 import tech_debt_test_support as debt_support
+from tech_debt_baseline import cli as tech_debt_cli
 
 
 class TechDebtBaselineValidationTests(unittest.TestCase):
@@ -218,7 +219,7 @@ class TechDebtBaselineValidationTests(unittest.TestCase):
             root = Path(tmp_dir)
             path = debt_support.write_file(
                 root,
-                "reports/analysis/tech-debt-baseline.json",
+                tech_debt_cli.DEFAULT_BASELINE_PATH.as_posix(),
                 json.dumps(self.baseline()),
             )
 

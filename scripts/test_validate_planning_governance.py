@@ -15,6 +15,7 @@ import validate_planning_governance as planning_governance
 import validate_requirement_mappings as requirement_mappings
 import validate_task_cards as task_cards
 import tech_debt_test_support as debt_support
+from tech_debt_baseline import cli as tech_debt_cli
 
 
 class PlanningGovernanceTechDebtTests(unittest.TestCase):
@@ -66,7 +67,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
             root = Path(tmp_dir)
             baseline_path = debt_support.write_file(
                 root,
-                "reports/analysis/tech-debt-baseline.json",
+                tech_debt_cli.DEFAULT_BASELINE_PATH.as_posix(),
                 json.dumps(self.baseline()),
             )
 
@@ -83,7 +84,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
             root = Path(tmp_dir)
             baseline_path = debt_support.write_file(
                 root,
-                "reports/analysis/tech-debt-baseline.json",
+                tech_debt_cli.DEFAULT_BASELINE_PATH.as_posix(),
                 json.dumps(self.baseline()),
             )
             debt_support.write_file(root, "src/main.rs", "fn demo(value: Option<u8>) { value.unwrap(); }\n")
@@ -104,7 +105,7 @@ class PlanningGovernanceTechDebtTests(unittest.TestCase):
             root = Path(tmp_dir)
             baseline_path = debt_support.write_file(
                 root,
-                "reports/analysis/tech-debt-baseline.json",
+                tech_debt_cli.DEFAULT_BASELINE_PATH.as_posix(),
                 json.dumps(self.dependency_baseline()),
             )
             debt_support.write_cargo_inventory(root)
